@@ -14,7 +14,7 @@
 | 文件或目录 | 用途 |
 | --- | --- |
 | `examples/bridge_status.py` | 检查 Blender 可执行文件和 MCP 桥配置 |
-| `docs/starbridge-link-protocol.md` | StarBridge 总协议 |
+| `docs/中文介绍.md` | StarBridge 总协议 |
 | `docs/codex-drawing-tool-integrations.md` | 绘画和创作工具接入路线 |
 
 当前仓库还没有发布 Blender 生成脚本。下一步应新增公开安全的示例脚本，例如基础展台、产品方块、灯光相机和渲染输出。

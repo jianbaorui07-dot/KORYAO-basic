@@ -16,7 +16,7 @@
 ## 怎么读这个仓库
 
 1. 先看本页，了解仓库范围。
-2. 再看 `docs/starbridge-link-protocol.md`，了解总协议。
+2. 再看 `docs/中文介绍.md`，了解总协议。
 3. 按需要打开上面的 4 个单项中文介绍。
 4. 真要运行时，再看 `examples/` 和对应脚本。
 
@@ -24,7 +24,7 @@
 
 | 路径 | 用途 |
 | --- | --- |
-| `docs/starbridge-link-protocol.md` | 总协议：四条本地软件桥怎么组织 |
+| `docs/中文介绍.md` | 总协议：四条本地软件桥怎么组织 |
 | `docs/codex-drawing-tool-integrations.md` | 绘画、图像、设计、三维、制图工具路线图 |
 | `docs/中文用途索引.md` | 全仓库中文索引 |
 | `examples/bridge_status.py` | 检查 ComfyUI / Blender / CAD / Photoshop 状态 |

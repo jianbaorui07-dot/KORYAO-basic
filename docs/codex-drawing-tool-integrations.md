@@ -18,7 +18,7 @@
 
 | 文件或目录 | 用途 |
 | --- | --- |
-| `docs/starbridge-link-protocol.md` | 星桥三联主协议：ComfyUI、Blender、CAD、Photoshop 四条桥的边界和安全规则 |
+| `docs/中文介绍.md` | 星桥三联主协议：ComfyUI、Blender、CAD、Photoshop 四条桥的边界和安全规则 |
 | `docs/01-codex-cad.md` | Codex 接入 CAD 中文介绍 |
 | `docs/02-codex-comfyui.md` | Codex 接入 ComfyUI 中文介绍 |
 | `docs/03-codex-photoshop.md` | Codex 接入 Photoshop 中文介绍 |
