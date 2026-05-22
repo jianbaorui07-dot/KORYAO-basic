@@ -13,5 +13,6 @@ docs/中文介绍.md
 - Codex 接入 ComfyUI。
 - Codex 接入 Photoshop。
 - Codex 接入 Blender。
+- Codex 接入 Illustrator。
 - 本机路径和个人信息处理规则。
 - GitHub 只发布公开内容的安全边界。
