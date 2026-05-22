@@ -36,6 +36,7 @@ $env:COMFY_OUTPUT_DIR="<path-to-ComfyUI-output>"
 
 ```powershell
 python examples\comfy_bridge\comfy_probe.py
+python examples\comfy_bridge\comfy_probe.py --json
 python examples\bridge_status.py --json
 ```
 
@@ -44,6 +45,8 @@ python examples\bridge_status.py --json
 ```powershell
 python examples\comfy_bridge\run_txt2img.py --prompt "a quiet futuristic tea house in a garden"
 ```
+
+默认会使用 ComfyUI 返回的第一个 checkpoint；需要指定模型时加 `--ckpt "<checkpoint-name>"`。
 
 ## 安全边界
 

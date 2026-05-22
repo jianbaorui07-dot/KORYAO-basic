@@ -6,6 +6,7 @@
     "bridge:status:json": "python examples/bridge_status.py --json",
     "bridge:status:probe": "python examples/bridge_status.py --probe-executables",
     "comfy:probe": "python examples/comfy_bridge/comfy_probe.py",
-    "photoshop:probe": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/com_probe.ps1"
+    "photoshop:probe": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/com_probe.ps1",
+    "test": "python -m unittest discover -s tests"
   }
 }

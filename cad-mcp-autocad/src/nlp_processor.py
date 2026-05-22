@@ -1,6 +1,5 @@
 import logging
 import re
-import math
 from typing import Any, Dict, List, Optional, Tuple
 import json
 import os
@@ -94,20 +93,23 @@ class NLPProcessor:
         }
     
       
-    def extract_color_from_command(self, command: str) -> Optional[int]:
-       
+    def extract_color_from_command(self, command: str | int | None) -> Optional[int]:
+        """Extract an AutoCAD color index from a user command or explicit color value.
+
+        Returns None when no color is specified so callers can keep the CAD default.
+        """
         if command is None:
-            return 7
+            return None
 
         try:
             num = int(command)
             if num >= 1 and num <= 255:
                 return num
-        except:
+        except (TypeError, ValueError):
             pass
 
         # 将命令转换为小写
-        command = command.lower()
+        command = str(command).lower()
         
         # 尝试匹配颜色名称
         for color_name in self.color_rgb_map.keys():
@@ -123,8 +125,8 @@ class NLPProcessor:
             if color_match in self.color_rgb_map:
                 return self.color_rgb_map[color_match]
                     
-        # 如果找不到颜色信息，返回7 默认白色
-        return 7
+        # 如果找不到颜色信息，不覆盖 CAD 默认颜色
+        return None
     
     def process_command(self, command: str) -> Dict[str, Any]:
         """处理自然语言命令并返回结果"""
@@ -162,6 +164,8 @@ class NLPProcessor:
             return self._parse_draw_text(command)
         elif command_type == "draw_hatch":
             return self._parse_draw_hatch(command)
+        elif command_type == "add_dimension":
+            return self._parse_add_dimension(command)
         elif command_type == "save":
             return self._parse_save(command)
         else:
@@ -177,6 +181,11 @@ class NLPProcessor:
         # 检查操作类型
         for action, action_type in self.action_keywords.items():
             if action in command:
+                if action_type == "hatch":
+                    return "draw_hatch"
+                if action_type == "dimension":
+                    return "add_dimension"
+
                 # 基本形状处理
                 for shape, shape_type in self.shape_keywords.items():
                     if shape in command:
@@ -417,7 +426,7 @@ class NLPProcessor:
         coordinates = self._extract_coordinates(command)
         
         # 提取文本内容
-        text_pattern = r'[文本内容|text|内容][：:]\s*[\"\'](.*?)[\"\']'
+        text_pattern = r'(?:文本内容|text|内容)[：:]\s*[\"\'](.*?)[\"\']'
         text_match = re.search(text_pattern, command)
         
         text = ""
@@ -471,7 +480,7 @@ class NLPProcessor:
         # 提取填充图案名称
         pattern_name = "SOLID"  # 默认为实体填充
         pattern_patterns = [
-            r'(?:图案|pattern)[^\w]*?["\'](.*?)["\']\'',
+            r'(?:图案|pattern)[^\w]*?["\'](.*?)["\']',
             r'(?:图案|pattern)[^\w]*?(\w+)'
         ]
         
@@ -504,6 +513,25 @@ class NLPProcessor:
                 "type": "error",
                 "message": "绘制填充需要至少3个点来定义边界"
             }
+
+    def _parse_add_dimension(self, command: str) -> Dict[str, Any]:
+        """解析线性标注命令"""
+        coordinates = self._extract_coordinates(command)
+
+        if len(coordinates) < 2:
+            return {
+                "type": "error",
+                "message": "添加标注需要至少两个坐标点"
+            }
+
+        result: Dict[str, Any] = {
+            "type": "add_dimension",
+            "start_point": coordinates[0],
+            "end_point": coordinates[1],
+        }
+        if len(coordinates) >= 3:
+            result["text_position"] = coordinates[2]
+        return result
 
 
     def _parse_save(self, command: str) -> Dict[str, Any]:

@@ -32,6 +32,7 @@ Start ComfyUI first, then run:
 
 ```powershell
 python examples/comfy_bridge/comfy_probe.py
+python examples/comfy_bridge/comfy_probe.py --json
 ```
 
 Optional local launcher:
@@ -52,6 +53,8 @@ Generate an image:
 ```powershell
 python examples/comfy_bridge/run_txt2img.py --prompt "a quiet futuristic tea house in a garden"
 ```
+
+`run_txt2img.py` defaults to the first checkpoint reported by ComfyUI. Use `--ckpt "<checkpoint-name>"` when you want a specific model.
 
 Optional environment variables:
 
