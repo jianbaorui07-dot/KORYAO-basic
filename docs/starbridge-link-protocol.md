@@ -138,7 +138,30 @@ output\photoshop_bridge_report\
 | `photoshop_bridge_report.json` | 给脚本读取的结构化结果 |
 | `practice\` | 加 `--run-practice` 时保存探针图、测试图和抠图结果 |
 
-### 4.6 单独运行 COM 探针
+报告会汇总：
+
+| 报告区域 | 中文说明 |
+| --- | --- |
+| 环境诊断 | COM 注册、CLSID、`PHOTOSHOP_EXE`、下一步建议 |
+| COM 探测 | Photoshop 版本和当前文档数量 |
+| 当前文档 | 活动文档名称、尺寸、模式、图层数量 |
+| 一键实操 | 探针图、测试图、抠图方法和抠图输出 |
+| 产物清单 | PNG 是否存在、文件大小、图片尺寸、SHA256 摘要 |
+
+### 4.6 验收标准
+
+一次 Photoshop 本机接入视为“跑通”，至少满足：
+
+| 检查项 | 合格标准 |
+| --- | --- |
+| 环境诊断 | `diagnose_local.ps1 -ProbeCom` 返回 `status: ready` |
+| 当前文档 | `document_info.ps1` 能返回 Photoshop 版本和文档数量 |
+| 一键实操 | `run_local_practice.ps1` 返回 `ok: true` |
+| 报告留档 | `write_practice_report.py --run-practice` 生成 Markdown 和 JSON |
+| 图片产物 | 产物清单中探针图、测试图、抠图 PNG 都存在且有 PNG 尺寸 |
+| Git 安全 | `output/` 中的图片和报告不进入 Git 提交 |
+
+### 4.7 单独运行 COM 探针
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_probe.ps1 -OutputPath "$env:TEMP\codex_photoshop_probe.png"
@@ -146,7 +169,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_p
 
 成功时会返回 JSON，包含 Photoshop 版本、测试文档名称、图层数量和 PNG 输出路径。
 
-### 4.7 单独运行主体抠图
+### 4.8 单独运行主体抠图
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extract_subject_to_png.ps1 -InputPath "<source-image>" -OutputPath "$env:TEMP\subject.png"
@@ -205,13 +228,15 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 | `document_info.ps1` 没有活动文档 | Photoshop 已打开但没有文档 | 先打开或创建一个文档，再运行脚本 |
 | 主体抠图带出背景 | 背景复杂、文字干扰、主体边界不清 | 换干净输入图，或人工二次修边、羽化蒙版 |
 | 报告生成失败 | PowerShell 子脚本失败或 JSON 输出异常 | 先单独运行诊断脚本，确认哪个环节失败 |
+| 产物清单缺尺寸 | 输出不是 PNG，或文件未生成完整 | 重新运行 `write_practice_report.py --run-practice`，检查 `practice\` 目录 |
 
 ## 九、后续优化路线
 
 | 优先级 | 任务 |
 | --- | --- |
 | 已完成 | 生成 Photoshop 本机接入 Markdown / JSON 报告 |
-| 高 | 让 `write_practice_report.py` 汇总更多图片质量检查指标 |
+| 已完成 | 让 `write_practice_report.py` 汇总图片大小、尺寸和哈希摘要 |
+| 高 | 增加 Photoshop 输出透明通道检查和边界盒质量指标 |
 | 已完成 | 增加 Photoshop 当前文档信息读取脚本 |
 | 已完成 | 增加 Photoshop 本机环境诊断脚本 |
 | 中 | 把 `extract_subject`、`export_png` 封装成本机 MCP 工具 |

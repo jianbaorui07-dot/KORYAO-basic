@@ -67,7 +67,19 @@ python examples\photoshop_bridge\write_practice_report.py --run-practice
 output\photoshop_bridge_report\
 ```
 
-## 区域六：COM 探针
+报告会列出探针图、测试输入图、主体抠图 PNG 的文件大小、PNG 尺寸和 SHA256 摘要，方便确认产物真实生成。
+
+## 区域六：验收标准
+
+| 检查项 | 合格标准 |
+| --- | --- |
+| 环境诊断 | `diagnose_local.ps1 -ProbeCom` 返回 `ready` |
+| 一键实操 | `run_local_practice.ps1` 返回 `ok: true` |
+| 报告留档 | `write_practice_report.py --run-practice` 生成 Markdown 和 JSON |
+| 图片产物 | 产物清单中的 PNG 都存在，并显示尺寸 |
+| Git 安全 | `output/` 目录没有进入 Git 提交 |
+
+## 区域七：COM 探针
 
 创建一个测试文档并导出 PNG：
 
@@ -77,7 +89,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_p
 
 返回结果为 JSON，包含 Photoshop 版本、输出路径、文档尺寸和图层数。
 
-## 区域七：主体抠图
+## 区域八：主体抠图
 
 从输入图里尝试提取主体，并导出透明 PNG：
 
@@ -87,7 +99,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 
 脚本使用 Photoshop 的主体选择能力。复杂海报、文字背景、线稿背景可能会带出背景残留，适合作为半自动起点，不保证一次达到商业级精修。
 
-## 区域八：安全边界
+## 区域九：安全边界
 
 - 不覆盖原图，只输出新文件。
 - 不提交输入图、输出图、PSD、字体、笔刷、素材库或账号信息。

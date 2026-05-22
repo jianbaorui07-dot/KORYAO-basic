@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import struct
 import subprocess
 import sys
 from datetime import datetime
@@ -66,10 +68,93 @@ def status_text(report: dict[str, Any]) -> str:
     return "需要继续配置 Photoshop"
 
 
+def png_dimensions(path: Path) -> tuple[int, int] | None:
+    try:
+        with path.open("rb") as file:
+            header = file.read(24)
+    except OSError:
+        return None
+
+    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", header[16:24])
+
+
+def sha256_file(path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256()
+        with path.open("rb") as file:
+            for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+    except OSError:
+        return None
+
+
+def artifact_info(role: str, path_value: str | None) -> dict[str, Any]:
+    if not path_value:
+        return {
+            "role": role,
+            "path": None,
+            "exists": False,
+        }
+
+    path = Path(path_value)
+    exists = path.exists()
+    info: dict[str, Any] = {
+        "role": role,
+        "path": str(path),
+        "exists": exists,
+    }
+    if exists:
+        info["bytes"] = path.stat().st_size
+        info["sha256"] = sha256_file(path)
+        dimensions = png_dimensions(path)
+        if dimensions:
+            info["png_width"], info["png_height"] = dimensions
+    return info
+
+
+def collect_artifacts(report: dict[str, Any]) -> list[dict[str, Any]]:
+    practice = report.get("practice")
+    if not practice:
+        return []
+    return [
+        artifact_info("Photoshop 探针 PNG", practice.get("probe_output")),
+        artifact_info("公开测试输入图", practice.get("subject_input")),
+        artifact_info("主体抠图 PNG", practice.get("subject_cutout_output")),
+    ]
+
+
+def render_artifact_table(artifacts: list[dict[str, Any]]) -> list[str]:
+    if not artifacts:
+        return ["本次没有记录图片产物。需要完整闭环时加 `--run-practice`。"]
+
+    rows = ["| 产物 | 是否存在 | 大小 | 图片尺寸 | SHA256 摘要 | 路径 |", "| --- | --- | --- | --- | --- | --- |"]
+    for item in artifacts:
+        size = item.get("bytes")
+        dimensions = "-"
+        if item.get("png_width") and item.get("png_height"):
+            dimensions = f"{item['png_width']} x {item['png_height']}"
+        sha = item.get("sha256") or ""
+        rows.append(
+            "| {role} | {exists} | {size} | {dimensions} | `{sha}` | `{path}` |".format(
+                role=item["role"],
+                exists=yes_no(item.get("exists")),
+                size=f"{size} bytes" if size is not None else "-",
+                dimensions=dimensions,
+                sha=sha[:16],
+                path=item.get("path") or "-",
+            )
+        )
+    return rows
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     diagnose = report.get("diagnose", {})
     document = report.get("document_info", {})
     practice = report.get("practice")
+    artifacts = report.get("artifacts", [])
     com_probe = diagnose.get("com_probe") or {}
     running = diagnose.get("running_processes") or []
 
@@ -138,7 +223,11 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "## 六、安全说明",
+            "## 六、产物清单",
+            "",
+            *render_artifact_table(artifacts),
+            "",
+            "## 七、安全说明",
             "",
             "- 本报告和生成图片默认写入 `output/`，不会提交到 GitHub。",
             "- 不记录账号、授权、Cookie、token、客户图片或 PSD 私有工程。",
@@ -168,6 +257,8 @@ def main() -> None:
     if args.run_practice:
         practice_dir = output_dir / "practice"
         report["practice"] = run_powershell("run_local_practice.ps1", "-OutputDir", str(practice_dir))
+
+    report["artifacts"] = collect_artifacts(report)
 
     json_path = output_dir / "photoshop_bridge_report.json"
     md_path = output_dir / "photoshop_bridge_report.md"
