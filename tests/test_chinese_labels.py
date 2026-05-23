@@ -61,6 +61,8 @@ class ChineseLabelCoverageTest(unittest.TestCase):
         self.assertIn("主体边界", protocol)
         self.assertIn("AI 矢量文件桥", protocol)
         self.assertIn("Adobe Illustrator 的 `.ai`", protocol)
+        self.assertIn("整体方案和本机实例对照", protocol)
+        self.assertIn("本机没有时怎么补", protocol)
         self.assertIn("星桥链接协议入口", index)
 
     def test_illustrator_vector_bridge_is_indexed(self) -> None:
@@ -78,6 +80,18 @@ class ChineseLabelCoverageTest(unittest.TestCase):
         self.assertIn("trace_image_to_vector", illustrator_doc)
         self.assertIn("def check_illustrator", bridge_status)
         self.assertIn("Illustrator.Application", bridge_status)
+
+    def test_local_instance_comparison_covers_missing_local_apps(self) -> None:
+        protocol = self.read_text("docs/starbridge-link-protocol.md")
+        bridge_status = self.read_text("examples/bridge_status.py")
+        readme = self.read_text("README.md")
+
+        self.assertIn("剪映/CapCut 草稿桥", protocol)
+        self.assertIn("JIANYING_DRAFTS_DIR", protocol)
+        self.assertIn("CAPCUT_DRAFTS_DIR", protocol)
+        self.assertIn("def check_jianying_capcut", bridge_status)
+        self.assertIn("CAPCUT_EXE", bridge_status)
+        self.assertIn("剪映可执行文件", readme)
 
 
 if __name__ == "__main__":

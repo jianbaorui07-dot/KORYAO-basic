@@ -416,6 +416,50 @@ def check_illustrator(probe_com: bool) -> dict:
         return status("Illustrator", "warn", details, data, "AI 矢量文件桥")
 
 
+def env_path_exists(name: str) -> tuple[bool, bool]:
+    value = os.environ.get(name)
+    return bool(value), bool(value and Path(value).exists())
+
+
+def check_jianying_capcut() -> dict:
+    jianying_exe_configured, jianying_exe_exists = env_path_exists("JIANYING_EXE")
+    capcut_exe_configured, capcut_exe_exists = env_path_exists("CAPCUT_EXE")
+    jianying_drafts_configured, jianying_drafts_exists = env_path_exists("JIANYING_DRAFTS_DIR")
+    capcut_drafts_configured, capcut_drafts_exists = env_path_exists("CAPCUT_DRAFTS_DIR")
+
+    details = [
+        "安全说明：剪映/CapCut 草稿路径、素材路径、账号和导出视频不写进公开仓库。",
+        f"是否配置 JIANYING_EXE：{jianying_exe_configured}，路径是否存在：{jianying_exe_exists}",
+        f"是否配置 CAPCUT_EXE：{capcut_exe_configured}，路径是否存在：{capcut_exe_exists}",
+        f"是否配置 JIANYING_DRAFTS_DIR：{jianying_drafts_configured}，路径是否存在：{jianying_drafts_exists}",
+        f"是否配置 CAPCUT_DRAFTS_DIR：{capcut_drafts_configured}，路径是否存在：{capcut_drafts_exists}",
+    ]
+    data = {
+        "jianying_exe_configured": jianying_exe_configured,
+        "jianying_exe_exists": jianying_exe_exists,
+        "capcut_exe_configured": capcut_exe_configured,
+        "capcut_exe_exists": capcut_exe_exists,
+        "jianying_drafts_dir_configured": jianying_drafts_configured,
+        "jianying_drafts_dir_exists": jianying_drafts_exists,
+        "capcut_drafts_dir_configured": capcut_drafts_configured,
+        "capcut_drafts_dir_exists": capcut_drafts_exists,
+    }
+
+    has_executable = jianying_exe_exists or capcut_exe_exists
+    has_drafts = jianying_drafts_exists or capcut_drafts_exists
+    if has_executable and has_drafts:
+        state = "ok"
+        details.append("本机实例已具备可执行文件和草稿目录线索。")
+    elif any(data.values()):
+        state = "warn"
+        details.append("本机实例已有部分配置，但还缺可执行文件或草稿目录确认。")
+    else:
+        state = "warn"
+        details.append("处理建议：先手动确认剪映/CapCut 能正常打开，再用环境变量配置草稿目录。")
+
+    return status("JianyingCapCut", state, details, data, "剪映/CapCut 短视频草稿桥")
+
+
 def print_text_report(results: list[dict]) -> None:
     print("星桥本地软件接入状态")
     print("=" * 28)
@@ -447,6 +491,7 @@ def main() -> None:
         check_cad(),
         check_photoshop(args.probe_executables),
         check_illustrator(args.probe_executables),
+        check_jianying_capcut(),
     ]
 
     if args.json:

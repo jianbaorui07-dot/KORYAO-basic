@@ -67,7 +67,7 @@ npm.cmd run bridge:status:json
 | --- | --- | --- |
 | 总览和协议 | `README.md`、`docs/中文介绍.md`、`docs/starbridge-link-protocol.md` | 说明项目定位、本地软件桥分工和公开边界 |
 | 中文索引 | `docs/中文用途索引.md`、`docs/中文标注规范.md` | 标注每个主要文件用途，统一中文说明方式 |
-| 状态检查 | `examples/bridge_status.py` | 一次检查 ComfyUI、Blender、CAD、Photoshop 本机配置 |
+| 状态检查 | `examples/bridge_status.py` | 一次检查 ComfyUI、Blender、CAD、Photoshop、Illustrator、剪映/CapCut 本机配置 |
 | 图像生成区 | `examples/comfy_bridge/` | API 探针、文生图脚本和 workflow JSON |
 | 工程制图区 | `cad-mcp-autocad/`、`scripts/` | AutoCAD MCP 子项目和自动绘图脚本 |
 | Photoshop 示例 | `examples/photoshop_bridge/` | COM 诊断、测试文档、主体抠图和本机报告 |
@@ -89,6 +89,8 @@ npm.cmd run bridge:status:json
 | AutoCAD 可执行文件 | `AUTOCAD_EXE` |
 | Photoshop 可执行文件 | `PHOTOSHOP_EXE` |
 | Illustrator 可执行文件 | `ILLUSTRATOR_EXE` |
+| 剪映可执行文件 | `JIANYING_EXE` |
+| CapCut 可执行文件 | `CAPCUT_EXE` |
 | 剪映草稿目录 | `JIANYING_DRAFTS_DIR` |
 | CapCut 草稿目录 | `CAPCUT_DRAFTS_DIR` |
 | 下载收件箱 | `STARBRIDGE_DOWNLOAD_INBOX` |

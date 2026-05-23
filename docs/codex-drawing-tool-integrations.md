@@ -28,7 +28,7 @@
 | `docs/05-codex-illustrator.md` | Codex 接入 Illustrator / AI 矢量文件中文介绍 |
 | `docs/06-codex-jianying.md` | Codex 接入剪映 / CapCut 调研和路线 |
 | `docs/photoshop-codex-bridge.md` | Photoshop 本地桥接入方案、实验结论和安全边界 |
-| `examples/bridge_status.py` | 一次检查 ComfyUI、Blender、CAD、Photoshop、Illustrator 的本机可用性 |
+| `examples/bridge_status.py` | 一次检查 ComfyUI、Blender、CAD、Photoshop、Illustrator、剪映 / CapCut 的本机可用性 |
 | `examples/comfy_bridge/README.md` | ComfyUI API 示例说明 |
 | `examples/comfy_bridge/comfy_probe.py` | 只读读取 ComfyUI 状态、设备和 checkpoint |
 | `examples/comfy_bridge/run_txt2img.py` | 提交基础文生图 workflow |

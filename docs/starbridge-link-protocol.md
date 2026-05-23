@@ -54,11 +54,33 @@
 
 公开仓库只保存接入说明、状态检查和通用脚本方向；客户图稿、私有 `.ai`、源图路径、导出结果和商业字体都只留本机。详细说明见 `docs/05-codex-illustrator.md`。
 
-## 四、Photoshop 本机接入实操
+## 四、整体方案和本机实例对照
+
+这里把 **项目整体** 和 **本机实例** 分开看：项目整体是 GitHub 里可公开协作的文档、脚本和路线；本机实例是当前电脑上真正安装、启动、授权和配置过的软件。缺的应用不写死到仓库里，而是用环境变量、手动启动和本机探针应用到本机。
+
+| 软件桥 | 项目整体已有内容 | 本机实例检查项 | 本机没有时怎么补 |
+| --- | --- | --- | --- |
+| ComfyUI 图像生成桥 | `examples/comfy_bridge/`、文生图 workflow、API 探针 | `COMFY_BASE_URL`、`COMFY_ROOT`、`COMFY_LAUNCHER`，以及 `127.0.0.1:8188` 是否可连接 | 先启动 ComfyUI；如目录不在默认位置，用环境变量配置，不提交模型和输出图 |
+| Blender 三维场景桥 | `docs/04-codex-blender.md` 和后续场景脚本路线 | `BLENDER_EXE`、`BLENDER_MCP_DIR` | 安装或打开 Blender；配置本机路径环境变量，不提交 `.blend`、贴图和资产库 |
+| CAD / AutoCAD 工程制图桥 | `cad-mcp-autocad/`、`AUTOCAD_MCP_SETUP.md`、`scripts/` | `AUTOCAD_EXE`、`pywin32/win32com`、AutoCAD MCP 子项目 | 安装/打开 AutoCAD；配置 `AUTOCAD_EXE`；客户 DWG 和真实图纸只留本机 |
+| Photoshop 修图桥 | `examples/photoshop_bridge/`、诊断、COM 探针、主体抠图实验 | `PHOTOSHOP_EXE`、`Photoshop.Application` COM、运行中的 Photoshop | 手动打开已授权 Photoshop；需要时配置 `PHOTOSHOP_EXE`；输入/输出路径只用参数传入 |
+| AI 矢量文件桥 | `docs/05-codex-illustrator.md`、Illustrator / `.ai` 接入路线 | `ILLUSTRATOR_EXE`、`Illustrator.Application` COM、运行中的 Illustrator | 手动打开已授权 Illustrator；配置 `ILLUSTRATOR_EXE`；客户 `.ai`、源图和导出结果不提交 |
+| 剪映/CapCut 草稿桥 | `docs/06-codex-jianying.md`、本地草稿桥调研 | `JIANYING_EXE`、`CAPCUT_EXE`、`JIANYING_DRAFTS_DIR`、`CAPCUT_DRAFTS_DIR` | 用户手动确认软件和草稿目录；用环境变量提供目录；草稿、素材和导出视频不进 Git |
+
+本机实例统一用这个命令查看：
+
+```powershell
+python examples\bridge_status.py --json
+python examples\bridge_status.py --probe-executables
+```
+
+如果某条桥显示 `未找到` 或 `需配置`，优先按上表在本机补环境变量或手动打开软件。不要把真实安装路径、草稿目录、素材目录、源图路径或导出目录写进公开文档。
+
+## 五、Photoshop 本机接入实操
 
 这条桥已经可以在 Windows 本机通过 `Photoshop.Application` COM 对象执行 Photoshop JavaScript。
 
-### 4.1 前置条件
+### 5.1 前置条件
 
 | 项目 | 要求 |
 | --- | --- |
@@ -73,7 +95,7 @@
 python examples\bridge_status.py
 ```
 
-### 4.2 先做环境诊断
+### 5.2 先做环境诊断
 
 只检查 Photoshop 安装线索、COM 注册、进程状态，不强制跑图像处理：
 
@@ -98,7 +120,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\diagn
 | `com_probe` | 加 `-ProbeCom` 时返回版本和当前文档数量 |
 | `next_step` | 下一步建议 |
 
-### 4.3 一键实操命令
+### 5.3 一键实操命令
 
 运行下面命令，会自动完成三件事：
 
@@ -118,7 +140,7 @@ output\photoshop_bridge_practice\
 
 这个目录属于本机生成物，已经被 `.gitignore` 的 `output/` 规则排除，不会提交到 GitHub。
 
-### 4.4 读取当前文档信息
+### 5.4 读取当前文档信息
 
 如果 Photoshop 已经打开，可以读取当前文档名称、尺寸、模式和图层数量：
 
@@ -128,7 +150,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\docum
 
 这个命令不保存图片，只读取当前 Photoshop 状态。
 
-### 4.5 生成本机接入报告
+### 5.5 生成本机接入报告
 
 生成中文 Markdown 和 JSON 报告，汇总环境诊断、COM 探测、当前文档信息：
 
@@ -168,7 +190,7 @@ output\photoshop_bridge_report\
 
 一键实操开始时会清理本轮固定产物文件，避免旧图误入报告。如果 Photoshop 临时忙碌，实操脚本会短暂等待并重试；如果仍然失败，报告仍会按固定输出目录回收本轮已经生成的探针图、测试图和抠图 PNG。
 
-### 4.6 验收标准
+### 5.6 验收标准
 
 一次 Photoshop 本机接入视为“跑通”，至少满足：
 
@@ -183,7 +205,7 @@ output\photoshop_bridge_report\
 | 主体边界 | 主体抠图 PNG 显示 alpha 主体边界、四边边距和主体像素占比 |
 | Git 安全 | `output/` 中的图片和报告不进入 Git 提交 |
 
-### 4.7 单独运行 COM 探针
+### 5.7 单独运行 COM 探针
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_probe.ps1 -OutputPath "$env:TEMP\codex_photoshop_probe.png"
@@ -191,7 +213,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_p
 
 成功时会返回 JSON，包含 Photoshop 版本、测试文档名称、图层数量和 PNG 输出路径。
 
-### 4.8 单独运行主体抠图
+### 5.8 单独运行主体抠图
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extract_subject_to_png.ps1 -InputPath "<source-image>" -OutputPath "$env:TEMP\subject.png"
@@ -199,7 +221,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 
 脚本会调用 Photoshop 的主体选择能力，输出透明 PNG。复杂背景、海报文字、线稿背景可能需要人工二次修边。
 
-## 五、Photoshop 桥文件标注
+## 六、Photoshop 桥文件标注
 
 | 文件 | 中文用途 |
 | --- | --- |
@@ -213,7 +235,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 | `docs/photoshop-codex-bridge.md` | Photoshop 本地桥详细方案和后续 MCP 方向 |
 | `docs/03-codex-photoshop.md` | Codex 接入 Photoshop 的单项中文文档 |
 
-## 六、输出结果怎么处理
+## 七、输出结果怎么处理
 
 | 输出类型 | 建议位置 | 是否提交 |
 | --- | --- | --- |
@@ -226,7 +248,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 | 脚本和说明 | `examples/`、`docs/` | 可以提交 |
 | 私有 PSD、客户图、商业素材 | 本机私有目录 | 不提交 |
 
-## 七、安全边界
+## 八、安全边界
 
 允许进入 GitHub：
 
@@ -244,7 +266,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 - 剪映 / CapCut 草稿、缓存、导出视频、字幕原稿、会员状态和账号信息。
 - 任何需要登录、订阅、验证码、OAuth 或人工授权的信息。
 
-## 八、故障排查表
+## 九、故障排查表
 
 | 现象 | 常见原因 | 处理方式 |
 | --- | --- | --- |
@@ -260,7 +282,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 | 透明像素为 0 | 主体选择没有产生透明背景，或整张图被视为主体 | 换更干净的输入图，或人工建立选区后再导出 |
 | 主体边界贴边 | 主体被裁掉，或输入图主体超出画面 | 换留白更充足的输入图，或先扩展画布再运行主体选择 |
 
-## 九、后续优化路线
+## 十、后续优化路线
 
 | 优先级 | 任务 |
 | --- | --- |
@@ -276,7 +298,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 | 中 | 增加二次蒙版、边缘羽化和人工确认流程 |
 | 低 | 评估 UXP 面板，把当前文档、图层、选择区暴露给本地桥 |
 
-## 十、最短执行路径
+## 十一、最短执行路径
 
 如果只想确认 Codex 已经能接入本机 Photoshop，执行：
 
