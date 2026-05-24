@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,25 @@ STATUS_LABELS = {
 }
 
 
+def redact_text(value: str) -> str:
+    home = str(Path.home())
+    redacted = value
+    if home:
+        redacted = re.sub(re.escape(home), "<USER_HOME>", redacted, flags=re.IGNORECASE)
+    redacted = re.sub(r"C:\\Users\\[^\\\s，）)]+", "<USER_HOME>", redacted, flags=re.IGNORECASE)
+    return redacted
+
+
+def safe_value(value):
+    if isinstance(value, str):
+        return redact_text(value)
+    if isinstance(value, list):
+        return [safe_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: safe_value(item) for key, item in value.items()}
+    return value
+
+
 def unique_paths(paths: list[Path]) -> list[Path]:
     seen: set[str] = set()
     result: list[Path] = []
@@ -41,8 +61,8 @@ def status(name: str, state: str, details: list[str], data: dict | None = None, 
         "label": label or name,
         "status": state,
         "status_label": STATUS_LABELS.get(state, state),
-        "details": details,
-        "data": data or {},
+        "details": safe_value(details),
+        "data": safe_value(data or {}),
     }
 
 
@@ -482,6 +502,7 @@ def main() -> None:
         help="对已找到的软件运行轻量版本探测；部分商业软件可能启动较慢。",
     )
     parser.add_argument("--json", action="store_true", help="输出机器可读 JSON。")
+    parser.add_argument("--strict", action="store_true", help="任一 bridge 未通过时返回退出码 1。")
     args = parser.parse_args()
 
     results = [
@@ -498,9 +519,7 @@ def main() -> None:
     else:
         print_text_report(results)
 
-    if any(result["status"] == "error" for result in results):
-        raise SystemExit(2)
-    if any(result["status"] in {"missing", "warn"} for result in results):
+    if args.strict and any(result["status"] in {"error", "missing", "warn"} for result in results):
         raise SystemExit(1)
 
 
