@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import unquote
 
 import security_check
+import bridge_capability_matrix
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -128,6 +129,19 @@ def check_sample_reports() -> dict[str, Any]:
     )
 
 
+def check_bridge_capabilities() -> dict[str, Any]:
+    registry = bridge_capability_matrix.load_registry()
+    failures = bridge_capability_matrix.validate_registry(registry)
+    if failures:
+        return make_result("bridge_capabilities", "fail", "桥应用能力矩阵不符合契约。", {"failures": failures})
+    return make_result(
+        "bridge_capabilities",
+        "pass",
+        "桥应用能力矩阵通过。",
+        {"bridges_checked": [bridge["bridge_id"] for bridge in registry["bridges"]]},
+    )
+
+
 def normalize_link(raw_target: str) -> str | None:
     target = raw_target.strip()
     if not target:
@@ -186,6 +200,7 @@ def run_checks() -> list[dict[str, Any]]:
         check_security(),
         check_bridge_metadata(),
         check_sample_reports(),
+        check_bridge_capabilities(),
         check_markdown_links(),
     ]
 
