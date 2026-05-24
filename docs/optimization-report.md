@@ -51,7 +51,7 @@ OK
 
 ### `python examples\bridge_status.py --json`
 
-结果：失败退出码 `1`，但脚本正常输出 JSON。失败原因是本机运行状态/环境变量未满足，不是代码异常。
+结果：通过，退出码 `0`。本机运行状态/环境变量未满足时，脚本仍输出 JSON，并通过 bridge status 表达未就绪。
 
 摘要：
 
@@ -104,10 +104,58 @@ security check passed
 python -m starbridge_mcp.server --json
 ```
 
-结果：失败退出码 `1`，原因同 `bridge_status.py`：部分本机软件未启动或未配置。JSON schema 正常，所有 bridge result 均包含：
+结果：通过，退出码 `0`。部分本机软件未启动或未配置时，统一入口仍输出 JSON；只有显式加 `--strict` 时才返回失败退出码。所有 bridge result 均包含：
 
 ```text
 ok, bridge, action, message, details, warnings, next_steps
+```
+
+## 第二轮状态探针优化
+
+时间：2026-05-24
+
+本轮只基于已提交的 StarBridge MVP 做增量增强，没有修改未跟踪的 CAD MVP 根目录文件。
+
+完成内容：
+
+- `starbridge_mcp.server` 为六个 bridge 增加更清楚的状态元信息：
+  - `comfyui`
+  - `photoshop`
+  - `illustrator`
+  - `blender`
+  - `autocad`
+  - `jianying_capcut`
+- 每个 bridge 的 `details` 增加：
+  - `display_name`
+  - `software`
+  - `probe_type`
+  - `required_env`
+  - `ready_when`
+  - `safety_boundary`
+  - `current_actions`
+- 保留旧 CLI alias：
+  - `cad_autocad` -> `autocad`
+  - `capcut_jianying` -> `jianying_capcut`
+- 新增 [docs/starbridge-tool-roadmap.md](starbridge-tool-roadmap.md)，规划 `status`、`probe`、`open_file`、`read_document_info`、`export_result`、`run_script`。
+- 新增 [docs/codex-usage-prompts.md](codex-usage-prompts.md)，整理未来 Codex 调用 StarBridge 的标准提示词。
+- 增加 schema 测试，覆盖所有 bridge profile 的统一返回字段。
+
+第二轮验证结果：
+
+```text
+python -m unittest discover -s tests
+Ran 42 tests
+OK
+
+python -m starbridge_mcp.server --json
+exit code 0
+
+python examples\bridge_status.py --json
+exit code 0
+
+npm.cmd test
+Ran 42 tests
+OK
 ```
 
 ## 风险和下一步

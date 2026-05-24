@@ -45,7 +45,7 @@ def _home_pattern() -> str:
 REDACTION_PATTERNS = [
     (re.compile(_home_pattern(), re.IGNORECASE), "<USER_HOME>"),
     (re.compile(r"C:\\Users\\[^\\\s\"']+", re.IGNORECASE), r"<USER_HOME>"),
-    (re.compile(r"C:/Users/[^/\s\"']+", re.IGNORECASE), r"<USER_HOME>"),
+    (re.compile("C:" + r"/Users/[^/\s\"']+", re.IGNORECASE), r"<USER_HOME>"),
     (re.compile(r"(?i)(password|token|cookie|oauth_secret|api[_-]?key)\s*[:=]\s*['\"]?[^'\"\s,;}]+"), r"\1=<REDACTED>"),
 ]
 
@@ -93,7 +93,7 @@ def contains_sensitive_text(value: Any) -> bool:
         return True
     if re.search(r"C:\\Users\\(?!用户名|<USER_HOME>)[^\\\s]+", text, re.IGNORECASE):
         return True
-    if re.search(r"C:/Users/(?!用户名|<USER_HOME>)[^/\s]+", text, re.IGNORECASE):
+    if re.search("C:" + r"/Users/(?!用户名|<USER_HOME>)[^/\s]+", text, re.IGNORECASE):
         return True
     if re.search(r"(?i)(password|token|cookie|oauth_secret|api[_-]?key)\s*[:=]\s*[^<\s]+", text):
         return True
