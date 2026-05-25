@@ -1,0 +1,34 @@
+name: Bridge safety issue
+description: Report a public-safe StarBridge safety or release-readiness issue.
+title: "[Safety]: "
+labels: ["safety", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste tokens, real paths, private assets, customer files, model names, or draft contents.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the issue using redacted examples only.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CI
+        - Documentation
+        - Security redaction
+        - Bridge status or probe
+        - Repository hygiene
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

@@ -19,12 +19,32 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests
 
+      - name: Run npm test when available
+        shell: pwsh
+        run: |
+          if (Test-Path package.json) {
+            $package = Get-Content package.json -Raw | ConvertFrom-Json
+            if ($package.scripts -and $package.scripts.test) {
+              npm test
+            } else {
+              Write-Host "No npm test script configured."
+            }
+          } else {
+            Write-Host "No package.json found."
+          }
+
       - name: Run security check
         run: python scripts/security_check.py
+
+      - name: Run repository safety checks
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/check_forbidden_files.ps1
+          powershell -ExecutionPolicy Bypass -File scripts/check_repository_safety.ps1
+          powershell -ExecutionPolicy Bypass -File scripts/check_release_ready.ps1
 
       - name: Collect bridge manifest
         run: python scripts/collect_bridge_status.py --json
 
       - name: Run safe local status check
-        run: python examples/bridge_status.py --json
-        continue-on-error: true
+        run: python -m starbridge_mcp.server --json
