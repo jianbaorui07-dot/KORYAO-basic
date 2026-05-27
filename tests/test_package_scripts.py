@@ -17,11 +17,17 @@ class PackageScriptsTest(unittest.TestCase):
     def test_scripts_are_grouped_by_clear_prefixes(self) -> None:
         self.assertEqual(
             {
+                "starbridge:status",
+                "starbridge:status:strict",
+                "starbridge:tools",
+                "starbridge:tools:safe",
                 "status:manifest",
                 "status:manifest:json",
                 "status:probe",
                 "status:probe:json",
+                "cad:dxf:dry-run",
                 "comfy:probe",
+                "comfy:workflow:validate",
                 "comfy:txt2img",
                 "photoshop:diagnose",
                 "security:check",

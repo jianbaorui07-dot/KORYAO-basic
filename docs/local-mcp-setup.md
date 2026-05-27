@@ -17,6 +17,8 @@ StarBridge 当前实现的是最小统一状态入口：先让 Codex、Cursor、
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_starbridge.ps1
 python -m starbridge_mcp.server --json
+npm.cmd run starbridge:status
+npm.cmd run starbridge:tools:safe
 ```
 
 如果只检查某一个桥：
@@ -47,6 +49,16 @@ $env:CAPCUT_DRAFTS_DIR="<path-to-capcut-drafts>"
 ## 3. Codex / Cursor / Claude Code 配置方向
 
 当前 `starbridge_mcp.server` 是 CLI-style JSON 状态入口，还不是完整 MCP stdio server。MCP 客户端可以先用“本地命令工具”或 workspace 脚本调用它；后续会把同一套 schema 挂到真正 MCP tool registry。
+
+当前可直接调用的本地命令：
+
+```powershell
+npm.cmd run starbridge:status
+npm.cmd run starbridge:tools
+npm.cmd run starbridge:tools:safe
+npm.cmd run cad:dxf:dry-run
+npm.cmd run comfy:workflow:validate
+```
 
 建议的未来 MCP 配置形态：
 

@@ -9,6 +9,7 @@ from typing import Any
 from starbridge_mcp.core.config import StarBridgeConfig, env_summary
 from starbridge_mcp.core.result_schema import make_result, validate_result
 from starbridge_mcp.core.security import sanitize
+from starbridge_mcp.core.tool_registry import capability_summary
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ BRIDGE_NAME_MAP = {
 
 BRIDGE_ALIASES = {
     "cad_autocad": "autocad",
+    "cad_dxf": "autocad_dxf",
     "capcut_jianying": "jianying_capcut",
 }
 
@@ -75,6 +77,15 @@ BRIDGE_PROFILES: dict[str, dict[str, Any]] = {
         "ready_when": "AutoCAD MCP 子项目存在，且找到 AutoCAD 可执行文件或 COM 线索。",
         "safety_boundary": "不打开客户 DWG/DXF，不写真实项目输出；离线 DXF 与真实 CAD 控制分开处理。",
         "current_actions": ["status", "probe"],
+    },
+    "autocad_dxf": {
+        "display_name": "AutoCAD / DXF 离线生成桥",
+        "software": "DXF headless bridge",
+        "probe_type": "schema and dry-run status",
+        "required_env": [],
+        "ready_when": "无需 AutoCAD；CAD plan 可校验，DXF 写入默认 dry-run。",
+        "safety_boundary": "不打开 DWG，不控制 AutoCAD；dry_run=False 时只允许写入 examples/cad/output。",
+        "current_actions": ["status", "validate_cad_plan", "summarize_plan", "write_dxf"],
     },
     "jianying_capcut": {
         "display_name": "剪映/CapCut 草稿桥",
@@ -142,6 +153,7 @@ def normalize_legacy_status(result: dict[str, Any]) -> dict[str, Any]:
 
 def collect_status(*, comfy_url: str, timeout: int, probe_executables: bool) -> list[dict[str, Any]]:
     from examples import bridge_status as legacy
+    from starbridge_mcp.bridges.autocad_dxf import status as autocad_dxf_status
 
     legacy_results = [
         legacy.check_comfy(comfy_url, timeout),
@@ -151,10 +163,17 @@ def collect_status(*, comfy_url: str, timeout: int, probe_executables: bool) -> 
         legacy.check_illustrator(probe_executables),
         legacy.check_jianying_capcut(),
     ]
-    return [normalize_legacy_status(item) for item in legacy_results]
+    return [normalize_legacy_status(item) for item in legacy_results] + [autocad_dxf_status()]
 
 
 def build_response(args: argparse.Namespace) -> dict[str, Any]:
+    requested_bridge = BRIDGE_ALIASES.get(args.bridge, args.bridge)
+    if args.action == "tools":
+        return capability_summary(
+            bridge=requested_bridge,
+            include_guarded=not args.safe_only,
+        )
+
     config = StarBridgeConfig(timeout=args.timeout)
     comfy_url = args.comfy_url or config.comfy_url
     results = collect_status(
@@ -162,7 +181,6 @@ def build_response(args: argparse.Namespace) -> dict[str, Any]:
         timeout=args.timeout,
         probe_executables=args.probe_executables,
     )
-    requested_bridge = BRIDGE_ALIASES.get(args.bridge, args.bridge)
     if requested_bridge != "all":
         results = [item for item in results if item["bridge"] == requested_bridge]
     return sanitize(
@@ -178,7 +196,7 @@ def build_response(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="StarBridge 本地创意软件 MCP 桥接框架最小状态入口。")
-    parser.add_argument("action", nargs="?", default="status", choices=["status"], help="当前实现 status。")
+    parser.add_argument("action", nargs="?", default="status", choices=["status", "tools"], help="当前实现 status 和 tools。")
     parser.add_argument(
         "--bridge",
         default="all",
@@ -188,6 +206,8 @@ def main() -> None:
             "blender",
             "autocad",
             "cad_autocad",
+            "autocad_dxf",
+            "cad_dxf",
             "photoshop",
             "illustrator",
             "jianying_capcut",
@@ -197,13 +217,14 @@ def main() -> None:
     parser.add_argument("--comfy-url", default=None)
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--probe-executables", action="store_true")
+    parser.add_argument("--safe-only", action="store_true", help="tools 动作只列出 safe_default 能力。")
     parser.add_argument("--json", action="store_true", help="保留给兼容；当前始终输出 JSON。")
     parser.add_argument("--strict", action="store_true", help="任一 bridge 未通过时返回退出码 1。")
     args = parser.parse_args()
 
     response = build_response(args)
     print(json.dumps(response, ensure_ascii=False, indent=2))
-    if args.strict and any(not item["ok"] for item in response["results"]):
+    if args.strict and args.action == "status" and any(not item["ok"] for item in response["results"]):
         raise SystemExit(1)
 
 

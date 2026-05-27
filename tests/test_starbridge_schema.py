@@ -41,7 +41,8 @@ class StarBridgeSchemaTests(unittest.TestCase):
             "CAD": "autocad",
             "JianyingCapCut": "jianying_capcut",
         }
-        self.assertEqual(set(BRIDGE_PROFILES), set(legacy_names.values()))
+        self.assertTrue(set(legacy_names.values()).issubset(set(BRIDGE_PROFILES)))
+        self.assertIn("autocad_dxf", BRIDGE_PROFILES)
         for legacy_name, bridge_id in legacy_names.items():
             with self.subTest(bridge=bridge_id):
                 result = normalize_legacy_status(

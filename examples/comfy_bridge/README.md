@@ -26,6 +26,7 @@
 | `comfy_probe.py` | 兼容入口：调用 `probe.py` |
 | `sample_report.example.json` | 可提交的安全 report 样例 |
 | `run_txt2img.py` | 文生图提交脚本：把 prompt 提交给本机 ComfyUI |
+| `validate_workflow.py` | 只读 workflow 校验：检查 API format、节点和连线引用 |
 | `workflows/txt2img_basic_api.json` | API 工作流：给脚本提交到 `/prompt` 使用 |
 | `workflows/txt2img_basic_visual.json` | 可视化工作流：给人在 ComfyUI 画布中打开检查 |
 
@@ -62,6 +63,13 @@ python examples/comfy_bridge/probe.py
 
 ```powershell
 python examples/comfy_bridge/probe.py --json
+```
+
+只读校验 workflow，不提交生成任务：
+
+```powershell
+python examples/comfy_bridge/validate_workflow.py --json
+npm.cmd run comfy:workflow:validate
 ```
 
 probe report 默认写入：

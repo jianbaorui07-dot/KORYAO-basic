@@ -1,6 +1,19 @@
 # StarBridge 同类先进项目对比
 
-调研时间：2026-05-24。第三方源码只克隆到本机 `third_party_research/`，该目录已加入 `.gitignore`，不进入 GitHub。以下结论来自 README、LICENSE、`requirements.txt`、`package.json`、`pyproject.toml`、启动方式、MCP 配置、工具接口和安全边界的只读分析；没有安装全局依赖、没有登录账号、没有调用真实素材。
+调研时间：2026-05-24；2026-05-27 追加公开 GitHub 页面复核。第三方源码只克隆到本机 `third_party_research/`，该目录已加入 `.gitignore`，不进入 GitHub。以下结论来自 README、LICENSE、`requirements.txt`、`package.json`、`pyproject.toml`、启动方式、MCP 配置、工具接口和安全边界的只读分析；没有安装全局依赖、没有登录账号、没有调用真实素材。
+
+## 2026-05-27 公开项目复核结论
+
+本次复核重点看四类成熟项目的 README 呈现方式和可运行入口：
+
+| 项目 | 明显强项 | StarBridge 对应修正 |
+| --- | --- | --- |
+| `daobataotie/CAD-MCP` | 开头就列出 CAD 支持范围、依赖、配置和 MCP Inspector 命令 | 保持 CAD 离线 DXF 与真实 AutoCAD 控制分层，并在 README 增加更短的验证命令 |
+| `contextform/freecad-mcp` | Quick Install、更新、卸载、故障排查都放在 README 一屏内 | StarBridge 先补“三分钟验证”和 npm 快捷命令；完整安装器暂不进入 MVP |
+| `joenorton/comfyui-mcp-server` | Quick Start 把 ComfyUI 启动、server 启动和 test client 验证拆清楚 | 增加 `comfy:workflow:validate`，先验证 workflow，不直接提交生成任务 |
+| `artokun/comfyui-mcp` | 工具数量、插件/命令/技能清单和自动发现能力很完整 | 增加 `starbridge.tools` 能力清单，但保留 safe-only 过滤，避免工具过宽 |
+
+复核后的判断：本仓库不应该追求“工具数量多”，而应该把中文导航、只读验证、能力注册表、安全边界和渐进式写入动作做扎实。相比成熟项目，本仓库当前最大缺口仍是完整 MCP stdio server、客户端配置样例、job/asset 生命周期和安装/故障排查文档。
 
 ## 对比表
 

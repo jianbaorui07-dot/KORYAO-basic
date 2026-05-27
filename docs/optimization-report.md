@@ -165,6 +165,43 @@ OK
 - Photoshop、Illustrator、AutoCAD 的写入动作必须先加输入/输出路径审计和用户确认策略。
 - 剪映/CapCut 不建议先做桌面自动点击，优先研究草稿桥和 CLI 方式。
 
+## 2026-05-27 同类项目复核后修正
+
+本轮对公开 GitHub 同类 CAD/ComfyUI/MCP 项目做只读复核后，补齐了更适合首次使用者的验证入口和能力清单：
+
+- README 增加“三分钟验证”，把 status、tools、CAD dry-run、ComfyUI workflow validate 和测试命令集中展示。
+- 新增 `starbridge.tools` / `--safe-only`，把只读能力、受控写入能力、需要本机软件的能力分层说明。
+- 新增 `autocad_dxf` 离线状态入口，并接入 `python -m starbridge_mcp.server --bridge autocad_dxf --json`。
+- 新增 `cad:dxf:dry-run` 和 ComfyUI workflow 校验快捷命令。
+- 收紧 `.gitignore`，避免本机 Vite demo、package-lock、根目录旧 CAD 实验和无关示例混入 GitHub。
+
+本轮验证：
+
+```text
+python -m unittest discover -s tests
+Ran 65 tests
+OK
+
+npm.cmd test
+Ran 65 tests
+OK
+
+npm.cmd run starbridge:status
+exit code 0；本机未配置的软件以结构化 missing/warn 输出，autocad_dxf 为 ok。
+
+npm.cmd run starbridge:tools:safe
+exit code 0；输出 11 个 safe_default 能力。
+
+npm.cmd run cad:dxf:dry-run
+exit code 0；只做 validate/summary/dry-run，不写 DXF。
+
+npm.cmd run comfy:workflow:validate
+exit code 0；示例 API workflow 校验通过。
+
+python scripts\security_check.py
+security check passed
+```
+
 ## 第三轮核心安全收口
 
 时间：2026-05-24
