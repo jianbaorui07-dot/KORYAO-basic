@@ -1,0 +1,67 @@
+{
+  "experiment": "photoshop_4up_hex_poster",
+  "run_date": "2026-05-28",
+  "photoshop_version": "27.1.0",
+  "document": {
+    "name": "4联科技六边形几何海报_自动化分层源文件",
+    "width_px": 8360,
+    "height_px": 2820,
+    "dpi": 300,
+    "color_mode": "RGB / 8bit",
+    "profile": "sRGB IEC61966-2.1",
+    "poster_count": 4,
+    "poster_width_px": 1920,
+    "poster_height_px": 2500,
+    "hex_smart_object_instance_count": 392
+  },
+  "outputs_not_tracked": [
+    {
+      "filename": "4联科技六边形几何海报_高级分层源文件.psd",
+      "bytes": 788746601,
+      "sha256": "8AD3D491DC055BF96A14B8EFA108B03B5B0A11557D627A3D934ACEB06BBCBDAA",
+      "reason_not_tracked": "Layered PSD is a large local Photoshop source artifact."
+    },
+    {
+      "filename": "4联科技六边形几何海报_白底高清.png",
+      "bytes": 70741118,
+      "width_px": 8360,
+      "height_px": 2820,
+      "mode": "RGB",
+      "dpi": "299.9994 x 299.9994",
+      "sha256": "DF476C90F782046DE1E747C0652187081A152A8E1B175EA4BEBDD688E247F399",
+      "reason_not_tracked": "High-resolution export output is intentionally kept out of the public repo."
+    },
+    {
+      "filename": "4联科技六边形几何海报_透明底高清.png",
+      "bytes": 94320370,
+      "width_px": 8360,
+      "height_px": 2820,
+      "mode": "RGBA",
+      "dpi": "299.9994 x 299.9994",
+      "alpha_extrema": [0, 255],
+      "sha256": "3B4ABF4854359B5EFB3611B008D9B2D1E2B94403146EC37DF13A67CCE28F760E",
+      "reason_not_tracked": "High-resolution export output is intentionally kept out of the public repo."
+    },
+    {
+      "filename": "4联科技六边形几何海报_预览.jpg",
+      "bytes": 3567967,
+      "width_px": 8360,
+      "height_px": 2820,
+      "mode": "RGB",
+      "dpi": "300 x 300",
+      "sha256": "AE807419D078D43AAB2B084B71445FBC450E56E32CFE527A4E92DBC6D3A5E7C3",
+      "reason_not_tracked": "Preview export output is intentionally kept out of the public repo."
+    }
+  ],
+  "tracked_reproducibility_files": [
+    "README.md",
+    "run_4up_hex_poster.ps1",
+    "generate_4up_hex_photoshop_poster.py",
+    "templates/Hex_DeepBlue_Solid.svg",
+    "templates/Hex_TechBlue_Solid.svg",
+    "templates/Hex_Ice_Transparent.svg",
+    "templates/Hex_Outline_Frame.svg",
+    "templates/Hex_Micro_Particle.svg",
+    "templates/Hex_Glass_Glow.svg"
+  ]
+}
