@@ -21,6 +21,7 @@
 | `examples/photoshop_bridge/scripts/run_local_practice.ps1` | 一键本机实操：COM 探针、测试图生成、主体抠图 |
 | `examples/photoshop_bridge/scripts/com_probe.ps1` | COM 探针，创建测试文档并导出 PNG |
 | `examples/photoshop_bridge/scripts/extract_subject_to_png.ps1` | 主体选择和透明 PNG 输出实验 |
+| `examples/photoshop_bridge/experiments/4up_hex_poster/` | 四联科技六边形海报自动化实验，只保存可复跑脚本、模板和验证摘要 |
 
 ## 本地配置
 
@@ -76,6 +77,15 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 ```
 
 复杂海报、文字背景、线稿背景会影响主体选择质量。脚本适合作为半自动起点，商业级精修仍需要人工修边或更强的蒙版流程。
+
+四联科技六边形海报实验：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1 -GenerateOnly
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1
+```
+
+该实验会本地生成分层 PSD、白底 PNG、透明 PNG 和预览 JPG。公开仓库只保留生成脚本、模板和 `sample_verification_report.json`，不保留实际输出图或本机路径。
 
 ## 安全边界
 

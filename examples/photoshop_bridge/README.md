@@ -87,7 +87,23 @@ output\photoshop_bridge_report\
 
 一键实操会先清理本轮固定产物文件，避免旧图误入报告。如果 Photoshop 临时忙碌，实操脚本会自动短暂重试；如果仍然失败，报告也会按固定文件名回收本轮已经写出的本地产物。
 
-## 区域六：验收标准
+## 区域六：参数化海报自动化实验
+
+`experiments/4up_hex_poster/` 保存一次公开安全的 Photoshop 四联科技六边形海报实验。目录中只提交可复跑脚本、SVG 模板和验证摘要；PSD、PNG、JPG 和运行时 JSX 都作为本机生成物忽略。
+
+只生成 JSX 和 manifest：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1 -GenerateOnly
+```
+
+完整调用 Photoshop COM 执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1
+```
+
+## 区域七：验收标准
 
 | 检查项 | 合格标准 |
 | --- | --- |
@@ -100,7 +116,7 @@ output\photoshop_bridge_report\
 | 主体边界 | 主体抠图 PNG 显示 alpha 主体边界、四边边距和主体像素占比 |
 | Git 安全 | `output/` 目录没有进入 Git 提交 |
 
-## 区域七：COM 探针
+## 区域八：COM 探针
 
 创建一个测试文档并导出 PNG：
 
@@ -110,7 +126,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\com_p
 
 返回结果为 JSON，包含 Photoshop 版本、输出路径、文档尺寸和图层数。
 
-## 区域八：主体抠图
+## 区域九：主体抠图
 
 从输入图里尝试提取主体，并导出透明 PNG：
 
@@ -120,7 +136,7 @@ powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\extra
 
 脚本使用 Photoshop 的主体选择能力。复杂海报、文字背景、线稿背景可能会带出背景残留，适合作为半自动起点，不保证一次达到商业级精修。
 
-## 区域九：安全边界
+## 区域十：安全边界
 
 - 不覆盖原图，只输出新文件。
 - 不提交输入图、输出图、PSD、字体、笔刷、素材库或账号信息。
