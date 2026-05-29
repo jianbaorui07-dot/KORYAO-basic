@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5EC9FF" stop-opacity=".70"/>
+      <stop offset=".55" stop-color="#007BFF" stop-opacity=".70"/>
+      <stop offset="1" stop-color="#003A8C" stop-opacity=".62"/>
+    </linearGradient>
+    <filter id="innerEdge" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+  </defs>
+  <polygon points="309.90,255.00 180.00,330.00 50.10,255.00 50.10,105.00 180.00,30.00 309.90,105.00" fill="url(#g)" opacity=".70"/>
+  <polygon points="265.74,229.50 180.00,279.00 94.26,229.50 94.26,130.50 180.00,81.00 265.74,130.50" fill="none" stroke="#CDEFFF" stroke-width="3" opacity=".24" filter="url(#innerEdge)"/>
+  <polyline points="309.90,255.00 180.00,330.00 50.10,255.00 50.10,105.00 180.00,30.00 309.90,105.00" fill="none" stroke="#5EC9FF" stroke-width="4" opacity=".42" stroke-linejoin="round"/>
+</svg>

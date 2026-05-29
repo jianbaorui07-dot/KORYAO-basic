@@ -17,6 +17,7 @@
 | COM 探针 | `examples/photoshop_bridge/scripts/com_probe.ps1` | 创建测试文档并导出 PNG |
 | 主体抠图实验 | `examples/photoshop_bridge/scripts/extract_subject_to_png.ps1` | 输入和输出路径都由参数传入 |
 | 本机接入报告 | `examples/photoshop_bridge/write_practice_report.py` | 汇总诊断、实操结果和 PNG 元数据 |
+| 四联海报实验 | `examples/photoshop_bridge/experiments/4up_hex_poster/run_4up_hex_poster.ps1` | 生成参数化 JSX；本机完整执行会调用 Photoshop COM |
 
 ## 需要本机安装什么
 
@@ -77,6 +78,15 @@ npm.cmd run photoshop:manifest
 ```
 
 真实输出只写入 `examples/output/photoshop/`，生成的 PSD、PNG、JPG 和 manifest JSON 不提交。
+
+四联科技六边形海报实验：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1 -GenerateOnly
+powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\experiments\4up_hex_poster\run_4up_hex_poster.ps1
+```
+
+该实验会本地生成分层 PSD、白底 PNG、透明 PNG 和预览 JPG。公开仓库只保留生成脚本、模板和 `sample_verification_report.json`，不保留实际输出图或本机路径。
 
 ## 不能做什么
 

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <defs>
+    <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <polyline points="309.90,255.00 180.00,330.00 50.10,255.00 50.10,105.00 180.00,30.00 309.90,105.00" fill="none" stroke="#5EC9FF" stroke-width="5" opacity=".62" stroke-linejoin="round" filter="url(#lineGlow)"/>
+  <polyline points="265.74,229.50 180.00,279.00 94.26,229.50 94.26,130.50 180.00,81.00 265.74,130.50" fill="none" stroke="#CDEFFF" stroke-width="2" opacity=".26" stroke-linejoin="round"/>
+</svg>
