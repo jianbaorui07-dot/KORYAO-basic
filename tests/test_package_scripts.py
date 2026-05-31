@@ -29,6 +29,11 @@ class PackageScriptsTest(unittest.TestCase):
                 "starbridge:tools",
                 "starbridge:tools:safe",
                 "starbridge:mcp",
+                "starbridge:plan",
+                "starbridge:gui-instructions",
+                "starbridge:demo:photoshop:gui",
+                "starbridge:demo:illustrator:gui",
+                "starbridge:demo:capcut:gui",
                 "status:manifest",
                 "status:manifest:json",
                 "status:probe",
@@ -39,10 +44,19 @@ class PackageScriptsTest(unittest.TestCase):
                 "comfy:txt2img",
                 "photoshop:probe",
                 "photoshop:diagnose",
+                "photoshop:info",
+                "photoshop:demo:plan",
+                "photoshop:demo",
+                "photoshop:manifest",
+                "illustrator:info",
+                "illustrator:demo:plan",
+                "illustrator:demo",
+                "illustrator:manifest",
                 "preflight",
                 "preflight:json",
                 "security:check",
                 "test",
+                "test:pytest",
             },
             set(self.scripts),
         )
@@ -66,6 +80,15 @@ class PackageScriptsTest(unittest.TestCase):
             "examples/photoshop_bridge/scripts/diagnose_local.ps1",
             self.scripts["photoshop:diagnose"],
         )
+
+    def test_adobe_demo_scripts_are_registered(self) -> None:
+        for name in (
+            "illustrator:demo",
+            "illustrator:demo:plan",
+            "photoshop:demo",
+            "photoshop:demo:plan",
+        ):
+            self.assertIn(name, self.scripts)
 
 
 if __name__ == "__main__":

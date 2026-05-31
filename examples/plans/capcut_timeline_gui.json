@@ -1,0 +1,50 @@
+{
+  "id": "capcut-timeline-gui",
+  "app": "capcut",
+  "action": "create_timeline_plan",
+  "goal": "Generate a safe GUI operation plan for a CapCut or Jianying timeline demo.",
+  "params": {
+    "requires_real_export": false
+  },
+  "execution_mode": "computer_use",
+  "structured_method": "none",
+  "gui_steps": [
+    {
+      "step_id": "cc-01",
+      "instruction": "Open Jianying or CapCut.",
+      "target_app": "capcut",
+      "expected_screen_state": "The app home screen is visible.",
+      "fallback_if_failed": "Report that real GUI execution is unavailable but the plan was generated.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    },
+    {
+      "step_id": "cc-02",
+      "instruction": "Create a new project and import placeholder media from an approved demo asset folder.",
+      "target_app": "capcut",
+      "expected_screen_state": "Placeholder media appears in the media bin.",
+      "fallback_if_failed": "Use screenshots only; do not access private draft folders.",
+      "requires_confirmation": true,
+      "evidence_required": false
+    },
+    {
+      "step_id": "cc-03",
+      "instruction": "Place one item on the timeline, add a title text clip, and inspect before export.",
+      "target_app": "capcut",
+      "expected_screen_state": "Timeline and title text are visible.",
+      "fallback_if_failed": "Record the visible state and stop.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    }
+  ],
+  "expected_result": "A timeline GUI plan and screenshot evidence; no real export is required.",
+  "output_paths": [
+    "outputs/capcut_demo/timeline_evidence.png"
+  ],
+  "needs_screenshot_evidence": true,
+  "risk_level": "write",
+  "dry_run": true,
+  "confirm_write": false,
+  "allow_computer_use": false,
+  "requires_user_presence": true
+}

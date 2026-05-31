@@ -7,6 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from starbridge_mcp.core.config import StarBridgeConfig, env_summary
+from starbridge_mcp.core.computer_use import (
+    ActionPlan,
+    CodexComputerUseAdapter,
+    LocalScreenshotEvidenceStore,
+    evaluate_safety,
+    render_plan_summary,
+)
+from starbridge_mcp.core.computer_use_demos import run_demo
 from starbridge_mcp.core.result_schema import make_result, validate_result
 from starbridge_mcp.core.security import sanitize
 from starbridge_mcp.core.tool_registry import capability_summary
@@ -194,7 +202,127 @@ def build_response(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
+def _print_json(payload: dict[str, Any]) -> None:
+    print(json.dumps(sanitize(payload), ensure_ascii=False, indent=2))
+
+
+def _load_action_plan(path: str) -> ActionPlan:
+    return ActionPlan.load(Path(path))
+
+
+def _handle_plan_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(description="Normalize a StarBridge action plan and evaluate safety.")
+    parser.add_argument("plan_path")
+    parser.add_argument("--confirm-write", action="store_true")
+    parser.add_argument("--allow-computer-use", action="store_true")
+    args = parser.parse_args(argv)
+    plan = _load_action_plan(args.plan_path)
+    _print_json(render_plan_summary(plan, confirm_write=args.confirm_write, allow_computer_use=args.allow_computer_use))
+
+
+def _handle_gui_instructions_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(description="Generate Codex Windows Computer Use instructions for an action plan.")
+    parser.add_argument("plan_path")
+    args = parser.parse_args(argv)
+    plan = _load_action_plan(args.plan_path)
+    adapter = CodexComputerUseAdapter()
+    _print_json({"ok": True, "plan_id": plan.id, "app": plan.app, "gui_instructions": adapter.generate_codex_gui_instructions(plan)})
+
+
+def _handle_gui_record_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(description="Record a real GUI execution result.")
+    parser.add_argument("--plan-id", required=True)
+    parser.add_argument("--plan-path")
+    parser.add_argument("--ok", required=True)
+    parser.add_argument("--screenshot", action="append", default=[])
+    parser.add_argument("--created-file", action="append", default=[])
+    parser.add_argument("--notes", default="")
+    args = parser.parse_args(argv)
+    plan = _load_action_plan(args.plan_path) if args.plan_path else ActionPlan(id=args.plan_id, app="generic", action="gui_record", goal="Record GUI result")
+    ok = str(args.ok).lower() in {"1", "true", "yes", "y"}
+    result = CodexComputerUseAdapter().record_gui_result(
+        plan,
+        ok=ok,
+        screenshot_paths=args.screenshot,
+        created_files=args.created_file,
+        notes=args.notes,
+    )
+    saved = LocalScreenshotEvidenceStore().save_result(args.plan_id, result)
+    _print_json({"ok": True, "result": result.to_dict(), "saved_log": saved.relative_to(REPO_ROOT).as_posix()})
+
+
+def _write_structured_fallback(plan: ActionPlan, *, confirm_write: bool) -> list[str]:
+    if not confirm_write or plan.structured_method not in {"svg", "filesystem"}:
+        return []
+    created: list[str] = []
+    for output_path in plan.output_paths:
+        if not output_path.endswith(".svg"):
+            continue
+        target = REPO_ROOT / output_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"450\" viewBox=\"0 0 800 450\">\n"
+            "  <rect width=\"800\" height=\"450\" fill=\"#f8fafc\"/>\n"
+            "  <text x=\"60\" y=\"120\" font-family=\"Arial\" font-size=\"42\" fill=\"#111827\">StarBridge structured fallback</text>\n"
+            "  <circle cx=\"180\" cy=\"270\" r=\"70\" fill=\"#2563eb\"/>\n"
+            "  <rect x=\"330\" y=\"210\" width=\"160\" height=\"120\" fill=\"#10b981\"/>\n"
+            "</svg>\n",
+            encoding="utf-8",
+        )
+        created.append(output_path)
+    return created
+
+
+def _handle_run_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(description="Run a structured StarBridge action plan.")
+    parser.add_argument("plan_path")
+    parser.add_argument("--confirm-write", action="store_true")
+    args = parser.parse_args(argv)
+    plan = _load_action_plan(args.plan_path)
+    decision = evaluate_safety(plan, confirm_write=args.confirm_write, allow_computer_use=plan.allow_computer_use)
+    created = []
+    if decision.allowed and plan.execution_mode == "structured_tool":
+        created = _write_structured_fallback(plan, confirm_write=args.confirm_write and not plan.dry_run)
+    _print_json(
+        {
+            "ok": decision.allowed,
+            "plan_id": plan.id,
+            "app": plan.app,
+            "action": plan.action,
+            "dry_run": plan.dry_run or not args.confirm_write,
+            "safety_decision": decision.to_dict(),
+            "created_files": created,
+            "message": "structured plan evaluated; no desktop software was launched",
+        }
+    )
+
+
+def _handle_demo_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(description="Generate StarBridge GUI demo plans.")
+    parser.add_argument("app", choices=["photoshop", "illustrator", "capcut"])
+    parser.add_argument("--mode", default="gui", choices=["gui"])
+    parser.add_argument("--allow-computer-use", action="store_true")
+    parser.add_argument("--confirm-write", action="store_true")
+    args = parser.parse_args(argv)
+    _print_json(run_demo(args.app, mode=args.mode, allow_computer_use=args.allow_computer_use, confirm_write=args.confirm_write))
+
+
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] in {"plan", "run", "gui-instructions", "gui-record", "demo"}:
+        command = sys.argv[1]
+        argv = sys.argv[2:]
+        if command == "plan":
+            _handle_plan_cli(argv)
+        elif command == "run":
+            _handle_run_cli(argv)
+        elif command == "gui-instructions":
+            _handle_gui_instructions_cli(argv)
+        elif command == "gui-record":
+            _handle_gui_record_cli(argv)
+        elif command == "demo":
+            _handle_demo_cli(argv)
+        return
+
     parser = argparse.ArgumentParser(description="StarBridge 本地创意软件 MCP 桥接框架最小状态入口。")
     parser.add_argument("action", nargs="?", default="status", choices=["status", "tools"], help="当前实现 status 和 tools。")
     parser.add_argument(
