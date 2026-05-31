@@ -1,0 +1,62 @@
+{
+  "id": "photoshop-poster-gui",
+  "app": "photoshop",
+  "action": "create_layered_poster",
+  "goal": "Use Windows Computer Use to create a safe layered poster demo in Photoshop.",
+  "params": {
+    "width": 1080,
+    "height": 1350,
+    "color_mode": "RGB"
+  },
+  "execution_mode": "computer_use",
+  "structured_method": "none",
+  "gui_steps": [
+    {
+      "step_id": "ps-01",
+      "instruction": "Open Photoshop and create a new 1080 by 1350 RGB document.",
+      "target_app": "photoshop",
+      "expected_screen_state": "A blank document is visible.",
+      "fallback_if_failed": "Stop and record that Photoshop could not be opened.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    },
+    {
+      "step_id": "ps-02",
+      "instruction": "Create a background layer with a solid color or gradient.",
+      "target_app": "photoshop",
+      "expected_screen_state": "The Layers panel contains a background layer.",
+      "fallback_if_failed": "Leave the default background and continue.",
+      "requires_confirmation": false,
+      "evidence_required": false
+    },
+    {
+      "step_id": "ps-03",
+      "instruction": "Add main title, subtitle, geometric decoration, and explanatory text layers.",
+      "target_app": "photoshop",
+      "expected_screen_state": "Named text and decoration layers are visible.",
+      "fallback_if_failed": "Use simple text layers only.",
+      "requires_confirmation": false,
+      "evidence_required": false
+    },
+    {
+      "step_id": "ps-04",
+      "instruction": "Export a PNG preview or save a PSD under outputs/photoshop_demo/.",
+      "target_app": "photoshop",
+      "expected_screen_state": "The save or export dialog targets outputs/photoshop_demo/.",
+      "fallback_if_failed": "Cancel the dialog and record the failed export.",
+      "requires_confirmation": true,
+      "evidence_required": true
+    }
+  ],
+  "expected_result": "A layered poster demo and screenshot evidence from Photoshop.",
+  "output_paths": [
+    "outputs/photoshop_demo/starbridge_ps_gui_demo.png",
+    "outputs/photoshop_demo/starbridge_ps_gui_demo.psd"
+  ],
+  "needs_screenshot_evidence": true,
+  "risk_level": "write",
+  "dry_run": true,
+  "confirm_write": false,
+  "allow_computer_use": false,
+  "requires_user_presence": true
+}

@@ -14,6 +14,11 @@
     "starbridge:tools": "python -m starbridge_mcp.server tools --json",
     "starbridge:tools:safe": "python -m starbridge_mcp.server tools --json --safe-only",
     "starbridge:mcp": "python -m starbridge_mcp.mcp_server",
+    "starbridge:plan": "python -m starbridge_mcp.server plan",
+    "starbridge:gui-instructions": "python -m starbridge_mcp.server gui-instructions",
+    "starbridge:demo:photoshop:gui": "python -m starbridge_mcp.server demo photoshop --mode gui",
+    "starbridge:demo:illustrator:gui": "python -m starbridge_mcp.server demo illustrator --mode gui",
+    "starbridge:demo:capcut:gui": "python -m starbridge_mcp.server demo capcut --mode gui",
     "status:manifest": "python scripts/collect_bridge_status.py --markdown",
     "status:manifest:json": "python scripts/collect_bridge_status.py --json",
     "status:probe": "python examples/bridge_status.py --probe-executables",
@@ -35,6 +40,7 @@
     "preflight": "python scripts/starbridge_preflight.py --markdown",
     "preflight:json": "python scripts/starbridge_preflight.py --json",
     "security:check": "python scripts/security_check.py",
-    "test": "python -m unittest discover -s tests"
+    "test": "python -m unittest discover -s tests",
+    "test:pytest": "python -m pytest"
   }
 }

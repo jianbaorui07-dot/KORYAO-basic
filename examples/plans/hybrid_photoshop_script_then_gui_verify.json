@@ -1,0 +1,42 @@
+{
+  "id": "hybrid-photoshop-script-then-gui-verify",
+  "app": "photoshop",
+  "action": "script_create_then_gui_verify",
+  "goal": "Use a structured Photoshop script for deterministic demo creation, then verify the result through GUI screenshots.",
+  "params": {
+    "script": "examples/photoshop_bridge/scripts/create_demo_document.ps1"
+  },
+  "execution_mode": "hybrid",
+  "structured_method": "jsx",
+  "gui_steps": [
+    {
+      "step_id": "hy-01",
+      "instruction": "Open the generated sandbox PSD in Photoshop.",
+      "target_app": "photoshop",
+      "expected_screen_state": "The sandbox PSD is open, not a private user PSD.",
+      "fallback_if_failed": "Keep the structured output and record that GUI verification failed.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    },
+    {
+      "step_id": "hy-02",
+      "instruction": "Inspect the Layers panel for background, title, subtitle, and decoration layers.",
+      "target_app": "photoshop",
+      "expected_screen_state": "Expected named layers are visible.",
+      "fallback_if_failed": "Record missing layers in the GUI result.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    }
+  ],
+  "expected_result": "Structured Photoshop output plus GUI verification evidence.",
+  "output_paths": [
+    "outputs/photoshop_demo/starbridge_ps_gui_demo.psd",
+    "outputs/evidence/hybrid_photoshop_verify.png"
+  ],
+  "needs_screenshot_evidence": true,
+  "risk_level": "write",
+  "dry_run": true,
+  "confirm_write": false,
+  "allow_computer_use": false,
+  "requires_user_presence": true
+}

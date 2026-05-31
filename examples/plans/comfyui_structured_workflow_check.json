@@ -1,0 +1,22 @@
+{
+  "id": "comfyui-structured-workflow-check",
+  "app": "comfyui",
+  "action": "validate_workflow",
+  "goal": "Validate a ComfyUI workflow JSON through structured tools only.",
+  "params": {
+    "workflow_path": "examples/comfy_bridge/workflows/txt2img_basic_api.json"
+  },
+  "execution_mode": "structured_tool",
+  "structured_method": "api",
+  "gui_steps": [],
+  "expected_result": "Workflow schema is checked without submitting a generation job.",
+  "output_paths": [
+    "outputs/comfyui_demo/workflow_check.json"
+  ],
+  "needs_screenshot_evidence": false,
+  "risk_level": "read",
+  "dry_run": true,
+  "confirm_write": false,
+  "allow_computer_use": false,
+  "requires_user_presence": false
+}

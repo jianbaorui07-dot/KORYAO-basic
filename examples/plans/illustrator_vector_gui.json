@@ -1,0 +1,53 @@
+{
+  "id": "illustrator-vector-gui",
+  "app": "illustrator",
+  "action": "create_vector_layout",
+  "goal": "Use Windows Computer Use to create a safe vector layout demo in Illustrator.",
+  "params": {
+    "width": 1080,
+    "height": 1080
+  },
+  "execution_mode": "hybrid",
+  "structured_method": "svg",
+  "gui_steps": [
+    {
+      "step_id": "ai-01",
+      "instruction": "Open Illustrator and create a new 1080 by 1080 RGB artboard.",
+      "target_app": "illustrator",
+      "expected_screen_state": "A blank square artboard is visible.",
+      "fallback_if_failed": "Use the generated SVG fallback file.",
+      "requires_confirmation": false,
+      "evidence_required": true
+    },
+    {
+      "step_id": "ai-02",
+      "instruction": "Add title text, lines, geometric symbols, and annotation text.",
+      "target_app": "illustrator",
+      "expected_screen_state": "Vector objects and annotation text are visible.",
+      "fallback_if_failed": "Keep the fallback SVG as the deliverable.",
+      "requires_confirmation": false,
+      "evidence_required": false
+    },
+    {
+      "step_id": "ai-03",
+      "instruction": "Export SVG, PDF, and PNG under outputs/illustrator_demo/.",
+      "target_app": "illustrator",
+      "expected_screen_state": "Export targets outputs/illustrator_demo/.",
+      "fallback_if_failed": "Record the failure and keep the fallback SVG.",
+      "requires_confirmation": true,
+      "evidence_required": true
+    }
+  ],
+  "expected_result": "A vector layout demo with optional SVG fallback and GUI evidence.",
+  "output_paths": [
+    "outputs/illustrator_demo/starbridge_ai_gui_demo.svg",
+    "outputs/illustrator_demo/starbridge_ai_gui_demo.pdf",
+    "outputs/illustrator_demo/starbridge_ai_gui_demo.png"
+  ],
+  "needs_screenshot_evidence": true,
+  "risk_level": "write",
+  "dry_run": true,
+  "confirm_write": false,
+  "allow_computer_use": false,
+  "requires_user_presence": true
+}
