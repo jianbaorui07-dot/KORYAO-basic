@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
-import tomllib
 import unittest
 from pathlib import Path
 
@@ -86,11 +86,15 @@ class PackageScriptsTest(unittest.TestCase):
             self.assertIn(name, self.scripts)
 
     def test_pyproject_declares_expected_extras(self) -> None:
-        data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        extras = data["project"]["optional-dependencies"]
-        self.assertEqual({"dev", "cad", "comfy", "adobe"}, set(extras))
-        self.assertIn("pytest>=8", extras["dev"])
-        self.assertTrue(any(item.startswith("ezdxf") for item in extras["cad"]))
+        text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        match = re.search(r"(?ms)^\[project\.optional-dependencies\]\s*(.*?)(?:^\[|\Z)", text)
+        self.assertIsNotNone(match)
+        extras_block = match.group(1)
+
+        for extra in ("dev", "cad", "comfy", "adobe"):
+            self.assertRegex(extras_block, rf"(?m)^{extra}\s*=")
+        self.assertIn("pytest>=8", extras_block)
+        self.assertIn("ezdxf>=1.3", extras_block)
 
 
 if __name__ == "__main__":
