@@ -20,8 +20,8 @@
 
 | 文件 | 中文用途 |
 | --- | --- |
-| `bridge.json` | 这条桥的统一 manifest：状态、入口、支持任务和安全说明 |
-| `bridge_status.json` | 这条桥的成熟度、依赖、风险和后续步骤 |
+| `bridge_status.json` | 这条桥的统一公开状态：成熟度、依赖、风险和后续步骤 |
+| `bridge.json` | 旧版兼容 manifest：入口、支持任务和安全说明 |
 | `probe.py` | ComfyUI 只读探针：检查服务、`/system_stats`、`/object_info` 和基础节点 |
 | `comfy_probe.py` | 兼容入口：调用 `probe.py` |
 | `sample_report.example.json` | 可提交的安全 report 样例 |

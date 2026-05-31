@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 from starbridge_mcp.bridges import autocad_dxf
 from starbridge_mcp.core.security import sanitize
-from starbridge_mcp.core.tool_registry import capability_summary
+from starbridge_mcp.core.tool_registry import capability_summary, list_capabilities
 from starbridge_mcp.server import BRIDGE_ALIASES, build_response
 
 
@@ -157,6 +157,91 @@ TOOL_DEFINITIONS: list[JsonObject] = [
                 }
             }
         ),
+    ),
+    _standard_tool(
+        name="comfyui.workflow_build_plan",
+        title="Plan ComfyUI Workflow Build",
+        description="Build a dry-run plan from a natural-language goal to a ComfyUI txt2img workflow shape without submitting a job.",
+        input_schema=_object_schema(
+            {
+                "goal": {"type": "string"},
+                "workflow_type": {"type": "string", "default": "txt2img"},
+                "style": {"type": "string"},
+                "width": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "height": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+            },
+            required=["goal"],
+        ),
+    ),
+    _standard_tool(
+        name="comfyui.workflow_build",
+        title="Build ComfyUI Workflow",
+        description="Generate a valid ComfyUI API-format txt2img workflow JSON from a natural-language goal. Does not submit to ComfyUI.",
+        input_schema=_object_schema(
+            {
+                "goal": {"type": "string"},
+                "workflow_type": {"type": "string", "default": "txt2img"},
+                "style": {"type": "string"},
+                "positive_prompt": {"type": "string"},
+                "negative_prompt": {"type": "string"},
+                "checkpoint": {"type": "string"},
+                "width": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "height": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "steps": {"type": "integer", "default": 20, "minimum": 1, "maximum": 150},
+                "cfg": {"type": "number", "default": 7.0, "minimum": 1.0, "maximum": 30.0},
+                "seed": {"type": "integer"},
+                "sampler_name": {"type": "string", "default": "euler"},
+                "scheduler": {"type": "string", "default": "normal"},
+            },
+            required=["goal"],
+        ),
+    ),
+    _standard_tool(
+        name="comfyui.workflow_repair",
+        title="Repair ComfyUI Workflow",
+        description="Repair missing txt2img nodes, bad sampler values, invalid dimensions, prompt text, and broken core links without submitting a job.",
+        input_schema=_object_schema(
+            {
+                "workflow": {"type": "object"},
+                "goal": {"type": "string"},
+                "positive_prompt": {"type": "string"},
+                "negative_prompt": {"type": "string"},
+                "checkpoint": {"type": "string"},
+                "width": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "height": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+            },
+            required=["workflow"],
+        ),
+    ),
+    _standard_tool(
+        name="comfyui.agent_run",
+        title="Run ComfyUI Agent Workflow",
+        description="Build, validate, optionally repair, and only with confirm_run=true submit a generated ComfyUI txt2img workflow.",
+        input_schema=_object_schema(
+            {
+                "goal": {"type": "string"},
+                "workflow_type": {"type": "string", "default": "txt2img"},
+                "style": {"type": "string"},
+                "positive_prompt": {"type": "string"},
+                "negative_prompt": {"type": "string"},
+                "checkpoint": {"type": "string"},
+                "width": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "height": {"type": "integer", "default": 1024, "minimum": 64, "maximum": 4096},
+                "steps": {"type": "integer", "default": 20, "minimum": 1, "maximum": 150},
+                "cfg": {"type": "number", "default": 7.0, "minimum": 1.0, "maximum": 30.0},
+                "seed": {"type": "integer"},
+                "sampler_name": {"type": "string", "default": "euler"},
+                "scheduler": {"type": "string", "default": "normal"},
+                "filename_prefix": {"type": "string", "default": "starbridge_agent_txt2img"},
+                "comfy_url": {"type": "string"},
+                "timeout": {"type": "integer", "default": 30, "minimum": 1, "maximum": 300},
+                "wait_seconds": {"type": "integer", "default": 10, "minimum": 0, "maximum": 600},
+                "timeout_seconds": {"type": "integer", "default": 10, "minimum": 0, "maximum": 600},
+                "confirm_run": {"type": "boolean", "default": False},
+            },
+            required=["goal"],
+        ),
+        read_only=False,
     ),
     _standard_tool(
         name="blender.environment_probe",
@@ -438,6 +523,30 @@ def _handle_workflow_validate(arguments: JsonObject) -> JsonObject:
     return validate_workflow_file(path)
 
 
+def _handle_comfy_workflow_build_plan(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import workflow_build_plan
+
+    return workflow_build_plan(arguments)
+
+
+def _handle_comfy_workflow_build(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import workflow_build
+
+    return workflow_build(arguments)
+
+
+def _handle_comfy_workflow_repair(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import workflow_repair
+
+    return workflow_repair(arguments)
+
+
+def _handle_comfy_agent_run(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import agent_run
+
+    return agent_run(arguments)
+
+
 def _handle_write_dxf(arguments: JsonObject) -> JsonObject:
     dry_run = bool(arguments.get("dry_run", True))
     if not dry_run and not bool(arguments.get("confirm_write", False)):
@@ -713,6 +822,10 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.tools": _handle_tools,
     "comfyui.system_probe": _handle_comfy_system_probe,
     "comfyui.workflow_validate": _handle_workflow_validate,
+    "comfyui.workflow_build_plan": _handle_comfy_workflow_build_plan,
+    "comfyui.workflow_build": _handle_comfy_workflow_build,
+    "comfyui.workflow_repair": _handle_comfy_workflow_repair,
+    "comfyui.agent_run": _handle_comfy_agent_run,
     "blender.environment_probe": lambda _arguments: _handle_python_probe(
         bridge="blender",
         action="environment_probe",
@@ -754,6 +867,31 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "autocad_dxf.summarize_plan": lambda arguments: autocad_dxf.summarize_plan(arguments.get("plan")),
     "autocad_dxf.write_dxf": _handle_write_dxf,
 }
+
+
+def _apply_risk_metadata() -> None:
+    registry = {item["name"]: item for item in list_capabilities()}
+    default_metadata = {
+        "riskLevel": "safe_read_only",
+        "safeDefault": True,
+        "requiresConfirmation": False,
+        "requiresLocalSoftware": False,
+    }
+    for tool in TOOL_DEFINITIONS:
+        capability = registry.get(tool["name"], {})
+        annotations = tool.setdefault("annotations", {})
+        annotations.update(
+            {
+                "riskLevel": capability.get("risk_level", default_metadata["riskLevel"]),
+                "safeDefault": capability.get("safe_default", default_metadata["safeDefault"]),
+                "requiresConfirmation": capability.get("requires_confirmation", default_metadata["requiresConfirmation"]),
+                "requiresLocalSoftware": capability.get("requires_local_software", default_metadata["requiresLocalSoftware"]),
+                "currentStatus": capability.get("current_status", "stable"),
+            }
+        )
+
+
+_apply_risk_metadata()
 
 
 def _response(message_id: Any, result: JsonObject) -> JsonObject:

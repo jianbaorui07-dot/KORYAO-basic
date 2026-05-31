@@ -86,10 +86,35 @@ def validate_api_workflow(payload: dict[str, Any], *, workflow_name: str) -> dic
                 if input_value[0] not in payload:
                     errors.append(f"节点 {node_label}.{input_name} 引用了不存在的节点 {input_value[0]}。")
 
-    required_classes = {"KSampler", "CheckpointLoaderSimple", "SaveImage"}
+    required_classes = {
+        "CheckpointLoaderSimple",
+        "CLIPTextEncode",
+        "EmptyLatentImage",
+        "KSampler",
+        "SaveImage",
+        "VAEDecode",
+    }
     missing_required = sorted(required_classes - set(class_types))
     if missing_required:
-        warnings.append("未发现基础文生图常用节点：" + ", ".join(missing_required))
+        errors.append("未发现基础文生图常用节点：" + ", ".join(missing_required))
+
+    prompt_text_nodes = []
+    output_nodes = []
+    for node_id, node in payload.items():
+        if not isinstance(node, dict):
+            continue
+        inputs = node.get("inputs") if isinstance(node.get("inputs"), dict) else {}
+        if node.get("class_type") == "CLIPTextEncode":
+            text_value = inputs.get("text")
+            if isinstance(text_value, str) and text_value.strip():
+                prompt_text_nodes.append(str(node_id))
+        if node.get("class_type") == "SaveImage" and isinstance(inputs.get("images"), list):
+            output_nodes.append(str(node_id))
+
+    if not prompt_text_nodes:
+        errors.append("workflow 必须包含至少一个带 text prompt 的 CLIPTextEncode 节点。")
+    if not output_nodes:
+        errors.append("workflow 必须包含至少一个带 images 输入的 SaveImage 输出节点。")
 
     details = {
         "workflow": workflow_name,
@@ -97,6 +122,8 @@ def validate_api_workflow(payload: dict[str, Any], *, workflow_name: str) -> dic
         "node_count": len(payload),
         "link_count": link_count,
         "class_types": dict(sorted(class_types.items())),
+        "prompt_text_nodes": prompt_text_nodes,
+        "output_nodes": output_nodes,
         "errors": errors,
     }
     return _result(

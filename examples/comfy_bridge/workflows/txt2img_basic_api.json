@@ -29,7 +29,7 @@
   "4": {
     "class_type": "CheckpointLoaderSimple",
     "inputs": {
-      "ckpt_name": "AWPainting_v1.2.safetensors"
+      "ckpt_name": "__set_by_run_txt2img__"
     }
   },
   "5": {
