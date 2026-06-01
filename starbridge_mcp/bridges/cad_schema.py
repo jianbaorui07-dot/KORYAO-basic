@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import copy
+from pathlib import PureWindowsPath
 from typing import Any
 
 
 SUPPORTED_UNITS = {"mm", "cm", "m", "inch"}
 SUPPORTED_ENTITY_TYPES = {"line", "polyline", "circle", "rectangle", "text"}
+MAX_ABS_COORDINATE = 1_000_000
+MAX_ENTITY_COUNT = 1_000
 DEFAULT_LAYERS = [
     {"name": "OUTLINE", "color": 7},
     {"name": "AUX", "color": 8},
@@ -30,6 +33,26 @@ def _positive_number(value: Any, field: str) -> tuple[float | None, str | None]:
     if number <= 0:
         return None, f"{field} must be greater than 0"
     return number, None
+
+
+def _validate_coordinate_range(point: list[float], field: str) -> str | None:
+    if any(abs(value) > MAX_ABS_COORDINATE for value in point):
+        return f"{field} is outside the safe coordinate range"
+    return None
+
+
+def _validate_output_name(value: str) -> list[str]:
+    output = value.strip()
+    if not output:
+        return ["output must not be empty when provided"]
+    pure_windows = PureWindowsPath(output)
+    if pure_windows.is_absolute() or output.startswith(("/", "\\")):
+        return ["output must be a relative file name under examples/cad/output"]
+    if any(part == ".." for part in pure_windows.parts):
+        return ["output must not contain parent directory traversal"]
+    if pure_windows.suffix.lower() != ".dxf":
+        return ["output must use the .dxf extension"]
+    return []
 
 
 def normalize_layer(layer: Any, index: int) -> tuple[dict[str, Any] | None, list[str]]:
@@ -69,6 +92,9 @@ def normalize_entity(entity: Any, index: int) -> tuple[dict[str, Any] | None, li
             if error:
                 errors.append(error)
             else:
+                range_error = _validate_coordinate_range(point, f"entities[{index}].{field}")
+                if range_error:
+                    errors.append(range_error)
                 normalized[field] = point
     elif entity_type == "polyline":
         points = entity.get("points")
@@ -81,6 +107,9 @@ def normalize_entity(entity: Any, index: int) -> tuple[dict[str, Any] | None, li
                 if error:
                     errors.append(error)
                 else:
+                    range_error = _validate_coordinate_range(point, f"entities[{index}].points[{point_index}]")
+                    if range_error:
+                        errors.append(range_error)
                     normalized_points.append(point)
             normalized["points"] = normalized_points
         normalized["closed"] = bool(entity.get("closed", False))
@@ -89,6 +118,9 @@ def normalize_entity(entity: Any, index: int) -> tuple[dict[str, Any] | None, li
         if error:
             errors.append(error)
         else:
+            range_error = _validate_coordinate_range(point, f"entities[{index}].center")
+            if range_error:
+                errors.append(range_error)
             normalized["center"] = point
         radius, error = _positive_number(entity.get("radius"), f"entities[{index}].radius")
         if error:
@@ -112,6 +144,9 @@ def normalize_entity(entity: Any, index: int) -> tuple[dict[str, Any] | None, li
         if error:
             errors.append(error)
         else:
+            range_error = _validate_coordinate_range(position, f"entities[{index}].position")
+            if range_error:
+                errors.append(range_error)
             normalized["position"] = position
         normalized["value"] = str(entity.get("value", ""))
         height, error = _positive_number(entity.get("height", 180), f"entities[{index}].height")
@@ -174,6 +209,8 @@ def normalize_plan(plan: Any) -> tuple[dict[str, Any], list[str], list[str]]:
         raw_entities = []
     elif not raw_entities:
         warnings.append("entities is empty")
+    elif len(raw_entities) > MAX_ENTITY_COUNT:
+        errors.append(f"entities must contain at most {MAX_ENTITY_COUNT} items")
 
     entities: list[dict[str, Any]] = []
     for index, entity in enumerate(raw_entities):
@@ -196,6 +233,7 @@ def normalize_plan(plan: Any) -> tuple[dict[str, Any], list[str], list[str]]:
     elif not isinstance(output, str):
         errors.append("output must be a string when provided")
     else:
+        errors.extend(_validate_output_name(output))
         normalized["output"] = output
 
     return normalized, errors, warnings

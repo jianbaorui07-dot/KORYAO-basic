@@ -59,7 +59,7 @@
         "Node name for S&R": "CheckpointLoaderSimple"
       },
       "widgets_values": [
-        "AWPainting_v1.2.safetensors"
+        "__set_by_run_txt2img__"
       ],
       "color": "#223",
       "bgcolor": "#335"

@@ -68,6 +68,7 @@ class McpStdioServerTests(unittest.TestCase):
         self.assertFalse(result["isError"])
         self.assertEqual("tools", result["structuredContent"]["action"])
         self.assertTrue(all(item["safe_default"] for item in result["structuredContent"]["capabilities"]))
+        self.assertTrue(all("current_status" in item for item in result["structuredContent"]["capabilities"]))
         self.assert_no_private_paths(response)
 
     def test_direct_bridge_probe_tools_return_structured_content(self) -> None:
@@ -99,6 +100,7 @@ class McpStdioServerTests(unittest.TestCase):
         self.assertEqual("comfyui", structured["bridge"])
         self.assertEqual("system_probe", structured["action"])
         self.assertFalse(response["result"]["isError"])
+        self.assertEqual("unavailable", structured["details"]["report"]["status"])
         self.assert_no_private_paths(response)
 
     def test_dxf_write_requires_confirmation_for_real_write(self) -> None:

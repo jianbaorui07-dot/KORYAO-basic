@@ -1,0 +1,27 @@
+{
+  "task_type": "upscale",
+  "input_requirements": [
+    "source_image_path supplied by user at run time",
+    "upscale_model placeholder or built-in method",
+    "scale factor"
+  ],
+  "workflow_requirements": [
+    "LoadImage",
+    "UpscaleModelLoader or ImageScale",
+    "ImageUpscaleWithModel or ImageScale",
+    "SaveImage"
+  ],
+  "safety_notes": [
+    "Dry-run only; do not call /prompt.",
+    "Do not read or commit private input images.",
+    "Use placeholders for upscale models and output paths."
+  ],
+  "expected_outputs": [
+    "dry-run execution plan",
+    "upscale requirement checklist",
+    "blocked real queue submission"
+  ],
+  "blocked_reasons": [
+    "upscale is plan-only until a reviewed public workflow template exists."
+  ]
+}

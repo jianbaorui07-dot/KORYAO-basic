@@ -20,7 +20,7 @@ class SecurityBoundaryTests(unittest.TestCase):
         }
         sanitized = sanitize(payload)
         text = json.dumps(sanitized, ensure_ascii=False)
-        self.assertIn("<USER_HOME>", text)
+        self.assertIn("<REDACTED_PATH>", text)
         self.assertIn("<REDACTED>", text)
         self.assertNotIn(str(Path.home()), text)
         self.assertNotIn(token_value, text)

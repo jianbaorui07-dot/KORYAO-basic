@@ -91,7 +91,7 @@ function Step {
 
 function HasCommand {
   param([string]$Name)
-  return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
+  return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
 function Install-WingetPackage {

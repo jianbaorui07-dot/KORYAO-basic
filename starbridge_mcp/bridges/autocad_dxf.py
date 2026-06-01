@@ -131,18 +131,11 @@ def create_dxf_plan(prompt_or_spec: Any) -> dict[str, Any]:
 def summarize_plan(plan: Any) -> dict[str, Any]:
     validation = validate_cad_plan(plan)
     normalized = validation["details"].get("normalized_plan", {})
-    entities = normalized.get("entities", []) if validation["ok"] else []
-    counts = Counter(entity.get("type", "unknown") for entity in entities)
     return _result(
         ok=validation["ok"],
         action="summarize_plan",
         message="CAD plan summary is ready." if validation["ok"] else "Cannot summarize invalid CAD plan.",
-        details={
-            "units": normalized.get("units") if validation["ok"] else None,
-            "layer_count": len(normalized.get("layers", [])) if validation["ok"] else 0,
-            "entity_count": len(entities),
-            "entity_types": dict(sorted(counts.items())),
-        },
+        details=_summary_details(normalized) if validation["ok"] else _empty_summary(),
         warnings=validation["warnings"],
         next_steps=validation["next_steps"],
     )
@@ -157,25 +150,108 @@ def _output_is_allowed(output_path: Path) -> bool:
         return False
 
 
-def write_dxf(plan: Any, output_path: str | Path, dry_run: bool = True) -> dict[str, Any]:
-    validation = validate_cad_plan(plan)
-    if not validation["ok"]:
+def _entity_points(entity: dict[str, Any]) -> list[list[float]]:
+    entity_type = entity.get("type")
+    if entity_type == "line":
+        return [entity["start"], entity["end"]]
+    if entity_type == "polyline":
+        return list(entity["points"])
+    if entity_type == "circle":
+        x, y = entity["center"]
+        radius = entity["radius"]
+        return [[x - radius, y - radius], [x + radius, y + radius]]
+    if entity_type == "rectangle":
+        x = entity["x"]
+        y = entity["y"]
+        width = entity["width"]
+        height = entity["height"]
+        return [[x, y], [x + width, y + height]]
+    if entity_type == "text":
+        return [entity["position"]]
+    return []
+
+
+def _plan_bbox(entities: list[dict[str, Any]]) -> dict[str, float] | None:
+    points = [point for entity in entities for point in _entity_points(entity)]
+    if not points:
+        return None
+    xs = [float(point[0]) for point in points]
+    ys = [float(point[1]) for point in points]
+    return {"min_x": min(xs), "min_y": min(ys), "max_x": max(xs), "max_y": max(ys)}
+
+
+def _empty_summary() -> dict[str, Any]:
+    return {
+        "units": None,
+        "layer_count": 0,
+        "layers": [],
+        "entity_count": 0,
+        "entity_types": {},
+        "bbox": None,
+    }
+
+
+def _summary_details(normalized: dict[str, Any]) -> dict[str, Any]:
+    entities = normalized.get("entities", [])
+    counts = Counter(entity.get("type", "unknown") for entity in entities)
+    return {
+        "units": normalized.get("units"),
+        "layer_count": len(normalized.get("layers", [])),
+        "layers": [layer["name"] for layer in normalized.get("layers", [])],
+        "entity_count": len(entities),
+        "entity_types": dict(sorted(counts.items())),
+        "bbox": _plan_bbox(entities),
+    }
+
+
+def _manifest_for(normalized: dict[str, Any], output: Path, summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "bridge": BRIDGE_ID,
+        "format": "dxf",
+        "status": "dry_run" if not output.exists() else "written",
+        "output": output.name,
+        "output_root": "examples/cad/output",
+        "safety": {
+            "sanitized": True,
+            "absolute_paths_redacted": True,
+            "allowed_output_root": "examples/cad/output",
+        },
+        "plan": {
+            "units": normalized.get("units"),
+            "layers": summary.get("layers", []),
+            "entity_count": summary.get("entity_count", 0),
+            "entity_types": summary.get("entity_types", {}),
+            "bbox": summary.get("bbox"),
+        },
+    }
+
+
+def write_dxf(
+    plan: Any,
+    output_path: str | Path,
+    dry_run: bool = True,
+    confirm_write: bool = False,
+) -> dict[str, Any]:
+    normalized, errors, warnings = normalize_plan(plan)
+    if errors:
         return _result(
             ok=False,
             action="write_dxf",
             message="DXF was not written because the CAD plan is invalid.",
             details={"dry_run": dry_run, "output": Path(output_path).name},
-            warnings=validation["warnings"],
-            next_steps=validation["next_steps"],
+            warnings=warnings,
+            next_steps=["Fix the validation errors before exporting DXF."],
         )
 
     output = Path(output_path)
-    summary = summarize_plan(validation["details"]["normalized_plan"])
+    summary_details = _summary_details(normalized)
     details = {
         "dry_run": dry_run,
+        "confirm_write": confirm_write,
         "output": output.name,
         "output_root": "examples/cad/output",
-        "summary": summary["details"],
+        "summary": summary_details,
+        "manifest": _manifest_for(normalized, output, summary_details),
     }
     if dry_run:
         return _result(
@@ -183,8 +259,18 @@ def write_dxf(plan: Any, output_path: str | Path, dry_run: bool = True) -> dict[
             action="write_dxf",
             message="Dry run completed; no DXF file was written.",
             details=details,
-            warnings=validation["warnings"],
+            warnings=warnings,
             next_steps=["Run with dry_run=False and an output path under examples/cad/output to write a test DXF."],
+        )
+
+    if not confirm_write:
+        return _result(
+            ok=False,
+            action="write_dxf",
+            message="Refusing real DXF write without confirm_write=true.",
+            details=details,
+            warnings=["Real DXF writes must be explicitly confirmed."],
+            next_steps=["Run with dry_run=True first, then set confirm_write=True for a sandboxed output path."],
         )
 
     if not _output_is_allowed(output):
@@ -201,14 +287,13 @@ def write_dxf(plan: Any, output_path: str | Path, dry_run: bool = True) -> dict[
             ok=False,
             action="write_dxf",
             message="DXF export requires ezdxf, but ezdxf is not installed.",
-            details=details,
+            details={**details, "status": "unavailable", "missing_dependency": "ezdxf"},
             warnings=["ezdxf is optional and currently unavailable."],
             next_steps=["Install ezdxf locally, then rerun the export."],
         )
 
     import ezdxf  # type: ignore[import-not-found]
 
-    normalized = validation["details"]["normalized_plan"]
     doc = ezdxf.new("R2010")
     doc.units = 4
     for layer in normalized.get("layers", []):
@@ -241,11 +326,14 @@ def write_dxf(plan: Any, output_path: str | Path, dry_run: bool = True) -> dict[
 
     output.parent.mkdir(parents=True, exist_ok=True)
     doc.saveas(output)
+    manifest = _manifest_for(normalized, output, summary_details)
+    manifest_path = output.with_suffix(".manifest.json")
+    manifest_path.write_text(json.dumps(sanitize_result(manifest), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return _result(
         ok=True,
         action="write_dxf",
         message="DXF test file was written under examples/cad/output.",
-        details=details,
-        warnings=validation["warnings"],
+        details={**details, "manifest": manifest, "manifest_path": manifest_path.name},
+        warnings=warnings,
         next_steps=["Open the generated DXF manually in a CAD viewer if needed."],
     )

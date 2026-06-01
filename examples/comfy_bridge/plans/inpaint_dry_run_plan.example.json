@@ -1,0 +1,33 @@
+{
+  "task_type": "inpaint",
+  "input_requirements": [
+    "source_image_path supplied by user at run time",
+    "mask_image_path supplied by user at run time",
+    "positive_prompt or goal",
+    "checkpoint placeholder"
+  ],
+  "workflow_requirements": [
+    "CheckpointLoaderSimple",
+    "LoadImage",
+    "LoadImageMask or mask input",
+    "VAEEncodeForInpaint",
+    "CLIPTextEncode_positive",
+    "CLIPTextEncode_negative",
+    "KSampler",
+    "VAEDecode",
+    "SaveImage"
+  ],
+  "safety_notes": [
+    "Dry-run only; do not call /prompt.",
+    "Do not read or commit private source or mask images.",
+    "Use placeholders for checkpoints and model assets."
+  ],
+  "expected_outputs": [
+    "dry-run execution plan",
+    "mask requirements",
+    "blocked real queue submission"
+  ],
+  "blocked_reasons": [
+    "inpaint is plan-only until a reviewed public workflow template exists."
+  ]
+}

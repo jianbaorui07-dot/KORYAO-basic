@@ -46,6 +46,7 @@ def probe(base_url: str, timeout: int) -> dict[str, Any]:
             "object_info": False,
             "basic_nodes_checked": [],
         },
+        "status": "unknown",
         "errors": [],
         "warnings": [],
         "safe_to_commit": True,
@@ -58,6 +59,7 @@ def probe(base_url: str, timeout: int) -> dict[str, Any]:
         report["detected"]["python_version"] = stats.get("system", {}).get("python_version")
         report["detected"]["device_count"] = len(stats.get("devices", []))
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        report["status"] = "unavailable"
         report["errors"].append({"code": "system_stats_failed", "message": safe_error(exc)})
         return report
 
@@ -75,10 +77,12 @@ def probe(base_url: str, timeout: int) -> dict[str, Any]:
                 }
             )
     except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        report["status"] = "unavailable"
         report["errors"].append({"code": "object_info_failed", "message": safe_error(exc)})
         return report
 
     report["ok"] = report["detected"]["system_stats"] and report["detected"]["object_info"]
+    report["status"] = "available" if report["ok"] else "unavailable"
     return report
 
 
@@ -108,6 +112,7 @@ def main() -> None:
     parser.add_argument("--comfy-url", default=default_url, help="ComfyUI API 地址，默认读取 STARBRIDGE_COMFYUI_URL。")
     parser.add_argument("--timeout", type=int, default=8, help="HTTP 请求超时时间，单位秒。")
     parser.add_argument("--json", action="store_true", help="只向 stdout 输出 JSON。")
+    parser.add_argument("--soft-exit", action="store_true", help="ComfyUI 不在线时仍返回 0，供 CI / preflight 使用。")
     parser.add_argument(
         "--report-path",
         default=str(Path(__file__).resolve().parent / "reports" / "comfyui_probe_report.json"),
@@ -122,7 +127,7 @@ def main() -> None:
     else:
         print_text(report)
 
-    if not report["ok"]:
+    if not report["ok"] and not args.soft_exit:
         raise SystemExit(1)
 
 

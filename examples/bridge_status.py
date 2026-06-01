@@ -491,6 +491,16 @@ def main() -> None:
         help="对已找到的软件运行轻量版本探测；部分商业软件可能启动较慢。",
     )
     parser.add_argument("--json", action="store_true", help="输出机器可读 JSON。")
+    parser.add_argument(
+        "--redact-paths",
+        action="store_true",
+        help="隐藏本机用户目录、桌面、Adobe/ComfyUI 等真实路径，适合公开输出。",
+    )
+    parser.add_argument(
+        "--soft-exit",
+        action="store_true",
+        help="本机软件未安装或未启动时仍返回 0，适合 CI 和公开仓库检查。",
+    )
     parser.add_argument("--strict", action="store_true", help="任一 bridge 未通过时返回退出码 1。")
     args = parser.parse_args()
 

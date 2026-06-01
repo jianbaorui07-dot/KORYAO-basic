@@ -19,6 +19,10 @@ Do not paste tokens, cookies, OAuth cache, license files, personal paths, client
 - Local paths, usernames, install locations, and output folders should be passed through environment variables.
 - Read-only probes should return redacted status summaries.
 - File-writing tools should default to dry-run or require an explicit confirmation flag.
+- Output reports and manifests must pass the shared sanitizer/redactor before being printed or written.
+- Paths, HOME, USERPROFILE, usernames, tokens, API keys, cookies, passwords, OAuth values, and secrets must be redacted.
+- GUI / Adobe / CapCut / Blender write actions are experimental unless a real reviewed E2E run proves otherwise; by default they must stay inside demo or sandbox output directories.
+- AutoCAD/DXF headless writes are only allowed under `examples/cad/output` and require explicit `confirm_write=true`; missing optional DXF dependencies must return structured unavailable rather than crashing.
 - Security checks should fail before private assets or obvious credentials are committed.
 
 ## Local Validation

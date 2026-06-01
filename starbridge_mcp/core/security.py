@@ -56,17 +56,13 @@ def sanitize_path(value: str) -> str:
     redacted = value
 
     def replace_windows_user(match: re.Match[str]) -> str:
-        tail = _safe_tail(re.split(r"[\\/]+", match.group("tail") or ""), "\\")
-        return "<USER_HOME>" + (f"\\{tail}" if tail else "")
+        return "<REDACTED_PATH>"
 
     def replace_unix_user(match: re.Match[str]) -> str:
-        tail = _safe_tail((match.group("tail") or "").split("/"), "/")
-        return "<USER_HOME>" + (f"/{tail}" if tail else "")
+        return "<REDACTED_PATH>"
 
     def replace_drive_path(match: re.Match[str]) -> str:
-        parts = re.split(r"[\\/]+", match.group(0))
-        filename = parts[-1] if parts else ""
-        return "<REDACTED>" + (f"\\{filename}" if filename else "")
+        return "<REDACTED_PATH>"
 
     home = str(Path.home())
     if home:
@@ -96,8 +92,9 @@ def sanitize_path(value: str) -> str:
         replace_drive_path,
         redacted,
     )
+    redacted = re.sub(r"<REDACTED_PATH>[^\"'<>，）\]\r\n]+", "<REDACTED_PATH>", redacted)
     for private_part in PRIVATE_PATH_PARTS:
-        redacted = re.sub(rf"(?i)([\\/]){re.escape(private_part)}(?=([\\/])|$)", r"\1<REDACTED>", redacted)
+        redacted = re.sub(rf"(?i)([\\/]){re.escape(private_part)}(?=([\\/])|$)", r"\1<REDACTED_PATH>", redacted)
     for filename in SENSITIVE_FILENAMES:
         redacted = re.sub(re.escape(filename), "<SENSITIVE_DRAFT_FILE>", redacted, flags=re.IGNORECASE)
     for extension in SENSITIVE_FILE_EXTENSIONS:
@@ -108,6 +105,10 @@ def sanitize_path(value: str) -> str:
             redacted,
         )
     return redacted
+
+
+def redact_path(value: str) -> str:
+    return sanitize_path(value)
 
 
 def sanitize_text(value: str) -> str:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from starbridge_mcp.core.security import contains_sensitive_text, sanitize_details, sanitize_path, sanitize_text
+from starbridge_mcp.core.security import contains_sensitive_text, redact_path, sanitize_details, sanitize_path, sanitize_text
 
 
 BANNED_OUTPUT_FRAGMENTS = ("C:\\Users\\", "/Users/", "/home/", "AppData", "Desktop", "Documents")
@@ -27,6 +27,11 @@ class SecuritySanitizerTests(unittest.TestCase):
             with self.subTest(sample=sample):
                 sanitized = sanitize_path(sample)
                 self.assert_clean(sanitized)
+
+    def test_redact_path_public_alias(self) -> None:
+        sanitized = redact_path("C:" + "\\Users\\SomeName\\Desktop\\source.png")
+        self.assertIn("<REDACTED_PATH>", sanitized)
+        self.assert_clean(sanitized)
 
     def test_sanitize_text_preserves_normal_bridge_text(self) -> None:
         text = "Photoshop 修图桥 当前未完全就绪，详见 details.notes。"

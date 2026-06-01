@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starbridge-creative-software-mcp"
+version = "0.1.0a0"
+description = "Windows-first local-first MCP stdio bridge prototype for creative desktop software."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "StarBridge contributors" }]
+keywords = ["mcp", "codex", "comfyui", "autocad", "dxf", "photoshop", "illustrator", "blender"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+cad = [
+  "ezdxf>=1.3",
+  "pywin32>=306; platform_system == 'Windows'",
+]
+comfy = []
+adobe = [
+  "pywin32>=306; platform_system == 'Windows'",
+]
+
+[project.scripts]
+starbridge = "starbridge_mcp.server:main"
+starbridge-mcp = "starbridge_mcp.mcp_server:main"
+
+[tool.setuptools.packages.find]
+include = ["starbridge_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

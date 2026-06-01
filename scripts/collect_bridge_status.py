@@ -11,69 +11,61 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES_DIR = REPO_ROOT / "examples"
 FIELDS = [
     "bridge_id",
-    "name",
-    "status",
-    "platform",
-    "supported_tasks",
-    "unsupported_tasks",
-    "entrypoints",
+    "display_name",
+    "maturity",
+    "platforms",
+    "local_dependency",
+    "required_env",
+    "probe_supported",
+    "write_supported",
+    "safe_report_supported",
+    "last_verified",
+    "known_risks",
+    "next_steps",
 ]
-VALID_STATUS = {"stable", "experimental", "research", "planned"}
+VALID_MATURITY = {"stable", "prototype", "planned", "research", "deprecated"}
 
 
 def load_bridge_manifests() -> list[dict[str, Any]]:
     manifests: list[dict[str, Any]] = []
     for bridge_dir in sorted(EXAMPLES_DIR.glob("*_bridge")):
-        manifest_path = bridge_dir / "bridge.json"
-        legacy_path = bridge_dir / "bridge_status.json"
-        source_path = manifest_path if manifest_path.exists() else legacy_path
-        if not source_path.exists():
+        status_path = bridge_dir / "bridge_status.json"
+        if not status_path.exists():
             continue
 
-        data = json.loads(source_path.read_text(encoding="utf-8"))
-        if source_path.name == "bridge_status.json":
-            data = legacy_status_to_manifest(data)
-        validate_manifest(data, source_path)
-        data["_path"] = str(source_path.relative_to(REPO_ROOT)).replace("\\", "/")
+        data = json.loads(status_path.read_text(encoding="utf-8"))
+        validate_manifest(data, status_path)
+        data["_path"] = str(status_path.relative_to(REPO_ROOT)).replace("\\", "/")
         manifests.append(data)
     return manifests
-
-
-def legacy_status_to_manifest(data: dict[str, Any]) -> dict[str, Any]:
-    maturity = str(data.get("maturity", "planned"))
-    status = "experimental" if maturity == "prototype" else maturity
-    if status not in VALID_STATUS:
-        status = "planned"
-    return {
-        "bridge_id": data.get("bridge_id"),
-        "name": data.get("display_name"),
-        "status": status,
-        "platform": data.get("platforms", []),
-        "requires": data.get("local_dependency", []),
-        "entrypoints": {},
-        "supported_tasks": ["probe"] if data.get("probe_supported") else [],
-        "unsupported_tasks": data.get("next_steps", []),
-        "safety_notes": data.get("known_risks", []),
-    }
 
 
 def validate_manifest(data: dict[str, Any], path: Path) -> None:
     required = {
         "bridge_id",
-        "name",
-        "status",
-        "platform",
-        "requires",
-        "entrypoints",
-        "supported_tasks",
-        "unsupported_tasks",
-        "safety_notes",
+        "display_name",
+        "maturity",
+        "platforms",
+        "local_dependency",
+        "required_env",
+        "probe_supported",
+        "write_supported",
+        "safe_report_supported",
+        "last_verified",
+        "known_risks",
+        "next_steps",
     }
     missing = sorted(required - set(data))
     if missing:
         raise ValueError(f"{path}: missing fields: {', '.join(missing)}")
-    if data["status"] not in VALID_STATUS:
-        raise ValueError(f"{path}: status must be one of {sorted(VALID_STATUS)}")
+    if data["maturity"] not in VALID_MATURITY:
+        raise ValueError(f"{path}: maturity must be one of {sorted(VALID_MATURITY)}")
+    for field in ("platforms", "local_dependency", "required_env", "known_risks", "next_steps"):
+        if not isinstance(data.get(field), list):
+            raise ValueError(f"{path}: {field} must be a list")
+    for field in ("probe_supported", "write_supported", "safe_report_supported"):
+        if not isinstance(data.get(field), bool):
+            raise ValueError(f"{path}: {field} must be a boolean")
 
 
 def compact_value(value: Any) -> str:
@@ -104,7 +96,7 @@ def to_markdown(statuses: list[dict[str, Any]]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="汇总 examples/*_bridge/bridge.json。")
+    parser = argparse.ArgumentParser(description="汇总 examples/*_bridge/bridge_status.json。")
     output = parser.add_mutually_exclusive_group()
     output.add_argument("--json", action="store_true", help="输出 JSON。")
     output.add_argument("--markdown", action="store_true", help="输出 Markdown 表格。")

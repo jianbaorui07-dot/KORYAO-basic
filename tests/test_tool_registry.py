@@ -25,6 +25,13 @@ class ToolRegistryTests(unittest.TestCase):
         self.assertIn("guarded_local_write", risks)
         self.assertTrue(any(capability.source_projects for capability in CAPABILITIES))
 
+    def test_registry_lists_stable_experimental_and_planned_statuses(self) -> None:
+        capabilities = list_capabilities()
+        statuses = {item["current_status"] for item in capabilities}
+        self.assertIn("stable", statuses)
+        self.assertIn("experimental", statuses)
+        self.assertIn("planned", statuses)
+
     def test_safe_only_filters_guarded_actions(self) -> None:
         capabilities = list_capabilities(include_guarded=False)
         self.assertTrue(capabilities)

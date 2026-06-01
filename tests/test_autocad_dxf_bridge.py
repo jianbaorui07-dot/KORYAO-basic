@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import starbridge_mcp.bridges.autocad_dxf as autocad_dxf
 from starbridge_mcp.bridges.autocad_dxf import (
     create_dxf_plan,
     status,
@@ -54,6 +55,28 @@ class AutoCadDxfBridgeTests(unittest.TestCase):
                 self.assert_schema(result, "validate_cad_plan")
                 self.assertFalse(result["ok"])
 
+    def test_validate_cad_plan_rejects_unsafe_output_paths(self) -> None:
+        unsafe_outputs = [
+            "../escape.dxf",
+            "C:\\Users\\private\\Desktop\\escape.dxf",
+            "/tmp/escape.dxf",
+            "not_a_dxf.txt",
+        ]
+        for output in unsafe_outputs:
+            with self.subTest(output=output):
+                plan = minimal_plan()
+                plan["output"] = output
+                result = validate_cad_plan(plan)
+                self.assert_schema(result, "validate_cad_plan")
+                self.assertFalse(result["ok"])
+
+    def test_validate_cad_plan_rejects_out_of_range_geometry(self) -> None:
+        plan = minimal_plan()
+        plan["entities"] = [{"type": "line", "start": [0, 0], "end": [2_000_000, 0]}]
+        result = validate_cad_plan(plan)
+        self.assert_schema(result, "validate_cad_plan")
+        self.assertFalse(result["ok"])
+
     def test_validate_cad_plan_accepts_legal_minimal_plan(self) -> None:
         result = validate_cad_plan(minimal_plan())
         self.assert_schema(result, "validate_cad_plan")
@@ -76,6 +99,8 @@ class AutoCadDxfBridgeTests(unittest.TestCase):
         self.assertEqual(5, result["details"]["entity_count"])
         self.assertEqual(1, result["details"]["entity_types"]["line"])
         self.assertEqual(1, result["details"]["entity_types"]["rectangle"])
+        self.assertEqual(["0", "OUTLINE", "TEXT"], result["details"]["layers"])
+        self.assertEqual({"min_x": 0.0, "min_y": 0.0, "max_x": 1000.0, "max_y": 620.0}, result["details"]["bbox"])
 
     def test_write_dxf_dry_run_does_not_write_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -85,13 +110,33 @@ class AutoCadDxfBridgeTests(unittest.TestCase):
             self.assertTrue(result["ok"])
             self.assertFalse(output.exists())
 
+    def test_write_dxf_requires_confirm_write_for_real_write(self) -> None:
+        output = autocad_dxf.OUTPUT_ROOT / "blocked_without_confirm.dxf"
+        result = write_dxf(minimal_plan(), output, dry_run=False, confirm_write=False)
+        self.assert_schema(result, "write_dxf")
+        self.assertFalse(result["ok"])
+        self.assertFalse(output.exists())
+
     def test_write_dxf_rejects_output_outside_examples_cad_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "blocked.dxf"
-            result = write_dxf(minimal_plan(), output, dry_run=False)
+            result = write_dxf(minimal_plan(), output, dry_run=False, confirm_write=True)
             self.assert_schema(result, "write_dxf")
             self.assertFalse(result["ok"])
             self.assertFalse(output.exists())
+
+    def test_write_dxf_reports_unavailable_without_ezdxf(self) -> None:
+        original = autocad_dxf._ezdxf_available
+        autocad_dxf._ezdxf_available = lambda: False
+        try:
+            output = autocad_dxf.OUTPUT_ROOT / "missing_ezdxf.dxf"
+            result = write_dxf(minimal_plan(), output, dry_run=False, confirm_write=True)
+        finally:
+            autocad_dxf._ezdxf_available = original
+        self.assert_schema(result, "write_dxf")
+        self.assertFalse(result["ok"])
+        self.assertEqual("unavailable", result["details"]["status"])
+        self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":
