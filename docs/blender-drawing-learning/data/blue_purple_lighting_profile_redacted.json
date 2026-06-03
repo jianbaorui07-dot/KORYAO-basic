@@ -5,6 +5,7 @@
   "error_count": 0,
   "profiles": [
     {
+      "schema_version": "0.2",
       "relative_label": "模型/蓝紫打光.blend",
       "scene_name": "Scene",
       "render_engine": "CYCLES",
@@ -16,6 +17,30 @@
         1,
         250
       ],
+      "render_settings": {
+        "engine": "CYCLES",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "resolution_percentage": 100,
+        "frame_range": [
+          1,
+          250
+        ],
+        "fps": 24,
+        "film_transparent": true,
+        "cycles": {
+          "samples": 128,
+          "preview_samples": 32,
+          "use_denoising": false,
+          "max_bounces": 12
+        },
+        "eevee": {
+          "taa_render_samples": 64,
+          "taa_samples": 16
+        }
+      },
       "object_count": 6,
       "object_type_counts": {
         "LIGHT": 3,
@@ -39,7 +64,33 @@
             0.0599,
             0.3122,
             1.0
-          ]
+          ],
+          "transform": {
+            "location": [
+              0.0,
+              -3.0897,
+              2.5359
+            ],
+            "rotation_euler": [
+              1.5708,
+              -0.0,
+              0.0
+            ],
+            "scale": [
+              4.0456,
+              4.0456,
+              4.0456
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "shadow_soft_size": 1.0,
+          "use_shadow": true,
+          "size": 1.0,
+          "size_y": 1.0
         },
         {
           "name": "Area.001",
@@ -49,7 +100,33 @@
             1.0,
             0.3207,
             0.9318
-          ]
+          ],
+          "transform": {
+            "location": [
+              0.0,
+              3.8516,
+              2.5359
+            ],
+            "rotation_euler": [
+              1.5708,
+              -0.0,
+              3.1416
+            ],
+            "scale": [
+              4.0456,
+              4.0456,
+              4.0456
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "shadow_soft_size": 1.0,
+          "use_shadow": true,
+          "size": 1.0,
+          "size_y": 1.0
         },
         {
           "name": "Area.002",
@@ -59,7 +136,33 @@
             0.2572,
             0.2934,
             0.8234
-          ]
+          ],
+          "transform": {
+            "location": [
+              -0.0062,
+              0.2855,
+              7.3226
+            ],
+            "rotation_euler": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              8.5043,
+              8.5043,
+              8.5043
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "shadow_soft_size": 1.0,
+          "use_shadow": true,
+          "size": 1.0,
+          "size_y": 1.0
         }
       ],
       "cameras": [
@@ -67,7 +170,213 @@
           "name": "Camera",
           "lens": 50.0,
           "sensor_width": 36.0,
-          "type": "PERSP"
+          "type": "PERSP",
+          "transform": {
+            "location": [
+              16.3528,
+              0.1908,
+              3.6519
+            ],
+            "rotation_euler": [
+              1.4032,
+              -0.0,
+              1.5708
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "clip_start": 0.1,
+          "clip_end": 1000.0,
+          "dof": {
+            "use_dof": false,
+            "aperture_fstop": 2.8
+          }
+        }
+      ],
+      "objects_sample": [
+        {
+          "name": "Area",
+          "type": "LIGHT",
+          "transform": {
+            "location": [
+              0.0,
+              -3.0897,
+              2.5359
+            ],
+            "rotation_euler": [
+              1.5708,
+              -0.0,
+              0.0
+            ],
+            "scale": [
+              4.0456,
+              4.0456,
+              4.0456
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "material_slot_count": 0
+        },
+        {
+          "name": "Area.001",
+          "type": "LIGHT",
+          "transform": {
+            "location": [
+              0.0,
+              3.8516,
+              2.5359
+            ],
+            "rotation_euler": [
+              1.5708,
+              -0.0,
+              3.1416
+            ],
+            "scale": [
+              4.0456,
+              4.0456,
+              4.0456
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "material_slot_count": 0
+        },
+        {
+          "name": "Area.002",
+          "type": "LIGHT",
+          "transform": {
+            "location": [
+              -0.0062,
+              0.2855,
+              7.3226
+            ],
+            "rotation_euler": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              8.5043,
+              8.5043,
+              8.5043
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "material_slot_count": 0
+        },
+        {
+          "name": "Camera",
+          "type": "CAMERA",
+          "transform": {
+            "location": [
+              16.3528,
+              0.1908,
+              3.6519
+            ],
+            "rotation_euler": [
+              1.4032,
+              -0.0,
+              1.5708
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "dimensions": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "material_slot_count": 0
+        },
+        {
+          "name": "Plane",
+          "type": "MESH",
+          "transform": {
+            "location": [
+              -0.0043,
+              0.026,
+              0.0642
+            ],
+            "rotation_euler": [
+              0.0,
+              -0.0,
+              1.5708
+            ],
+            "scale": [
+              17.3605,
+              17.3605,
+              17.3605
+            ],
+            "dimensions": [
+              2.0,
+              2.0,
+              0.776
+            ]
+          },
+          "material_slot_count": 1,
+          "mesh_stats": {
+            "vertices": 54,
+            "edges": 79,
+            "polygons": 26,
+            "uv_layers": 1
+          },
+          "modifiers": []
+        },
+        {
+          "name": "圣杯_000",
+          "type": "MESH",
+          "transform": {
+            "location": [
+              -0.0428,
+              0.2565,
+              0.052
+            ],
+            "rotation_euler": [
+              1.5708,
+              -0.0,
+              0.0
+            ],
+            "scale": [
+              0.8158,
+              0.8158,
+              0.8158
+            ],
+            "dimensions": [
+              2.4251,
+              3.0086,
+              2.8202
+            ]
+          },
+          "material_slot_count": 1,
+          "mesh_stats": {
+            "vertices": 19187,
+            "edges": 57483,
+            "polygons": 38279,
+            "uv_layers": 1
+          },
+          "modifiers": []
         }
       ],
       "materials_sample": [
@@ -79,6 +388,182 @@
             "ShaderNodeOutputMaterial": 1,
             "ShaderNodeGroup": 8
           },
+          "nodes_sample": [
+            {
+              "name": "Image Texture",
+              "label": "",
+              "type": "ShaderNodeTexImage",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "image_name": "Material_ao_mask.png"
+            },
+            {
+              "name": "Image Texture.001",
+              "label": "",
+              "type": "ShaderNodeTexImage",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "image_name": "Material_bevel_mask.png"
+            },
+            {
+              "name": "Material Output",
+              "label": "",
+              "type": "ShaderNodeOutputMaterial",
+              "inputs": {
+                "Displacement": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Thickness": 0.0
+              }
+            },
+            {
+              "name": "Group.012",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Scale": 3.0,
+                "Detail": 16.0,
+                "Distortion": 0.0,
+                "CR_ColorRamp_Contrast": 0.0,
+                "AO_MASK": 0.0,
+                "BEVEL_MASK": 0.0,
+                "Bevel Mask Factor": 0.0,
+                "Invert": 0.0
+              }
+            },
+            {
+              "name": "Group.014",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Noise Factor": 1.0,
+                "Scale": 2.6,
+                "Detail": 16.0,
+                "MinValue": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "MaxValue": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "CR_ColorRamp_Contrast": 0.0,
+                "Invert": 0.0
+              }
+            },
+            {
+              "name": "Group.013",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Scale": 3.0,
+                "CR_ColorRamp_Contrast": 0.0,
+                "Invert": 0.0
+              }
+            },
+            {
+              "name": "Group.016",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Scale": 20.0,
+                "Detail": 16.0,
+                "Dimension": 0.4,
+                "Lacunarity": 1.3,
+                "Offset": 0.0,
+                "Gain": 1.0,
+                "AO_MASK": 0.0,
+                "BEVEL_MASK": 1.0,
+                "Bevel Mask Factor": 0.0,
+                "Invert": 0.0
+              }
+            },
+            {
+              "name": "Group.015",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Scale": 3.0,
+                "AO_MASK": 0.0,
+                "BEVEL_MASK": 1.0,
+                "Bevel Mask Factor": 0.0,
+                "Invert": 0.0
+              }
+            },
+            {
+              "name": "Group.002",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Pattern Scale": 7.4,
+                "Color": [
+                  0.305,
+                  0.1981,
+                  0.0953,
+                  1.0
+                ],
+                "ColorDarken": 0.3,
+                "Roughness": 0.65,
+                "Height": 1.0
+              }
+            },
+            {
+              "name": "Group",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Color": [
+                  0.3613,
+                  0.2462,
+                  0.0762,
+                  1.0
+                ],
+                "Roughness": 0.2,
+                "Noise Roughness": 0.0,
+                "Noise Scale": 3.0
+              }
+            },
+            {
+              "name": "Group.001",
+              "label": "",
+              "type": "ShaderNodeGroup",
+              "inputs": {
+                "Color": [
+                  0.2874,
+                  0.2874,
+                  0.2874,
+                  1.0
+                ],
+                "Roughness": 0.24,
+                "Noise Roughness": 0.0,
+                "Noise Scale": 3.0,
+                "Brushed": 0.0,
+                "Brushed Scale": 7.0
+              }
+            }
+          ],
+          "diffuse_color": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
           "blend_method": "HASHED",
           "use_screen_refraction": false
         },
@@ -89,6 +574,59 @@
             "ShaderNodeOutputMaterial": 1,
             "ShaderNodeBsdfPrincipled": 1
           },
+          "nodes_sample": [
+            {
+              "name": "Material Output",
+              "label": "",
+              "type": "ShaderNodeOutputMaterial",
+              "inputs": {
+                "Displacement": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Thickness": 0.0
+              }
+            },
+            {
+              "name": "Principled BSDF",
+              "label": "",
+              "type": "ShaderNodeBsdfPrincipled",
+              "inputs": {
+                "Base Color": [
+                  0.0271,
+                  0.0271,
+                  0.0271,
+                  1.0
+                ],
+                "Metallic": 0.633,
+                "Roughness": 0.211,
+                "IOR": 1.45,
+                "Alpha": 1.0,
+                "Normal": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Weight": 0.0,
+                "Diffuse Roughness": 0.0,
+                "Subsurface Weight": 0.0,
+                "Subsurface Radius": [
+                  1.0,
+                  0.2,
+                  0.1
+                ],
+                "Subsurface Scale": 0.05,
+                "Subsurface IOR": 1.4
+              }
+            }
+          ],
+          "diffuse_color": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
           "blend_method": "HASHED",
           "use_screen_refraction": false
         },
@@ -101,6 +639,115 @@
             "ShaderNodeTexNoise": 2,
             "ShaderNodeValToRGB": 2
           },
+          "nodes_sample": [
+            {
+              "name": "Material Output",
+              "label": "",
+              "type": "ShaderNodeOutputMaterial",
+              "inputs": {
+                "Displacement": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Thickness": 0.0
+              }
+            },
+            {
+              "name": "Principled BSDF",
+              "label": "",
+              "type": "ShaderNodeBsdfPrincipled",
+              "inputs": {
+                "Base Color": [
+                  0.8,
+                  0.8,
+                  0.8,
+                  1.0
+                ],
+                "Metallic": 1.0,
+                "Roughness": 0.1758,
+                "IOR": 1.45,
+                "Alpha": 1.0,
+                "Normal": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Weight": 0.0,
+                "Diffuse Roughness": 0.0,
+                "Subsurface Weight": 0.0,
+                "Subsurface Radius": [
+                  1.0,
+                  0.2,
+                  0.1
+                ],
+                "Subsurface Scale": 0.05,
+                "Subsurface IOR": 1.4
+              }
+            },
+            {
+              "name": "Noise Texture",
+              "label": "",
+              "type": "ShaderNodeTexNoise",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "W": 0.0,
+                "Scale": 3.2,
+                "Detail": 16.0,
+                "Roughness": 0.5,
+                "Lacunarity": 2.0,
+                "Offset": 0.0,
+                "Gain": 1.0,
+                "Distortion": 0.0
+              }
+            },
+            {
+              "name": "ColorRamp",
+              "label": "",
+              "type": "ShaderNodeValToRGB",
+              "inputs": {
+                "Factor": 0.5
+              }
+            },
+            {
+              "name": "ColorRamp.001",
+              "label": "",
+              "type": "ShaderNodeValToRGB",
+              "inputs": {
+                "Factor": 0.5
+              }
+            },
+            {
+              "name": "Noise Texture.001",
+              "label": "",
+              "type": "ShaderNodeTexNoise",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "W": 0.0,
+                "Scale": 2.0,
+                "Detail": 2.0,
+                "Roughness": 0.5,
+                "Lacunarity": 2.0,
+                "Offset": 0.0,
+                "Gain": 1.0,
+                "Distortion": 0.0
+              }
+            }
+          ],
+          "diffuse_color": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
           "blend_method": "HASHED",
           "use_screen_refraction": false
         },
@@ -113,6 +760,115 @@
             "ShaderNodeValToRGB": 2,
             "ShaderNodeBsdfPrincipled": 1
           },
+          "nodes_sample": [
+            {
+              "name": "Material Output",
+              "label": "",
+              "type": "ShaderNodeOutputMaterial",
+              "inputs": {
+                "Displacement": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Thickness": 0.0
+              }
+            },
+            {
+              "name": "Noise Texture",
+              "label": "",
+              "type": "ShaderNodeTexNoise",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "W": 0.0,
+                "Scale": 1.3,
+                "Detail": 14.1,
+                "Roughness": 0.5,
+                "Lacunarity": 2.0,
+                "Offset": 0.0,
+                "Gain": 1.0,
+                "Distortion": 0.0
+              }
+            },
+            {
+              "name": "ColorRamp",
+              "label": "",
+              "type": "ShaderNodeValToRGB",
+              "inputs": {
+                "Factor": 0.5
+              }
+            },
+            {
+              "name": "Noise Texture.001",
+              "label": "",
+              "type": "ShaderNodeTexNoise",
+              "inputs": {
+                "Vector": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "W": 0.0,
+                "Scale": -8.5,
+                "Detail": 16.0,
+                "Roughness": 0.5,
+                "Lacunarity": 2.0,
+                "Offset": 0.0,
+                "Gain": 1.0,
+                "Distortion": 0.0
+              }
+            },
+            {
+              "name": "ColorRamp.001",
+              "label": "",
+              "type": "ShaderNodeValToRGB",
+              "inputs": {
+                "Factor": 0.5
+              }
+            },
+            {
+              "name": "Principled BSDF",
+              "label": "",
+              "type": "ShaderNodeBsdfPrincipled",
+              "inputs": {
+                "Base Color": [
+                  0.8,
+                  0.8,
+                  0.8,
+                  1.0
+                ],
+                "Metallic": 0.7551,
+                "Roughness": 0.2657,
+                "IOR": 1.45,
+                "Alpha": 1.0,
+                "Normal": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Weight": 0.0,
+                "Diffuse Roughness": 0.0,
+                "Subsurface Weight": 0.0,
+                "Subsurface Radius": [
+                  1.0,
+                  0.2,
+                  0.1
+                ],
+                "Subsurface Scale": 0.05,
+                "Subsurface IOR": 1.4
+              }
+            }
+          ],
+          "diffuse_color": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
           "blend_method": "HASHED",
           "use_screen_refraction": false
         },
@@ -123,13 +879,116 @@
             "ShaderNodeOutputMaterial": 1,
             "ShaderNodeBsdfPrincipled": 1
           },
+          "nodes_sample": [
+            {
+              "name": "Material Output",
+              "label": "",
+              "type": "ShaderNodeOutputMaterial",
+              "inputs": {
+                "Displacement": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Thickness": 0.0
+              }
+            },
+            {
+              "name": "Principled BSDF",
+              "label": "",
+              "type": "ShaderNodeBsdfPrincipled",
+              "inputs": {
+                "Base Color": [
+                  0.2673,
+                  0.2673,
+                  0.2673,
+                  1.0
+                ],
+                "Metallic": 0.4037,
+                "Roughness": 0.4266,
+                "IOR": 1.45,
+                "Alpha": 1.0,
+                "Normal": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "Weight": 0.0,
+                "Diffuse Roughness": 0.0,
+                "Subsurface Weight": 0.0,
+                "Subsurface Radius": [
+                  1.0,
+                  0.2,
+                  0.1
+                ],
+                "Subsurface Scale": 0.05,
+                "Subsurface IOR": 1.4
+              }
+            }
+          ],
+          "diffuse_color": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
           "blend_method": "HASHED",
           "use_screen_refraction": false
         }
       ],
       "world": {
         "has_world": true,
-        "uses_nodes": true
+        "uses_nodes": true,
+        "nodes_sample": [
+          {
+            "name": "World Output",
+            "label": "",
+            "type": "ShaderNodeOutputWorld",
+            "inputs": {}
+          },
+          {
+            "name": "Background",
+            "label": "",
+            "type": "ShaderNodeBackground",
+            "inputs": {
+              "Color": [
+                0.0509,
+                0.0509,
+                0.0509,
+                1.0
+              ],
+              "Strength": 1.0,
+              "Weight": 0.0
+            }
+          },
+          {
+            "name": "世界输出",
+            "label": "",
+            "type": "ShaderNodeOutputWorld",
+            "inputs": {}
+          },
+          {
+            "name": "背景",
+            "label": "",
+            "type": "ShaderNodeBackground",
+            "inputs": {
+              "Color": [
+                0.0509,
+                0.0509,
+                0.0509,
+                1.0
+              ],
+              "Strength": 1.0,
+              "Weight": 0.0
+            }
+          },
+          {
+            "name": "帧",
+            "label": "版本控制：“使用节点” 已删除",
+            "type": "NodeFrame",
+            "inputs": {}
+          }
+        ]
       },
       "drawing_learning_notes": [
         "Camera exists: study focal length and framing before rebuilding the scene.",

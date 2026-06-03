@@ -67,6 +67,8 @@
 
 - `LEARNING_NOTES.md`：面向创作学习的中文总结。
 - `PRACTICE_ROADMAP.md`：按阶段练习 Blender 绘制图的路线。
+- `PARAMETER_SCHEMA.md`：skill 和插件工具可复用的输入/输出参数规范。
+- `CODEX_BLENDER_PLUGIN_SPEC.md`：Codex 接入 Blender 的插件/MCP 工具接口草案。
 - `experiments/`：逐个打开案例后的实验记录。
 - `experiments/all-blend-cases.md`：25 个 `.blend` 的逐案例学习索引。
 - `experiments/cases/`：每个 `.blend` 一份结构化学习笔记。

@@ -18,6 +18,89 @@ from pathlib import Path
 import bpy
 
 
+def rounded(value, digits: int = 4):
+    return round(float(value), digits)
+
+
+def vector_values(value, digits: int = 4) -> list[float]:
+    return [rounded(item, digits) for item in value]
+
+
+def safe_scalar(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return rounded(value)
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def socket_default(socket):
+    if not hasattr(socket, "default_value"):
+        return None
+    value = socket.default_value
+    if isinstance(value, (int, float, bool, str)):
+        return safe_scalar(value)
+    try:
+        return vector_values(value)
+    except TypeError:
+        return None
+
+
+def transform_profile(obj) -> dict[str, object]:
+    return {
+        "location": vector_values(obj.location),
+        "rotation_euler": vector_values(obj.rotation_euler),
+        "scale": vector_values(obj.scale),
+        "dimensions": vector_values(obj.dimensions),
+    }
+
+
+def modifier_profile(modifier) -> dict[str, object]:
+    params = {}
+    for attr in [
+        "levels",
+        "render_levels",
+        "width",
+        "segments",
+        "thickness",
+        "offset",
+        "use_clip",
+        "use_bisect_axis",
+        "mode",
+        "use_auto_smooth",
+    ]:
+        if hasattr(modifier, attr):
+            value = getattr(modifier, attr)
+            params[attr] = safe_scalar(value) if not isinstance(value, (list, tuple)) else list(value)
+    return {
+        "name": modifier.name,
+        "type": modifier.type,
+        "parameters": params,
+    }
+
+
+def node_profile(node) -> dict[str, object]:
+    inputs = {}
+    for socket in list(getattr(node, "inputs", []))[:12]:
+        default = socket_default(socket)
+        if default is not None:
+            inputs[socket.name] = default
+    profile = {
+        "name": node.name,
+        "label": node.label,
+        "type": node.bl_idname,
+        "inputs": inputs,
+    }
+    image = getattr(node, "image", None)
+    if image:
+        profile["image_name"] = image.name
+    return profile
+
+
 def count_nodes(material) -> dict[str, int]:
     if not material or not material.use_nodes or not material.node_tree:
         return {}
@@ -25,10 +108,15 @@ def count_nodes(material) -> dict[str, int]:
 
 
 def material_profile(material) -> dict[str, object]:
+    nodes = []
+    if material and material.use_nodes and material.node_tree:
+        nodes = [node_profile(node) for node in list(material.node_tree.nodes)[:32]]
     return {
         "name": material.name,
         "uses_nodes": bool(material.use_nodes),
         "node_types": count_nodes(material),
+        "nodes_sample": nodes,
+        "diffuse_color": vector_values(material.diffuse_color),
         "blend_method": getattr(material, "blend_method", None),
         "use_screen_refraction": bool(getattr(material, "use_screen_refraction", False)),
     }
@@ -36,12 +124,19 @@ def material_profile(material) -> dict[str, object]:
 
 def light_profile(light_obj) -> dict[str, object]:
     data = light_obj.data
-    return {
+    profile = {
         "name": light_obj.name,
         "type": data.type,
         "energy": round(float(getattr(data, "energy", 0.0)), 4),
         "color": [round(float(c), 4) for c in getattr(data, "color", [])],
+        "transform": transform_profile(light_obj),
+        "shadow_soft_size": safe_scalar(getattr(data, "shadow_soft_size", None)),
+        "use_shadow": safe_scalar(getattr(data, "use_shadow", None)),
     }
+    for attr in ["size", "size_y", "angle", "spot_size", "spot_blend"]:
+        if hasattr(data, attr):
+            profile[attr] = safe_scalar(getattr(data, attr))
+    return profile
 
 
 def camera_profile(camera_obj) -> dict[str, object]:
@@ -51,7 +146,70 @@ def camera_profile(camera_obj) -> dict[str, object]:
         "lens": round(float(getattr(data, "lens", 0.0)), 4),
         "sensor_width": round(float(getattr(data, "sensor_width", 0.0)), 4),
         "type": getattr(data, "type", None),
+        "transform": transform_profile(camera_obj),
+        "clip_start": safe_scalar(getattr(data, "clip_start", None)),
+        "clip_end": safe_scalar(getattr(data, "clip_end", None)),
+        "dof": {
+            "use_dof": safe_scalar(getattr(data.dof, "use_dof", None)),
+            "aperture_fstop": safe_scalar(getattr(data.dof, "aperture_fstop", None)),
+        },
     }
+
+
+def object_profile(obj) -> dict[str, object]:
+    profile = {
+        "name": obj.name,
+        "type": obj.type,
+        "transform": transform_profile(obj),
+        "material_slot_count": len(getattr(obj, "material_slots", [])),
+    }
+    if obj.type == "MESH":
+        mesh = obj.data
+        profile["mesh_stats"] = {
+            "vertices": len(mesh.vertices),
+            "edges": len(mesh.edges),
+            "polygons": len(mesh.polygons),
+            "uv_layers": len(mesh.uv_layers),
+        }
+        profile["modifiers"] = [modifier_profile(modifier) for modifier in list(obj.modifiers)[:16]]
+    return profile
+
+
+def render_settings(scene) -> dict[str, object]:
+    settings = {
+        "engine": scene.render.engine,
+        "resolution": [scene.render.resolution_x, scene.render.resolution_y],
+        "resolution_percentage": scene.render.resolution_percentage,
+        "frame_range": [scene.frame_start, scene.frame_end],
+        "fps": scene.render.fps,
+        "film_transparent": scene.render.film_transparent,
+    }
+    if hasattr(scene, "cycles"):
+        settings["cycles"] = {
+            "samples": safe_scalar(getattr(scene.cycles, "samples", None)),
+            "preview_samples": safe_scalar(getattr(scene.cycles, "preview_samples", None)),
+            "use_denoising": safe_scalar(getattr(scene.cycles, "use_denoising", None)),
+            "max_bounces": safe_scalar(getattr(scene.cycles, "max_bounces", None)),
+        }
+    if hasattr(scene, "eevee"):
+        settings["eevee"] = {
+            "taa_render_samples": safe_scalar(getattr(scene.eevee, "taa_render_samples", None)),
+            "taa_samples": safe_scalar(getattr(scene.eevee, "taa_samples", None)),
+        }
+    return settings
+
+
+def world_profile(scene) -> dict[str, object]:
+    world = scene.world
+    profile = {
+        "has_world": bool(world),
+        "uses_nodes": bool(world and world.use_nodes),
+    }
+    if world and not world.use_nodes:
+        profile["color"] = [round(float(c), 4) for c in world.color]
+    if world and world.use_nodes and world.node_tree:
+        profile["nodes_sample"] = [node_profile(node) for node in list(world.node_tree.nodes)[:20]]
+    return profile
 
 
 def profile_blend(path: Path, root: Path) -> dict[str, object]:
@@ -70,20 +228,14 @@ def profile_blend(path: Path, root: Path) -> dict[str, object]:
         for modifier in obj.modifiers:
             modifier_counts[modifier.type] += 1
 
-    world = scene.world
-    world_profile = {
-        "has_world": bool(world),
-        "uses_nodes": bool(world and world.use_nodes),
-    }
-    if world and not world.use_nodes:
-        world_profile["color"] = [round(float(c), 4) for c in world.color]
-
     return {
+        "schema_version": "0.2",
         "relative_label": path.relative_to(root).as_posix(),
         "scene_name": scene.name,
         "render_engine": scene.render.engine,
         "resolution": [scene.render.resolution_x, scene.render.resolution_y],
         "frame_range": [scene.frame_start, scene.frame_end],
+        "render_settings": render_settings(scene),
         "object_count": len(objects),
         "object_type_counts": dict(object_type_counts),
         "mesh_count": len(mesh_objects),
@@ -94,8 +246,9 @@ def profile_blend(path: Path, root: Path) -> dict[str, object]:
         "modifier_counts": dict(modifier_counts),
         "lights": [light_profile(obj) for obj in lights[:12]],
         "cameras": [camera_profile(obj) for obj in cameras[:8]],
+        "objects_sample": [object_profile(obj) for obj in objects[:48]],
         "materials_sample": [material_profile(mat) for mat in materials[:20]],
-        "world": world_profile,
+        "world": world_profile(scene),
         "drawing_learning_notes": infer_notes(scene.render.engine, lights, cameras, materials, modifier_counts),
     }
 

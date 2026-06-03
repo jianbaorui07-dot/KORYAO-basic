@@ -72,3 +72,34 @@ git status -sb
 ```
 
 Then stage only the Blender learning files, commit, and push the branch.
+
+## Reference Docs
+
+- For exact input parameters and output schema, read `docs/blender-drawing-learning/PARAMETER_SCHEMA.md`.
+- For Codex plugin or MCP tool design, read `docs/blender-drawing-learning/CODEX_BLENDER_PLUGIN_SPEC.md`.
+- For user-facing learning interpretation, read `docs/blender-drawing-learning/LEARNING_NOTES.md`.
+
+## Tool Parameter Summary
+
+Core command parameters:
+
+| Parameter | Required | Used by | Meaning |
+| --- | --- | --- | --- |
+| `BLENDER_EXE` | Yes | Blender profiling and rendering tools | Path to the local Blender executable. |
+| `BLENDER_ASSET_ROOT` | Yes | Inventory and scene profiling tools | Local asset root; never write this path into public outputs. |
+| `--root` | Yes | `analyze_blender_learning_assets.py`, `blender_scene_profile.py` | Local read root. |
+| `--out-dir` | Yes | Inventory and case-note generation | Directory for generated redacted artifacts. |
+| `--out` | Yes | Scene profiling | JSON profile output path. |
+| `--match-label` | No | Scene profiling | Filter by redacted relative label for one-case experiments. |
+| `--limit` | No | Scene profiling | Limit number of `.blend` files; `0` means no limit. |
+| `--profiles` | Yes | Case-note generation | Input scene profile JSON. |
+
+Key profile fields to inspect:
+
+- `render_settings`: engine, resolution, frame range, samples, denoising, transparency.
+- `objects_sample`: object transforms, mesh stats, material slots, modifiers.
+- `modifiers`: subtype and parameters such as `levels`, `render_levels`, `width`, `segments`, `thickness`, `offset`.
+- `materials_sample`: node use, node types, diffuse color, sampled node inputs.
+- `lights`: type, energy, color, transform, size, shadow settings.
+- `cameras`: lens, sensor width, transform, clipping, depth of field.
+- `world`: world color or world node samples.
