@@ -64,6 +64,5 @@ class McpToolSchemasTest(unittest.TestCase):
         self.assertFalse(run_tool["annotations"]["safeDefault"])
         self.assertTrue(run_tool["annotations"]["requiresConfirmation"])
 
-
 if __name__ == "__main__":
     unittest.main()
