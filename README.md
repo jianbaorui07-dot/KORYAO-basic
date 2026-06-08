@@ -14,6 +14,8 @@
 | 2 | 按目标选择一条软件桥 | [中文用途索引](docs/中文用途索引.md) |
 | 3 | 检查本机环境是否可用 | `python examples\bridge_status.py` |
 
+Windows 复现和环境修复流程见 [docs/windows-setup.md](docs/windows-setup.md)。
+
 最短状态检查：
 
 ```powershell
