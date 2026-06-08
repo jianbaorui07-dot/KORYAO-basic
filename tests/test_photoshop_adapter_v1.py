@@ -177,6 +177,13 @@ class PhotoshopAdapterV1Tests(unittest.TestCase):
             "source_files",
             "photoshop_available",
             "bridge_kind",
+            "node_proxy_status",
+            "uxp_status",
+            "photoshop_host",
+            "layers_snapshot",
+            "history_state",
+            "descriptor_summary",
+            "validation_result",
             "status",
             "warnings",
             "errors",
@@ -184,12 +191,18 @@ class PhotoshopAdapterV1Tests(unittest.TestCase):
             self.assertIn(key, manifest)
 
     def test_destructive_tools_are_disabled(self) -> None:
-        for tool_name in ("ps.batchplay.execute_confirmed", "ps.history.undo", "ps.mask.refine", "ps.smartobject.place", "ps.adjustment.apply"):
+        for tool_name in ("ps.history.undo", "ps.mask.refine", "ps.smartobject.place", "ps.adjustment.apply"):
             with self.subTest(tool=tool_name):
                 response = request(8, "tools/call", {"name": tool_name, "arguments": {"bridge_kind": "mock"}})
                 payload = response["result"]["structuredContent"]
                 self.assertFalse(payload["ok"])
                 self.assertIn("disabled", payload["details"]["status"])
+
+    def test_execute_confirmed_requires_confirmation(self) -> None:
+        response = request(80, "tools/call", {"name": "ps.batchplay.execute_confirmed", "arguments": {"bridge_kind": "mock"}})
+        payload = response["result"]["structuredContent"]
+        self.assertFalse(payload["ok"])
+        self.assertIn("requires_confirmation", payload["message"])
 
     def test_execute_and_history_schemas_require_confirmation_by_default(self) -> None:
         response = request(44, "tools/list")
@@ -210,6 +223,7 @@ class PhotoshopAdapterV1Tests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertIn("delete", json.dumps(payload["details"], ensure_ascii=False))
         self.assertTrue(payload["warnings"])
+        self.assertFalse(payload["details"]["validation_result"]["ok"])
 
 
 if __name__ == "__main__":

@@ -1,22 +1,19 @@
 # StarBridge Photoshop UXP Bridge
 
-This is a placeholder UXP plugin for `Codex + Photoshop local advanced bridge v1`.
+This is the local UXP plugin side of the StarBridge Photoshop bridge.
 
 ## Current State
 
-- `manifest.json` is loadable by UXP Developer Tool after local adjustment.
-- `src/index.js` exposes a mock command entrypoint.
-- `src/bridge-client.js` builds the reserved JSON-RPC envelope.
-- No live Photoshop DOM, BatchPlay execute, or file write behavior is enabled here yet.
+- `src/index.js` exposes JSON-RPC handlers for `starbridge.ping`, `ps.document.info`, `ps.layers.list`, `ps.preview.export`, `ps.batchplay.validate.local`, and `ps.batchplay.execute_confirmed`.
+- `src/bridge-client.js` connects to the local Node Proxy WebSocket client endpoint.
+- `src/batchplay-schema.js` and `src/batchplay-runner.js` enforce a typed allowlist and wrap write-like execution in `executeAsModal`.
+- Real writes still require explicit confirmation and must stay on sandbox copies.
 
 ## Intended Chain
 
-`Codex -> MCP Server -> Node Proxy or Local Bridge -> UXP Plugin -> Photoshop`
+`Codex -> MCP Server -> Node Proxy -> UXP Plugin -> Photoshop DOM / batchPlay / executeAsModal`
 
 ## What To Add Later
 
-- typed BatchPlay wrappers
-- schema validation for request and response payloads
-- local bridge transport
-- UXP test harness
-- DOM and BatchPlay preview export path
+- Host-specific preview bitmap encoding if the local Photoshop build exposes a reliable export path from UXP
+- Additional typed descriptors beyond the current allowlist

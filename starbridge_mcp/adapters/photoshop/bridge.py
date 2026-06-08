@@ -7,17 +7,12 @@ from typing import Any
 
 from starbridge_mcp.core.result_schema import make_result
 
+from .batchplay_schema import validate_descriptor
 from .evidence import build_manifest, manifest_path_for, new_job_id, preview_path_for, write_json, write_placeholder_png
 from .mock import mock_document, mock_layers, mock_probe
-
-
-DESTRUCTIVE_METHODS = {
-    "delete",
-    "placedLayerEditContents",
-    "mergeLayersNew",
-    "rasterizeLayer",
-    "resetAllTools",
-}
+from .node_proxy_client import bridge_status as node_proxy_bridge_status
+from .node_proxy_client import health as node_proxy_health
+from .node_proxy_client import rpc as node_proxy_rpc
 
 
 @dataclass
@@ -68,10 +63,10 @@ def _build_context(arguments: dict[str, Any], repo_root: Path, tool_name: str) -
         tool_name=tool_name,
         job_id=str(arguments.get("job_id") or new_job_id()),
         risk_level=str(arguments.get("risk_level") or "level_0_read_only"),
-        requires_confirmation=_bool(arguments.get("requires_confirmation"), False),
+        requires_confirmation=_bool(arguments.get("requires_confirmation") or arguments.get("confirm_write"), False),
         dry_run=_bool(arguments.get("dry_run"), True),
         writes_files=_bool(arguments.get("writes_files"), False),
-        touches_user_psd=_bool(arguments.get("touches_user_psd"), False),
+        touches_user_psd=_bool(arguments.get("touches_user_psd"), True),
         bridge_kind=str(arguments.get("bridge_kind") or "auto"),
         output_dir=output_root.relative_to(repo_root).as_posix(),
         repo_root=repo_root,
@@ -80,7 +75,7 @@ def _build_context(arguments: dict[str, Any], repo_root: Path, tool_name: str) -
     )
 
 
-def _probe_photoshop(probe_com: bool) -> tuple[bool, dict[str, Any], Any | None]:
+def _probe_com(probe_com: bool) -> tuple[bool, dict[str, Any], Any | None]:
     has_win32com = importlib.util.find_spec("win32com") is not None
     data: dict[str, Any] = {
         "has_win32com": has_win32com,
@@ -103,26 +98,32 @@ def _probe_photoshop(probe_com: bool) -> tuple[bool, dict[str, Any], Any | None]
         data["document_count"] = count
         data["active_document"] = count > 0
         return True, data, app
-    except Exception as exc:  # pragma: no cover - Windows COM depends on host machine
+    except Exception as exc:  # pragma: no cover
         data["error"] = str(exc)
         return False, data, None
 
 
-def _app_document_summary(app: Any) -> dict[str, Any]:
+def _com_document_summary(app: Any) -> dict[str, Any]:
     document = app.Application.ActiveDocument if hasattr(app, "Application") else app.ActiveDocument
+    active_layer = getattr(document, "ActiveLayer", None)
+    layer_name = str(getattr(active_layer, "Name", "")) if active_layer is not None else ""
     return {
-        "name": "active_document",
+        "document_id": str(getattr(document, "ID", "active")),
+        "title": str(getattr(document, "Name", "active_document")),
+        "name": str(getattr(document, "Name", "active_document")),
         "width": int(float(document.Width)),
         "height": int(float(document.Height)),
         "resolution": int(float(getattr(document, "Resolution", 72))),
-        "mode": str(getattr(document, "Mode", "unknown")),
-        "bits_per_channel": int(getattr(document, "BitsPerChannel", 8)),
+        "color_mode": str(getattr(document, "Mode", "unknown")),
+        "bit_depth": int(getattr(document, "BitsPerChannel", 8)),
+        "active_layer_id": str(getattr(active_layer, "ID", "")) if active_layer is not None else "",
+        "active_layer_name": layer_name,
         "layer_count": int(getattr(document.Layers, "Count", 0)),
-        "color_profile": str(getattr(document, "ColorProfileName", "unknown")),
+        "saved": None,
     }
 
 
-def _extract_layers(container: Any, depth: int, max_layers: int, rows: list[dict[str, Any]]) -> None:
+def _extract_layers(container: Any, depth: int, max_layers: int, rows: list[dict[str, Any]], path: list[str]) -> None:
     if len(rows) >= max_layers:
         return
     try:
@@ -135,18 +136,22 @@ def _extract_layers(container: Any, depth: int, max_layers: int, rows: list[dict
         layer = container.Layers.Item(index)
         type_name = str(getattr(layer, "typename", getattr(layer, "__class__", type(layer)).__name__))
         kind = "group" if "LayerSet" in type_name or "Group" in type_name else str(getattr(layer, "Kind", "layer"))
+        name = str(getattr(layer, "Name", f"Layer {index}"))
         row = {
-            "id": f"{depth}-{index}",
-            "name": str(getattr(layer, "Name", f"Layer {index}")),
+            "id": str(getattr(layer, "ID", f"{depth}-{index}")),
+            "name": name,
             "kind": kind,
-            "depth": depth,
+            "type": kind,
             "visible": bool(getattr(layer, "Visible", True)),
             "locked": bool(getattr(layer, "AllLocked", False)),
             "opacity": int(float(getattr(layer, "Opacity", 100))),
+            "blendMode": str(getattr(layer, "BlendMode", "normal")),
+            "bounds": None,
+            "group_path": "/".join(path),
         }
         rows.append(row)
         if row["kind"] == "group" and hasattr(layer, "Layers"):
-            _extract_layers(layer, depth + 1, max_layers, rows)
+            _extract_layers(layer, depth + 1, max_layers, rows, [*path, name])
 
 
 def _write_manifest_if_requested(ctx: RequestContext, manifest: dict[str, Any]) -> str | None:
@@ -157,18 +162,82 @@ def _write_manifest_if_requested(ctx: RequestContext, manifest: dict[str, Any]) 
     return target.relative_to(ctx.repo_root).as_posix()
 
 
-def _guard_confirmation(ctx: RequestContext, action: str) -> dict[str, Any] | None:
+def _guard_confirmation(ctx: RequestContext, *, flag_name: str = "requires_confirmation") -> dict[str, Any] | None:
     if ctx.writes_files and not ctx.dry_run and not ctx.requires_confirmation:
         return make_result(
             ok=False,
             bridge="photoshop",
-            action=action,
-            message=f"{ctx.tool_name} refused because requires_confirmation must be true when dry_run is false.",
+            action=ctx.tool_name.rsplit(".", 1)[-1].replace(".", "_"),
+            message=f"{ctx.tool_name} refused because {flag_name} must be true when dry_run is false.",
             details={"job_id": ctx.job_id, "risk_level": ctx.risk_level, "output_dir": ctx.output_dir},
             warnings=["Writes are sandboxed and disabled by default."],
-            next_steps=["Repeat the call with dry_run=true for planning or set requires_confirmation=true for sandbox output."],
+            next_steps=["Repeat with dry_run=true for planning.", f"Set {flag_name}=true only for sandbox output."],
         )
     return None
+
+
+def _node_proxy_probe() -> dict[str, Any]:
+    health = node_proxy_health()
+    status = node_proxy_bridge_status() if health.get("ok") else health
+    return {
+        "health": health,
+        "status": status,
+        "node_proxy_running": bool(status.get("node_proxy_running")),
+        "uxp_client_connected": bool(status.get("uxp_client_connected")),
+        "photoshop_host_seen": bool(status.get("photoshop_host_seen")),
+    }
+
+
+def _bridge_priority(ctx: RequestContext) -> list[str]:
+    requested = ctx.bridge_kind
+    if requested in {"mock", "com", "node_proxy_uxp", "fallback"}:
+        return [requested]
+    return ["node_proxy_uxp", "com", "mock"]
+
+
+def _make_manifest(
+    ctx: RequestContext,
+    *,
+    input_summary: dict[str, Any],
+    output_files: list[str],
+    preview_files: list[str],
+    source_files: list[str],
+    photoshop_available: bool,
+    bridge_kind: str,
+    node_proxy_status: dict[str, Any],
+    uxp_status: dict[str, Any],
+    photoshop_host: dict[str, Any],
+    layers_snapshot: list[dict[str, Any]],
+    history_state: str | None,
+    descriptor_summary: list[dict[str, Any]],
+    validation_result: dict[str, Any],
+    status: str,
+    warnings: list[str],
+    errors: list[str],
+) -> dict[str, Any]:
+    return build_manifest(
+        job_id=ctx.job_id,
+        tool_name=ctx.tool_name,
+        risk_level=ctx.risk_level,
+        requires_confirmation=ctx.requires_confirmation,
+        dry_run=ctx.dry_run,
+        input_summary=input_summary,
+        output_files=output_files,
+        preview_files=preview_files,
+        source_files=source_files,
+        photoshop_available=photoshop_available,
+        bridge_kind=bridge_kind,
+        node_proxy_status=node_proxy_status,
+        uxp_status=uxp_status,
+        photoshop_host=photoshop_host,
+        layers_snapshot=layers_snapshot,
+        history_state=history_state,
+        descriptor_summary=descriptor_summary,
+        validation_result=validation_result,
+        status=status,
+        warnings=warnings,
+        errors=errors,
+    ).to_dict()
 
 
 class PhotoshopBridgeAdapter:
@@ -177,289 +246,300 @@ class PhotoshopBridgeAdapter:
 
     def probe(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.probe")
-        if ctx.bridge_kind == "mock":
-            probe = mock_probe()
-            return make_result(
-                ok=True,
-                bridge="photoshop",
-                action="probe",
-                message="Photoshop mock probe completed.",
-                details={"job_id": ctx.job_id, "bridge_kind": "mock", **probe},
-                warnings=probe["warnings"],
-                next_steps=["Switch bridge_kind to auto or com on a Windows machine with Photoshop for live probing."],
-            )
-        ok, data, _app = _probe_photoshop(probe_com=_bool(arguments.get("probe_com"), True))
-        warnings = []
-        if not ok:
-            warnings.append("Photoshop COM was not available; only fallback probe data is available.")
+        proxy = _node_proxy_probe()
+        com_ok, com_data, _app = _probe_com(probe_com=_bool(arguments.get("probe_com"), True))
+        bridge_kind = "node_proxy_uxp" if proxy["uxp_client_connected"] else ("com" if com_ok else "mock")
+        details = {
+            "job_id": ctx.job_id,
+            "bridge_kind": bridge_kind,
+            "node_proxy_status": proxy["status"],
+            "uxp_client_connected": proxy["uxp_client_connected"],
+            "photoshop_host": proxy["status"].get("photoshop_host") or {},
+            "com_availability": com_data,
+            "mock_fallback": mock_probe(),
+        }
         return make_result(
             ok=True,
             bridge="photoshop",
             action="probe",
-            message="Photoshop probe completed.",
-            details={"job_id": ctx.job_id, "bridge_kind": "com" if ok else "fallback", **data},
-            warnings=warnings,
-            next_steps=["Use ps.document.info or ps.layers.list for active-document inspection.", "Keep preview export in dry_run until confirmation is explicit."],
+            message="Photoshop bridge probe completed.",
+            details=details,
+            warnings=[] if proxy["uxp_client_connected"] else ["node_proxy_uxp not connected; live UXP routing is unavailable."],
+            next_steps=["Use ps.document.info for active-document metadata.", "Use ps.layers.list for live or mock layer inspection."],
         )
 
     def document_info(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.document.info")
-        if ctx.bridge_kind == "mock":
-            document = mock_document()
-            return make_result(
-                ok=True,
-                bridge="photoshop",
-                action="document_info",
-                message="Mock Photoshop document summary returned.",
-                details={"job_id": ctx.job_id, "bridge_kind": "mock", "document": document},
-                warnings=["Mock bridge does not inspect a live Photoshop document."],
-                next_steps=["Switch bridge_kind to auto or com for a real active-document probe."],
-            )
-        available, data, app = _probe_photoshop(probe_com=True)
-        if not available or not data.get("active_document") or app is None:
-            return make_result(
-                ok=False,
-                bridge="photoshop",
-                action="document_info",
-                message="No active Photoshop document is available.",
-                details={"job_id": ctx.job_id, "bridge_kind": "fallback", "probe": data},
-                warnings=["Document inspection requires an already-open Photoshop session."],
-                next_steps=["Open Photoshop with the target document locally and retry.", "Use bridge_kind=mock for sandbox tests."],
-            )
-        document = _app_document_summary(app)
+        warnings: list[str] = []
+        errors: list[str] = []
+        proxy = _node_proxy_probe()
+        com_ok, com_data, app = _probe_com(probe_com=True)
+        document: dict[str, Any] | None = None
+        bridge_kind = "fallback"
+        uxp_status: dict[str, Any] = {}
+        host_info: dict[str, Any] = {}
+
+        for mode in _bridge_priority(ctx):
+            if mode == "node_proxy_uxp" and proxy["uxp_client_connected"]:
+                try:
+                    response = node_proxy_rpc("ps.document.info", {"job_id": ctx.job_id})
+                    if "result" in response:
+                        payload = response["result"]
+                        document = dict(payload.get("document") or {})
+                        uxp_status = {"connected": True, "method": "ps.document.info"}
+                        host_info = dict(payload.get("photoshop_host") or {})
+                        bridge_kind = "node_proxy_uxp"
+                        break
+                except Exception as exc:
+                    warnings.append(f"node_proxy_uxp document_info failed: {type(exc).__name__}")
+            if mode == "com" and com_ok and com_data.get("active_document") and app is not None:
+                document = _com_document_summary(app)
+                bridge_kind = "com"
+                host_info = {"version": com_data.get("com_version")}
+                break
+            if mode == "mock":
+                document = mock_document()
+                bridge_kind = "mock"
+                warnings.append("Mock bridge returned a placeholder document summary.")
+                break
+
+        if document is None:
+            errors.append("No active Photoshop document is available.")
+            document = {}
+
+        manifest = _make_manifest(
+            ctx,
+            input_summary={"include_layer_summary": _bool(arguments.get("include_layer_summary"), True)},
+            output_files=[],
+            preview_files=[],
+            source_files=["<active_document>"] if document else [],
+            photoshop_available=bridge_kind != "mock" or bool(document),
+            bridge_kind=bridge_kind,
+            node_proxy_status=proxy["status"],
+            uxp_status=uxp_status,
+            photoshop_host=host_info,
+            layers_snapshot=[],
+            history_state=None,
+            descriptor_summary=[],
+            validation_result={},
+            status="ok" if not errors else "not_available",
+            warnings=warnings,
+            errors=errors,
+        )
         return make_result(
-            ok=True,
+            ok=not errors,
             bridge="photoshop",
             action="document_info",
-            message="Active Photoshop document summary returned.",
-            details={"job_id": ctx.job_id, "bridge_kind": "com", "document": document},
-            warnings=[],
-            next_steps=["Use ps.layers.list to inspect the current layer tree.", "Use ps.preview.export in dry_run before exporting any preview."],
+            message="Active Photoshop document summary returned." if not errors else "No active Photoshop document is available.",
+            details={
+                "job_id": ctx.job_id,
+                "bridge_kind": bridge_kind,
+                "document": document,
+                "node_proxy_status": proxy["status"],
+                "evidence_manifest": manifest,
+                "evidence_path": _write_manifest_if_requested(ctx, manifest),
+            },
+            warnings=warnings,
+            next_steps=["Use ps.layers.list against the same bridge.", "Keep preview export on sandbox output only."],
         )
 
     def layers_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.layers.list")
         max_layers = int(arguments.get("max_layers") or 200)
-        if ctx.bridge_kind == "mock":
-            layers = mock_layers()[:max_layers]
-            return make_result(
-                ok=True,
-                bridge="photoshop",
-                action="layers_list",
-                message="Mock Photoshop layer list returned.",
-                details={"job_id": ctx.job_id, "bridge_kind": "mock", "layer_count": len(layers), "layers": layers},
-                warnings=["Mock bridge does not inspect a live Photoshop document."],
-                next_steps=["Switch bridge_kind to auto or com for a real active-document layer tree."],
-            )
-        available, data, app = _probe_photoshop(probe_com=True)
-        if not available or not data.get("active_document") or app is None:
-            return make_result(
-                ok=False,
-                bridge="photoshop",
-                action="layers_list",
-                message="No active Photoshop document is available for layer inspection.",
-                details={"job_id": ctx.job_id, "bridge_kind": "fallback", "probe": data},
-                warnings=["Layer inspection requires an already-open Photoshop session."],
-                next_steps=["Open Photoshop with the target document locally and retry.", "Use bridge_kind=mock for sandbox tests."],
-            )
-        document = app.Application.ActiveDocument if hasattr(app, "Application") else app.ActiveDocument
-        rows: list[dict[str, Any]] = []
-        _extract_layers(document, 0, max_layers, rows)
-        return make_result(
-            ok=True,
-            bridge="photoshop",
-            action="layers_list",
-            message="Active Photoshop layer list returned.",
-            details={"job_id": ctx.job_id, "bridge_kind": "com", "layer_count": len(rows), "layers": rows},
-            warnings=[] if rows else ["The active document has no readable layers."],
-            next_steps=["Use ps.preview.export in dry_run to stage a review preview.", "Reserve write actions for confirmed sandbox-only flows."],
-        )
-
-    def _planned_write(self, tool_name: str, arguments: dict[str, Any], *, action: str, summary: dict[str, Any], disabled_message: str) -> dict[str, Any]:
-        ctx = _build_context(arguments, self.repo_root, tool_name)
         warnings: list[str] = []
         errors: list[str] = []
-        if not ctx.dry_run and not ctx.requires_confirmation:
-            return make_result(
-                ok=False,
-                bridge="photoshop",
-                action=action,
-                message=f"{tool_name} refused because requires_confirmation must be true when dry_run is false.",
-                details={"job_id": ctx.job_id, "risk_level": ctx.risk_level, "output_dir": ctx.output_dir},
-                warnings=["Photoshop write-like operations stay dry-run by default in v1."],
-                next_steps=["Repeat the call with dry_run=true for planning or set requires_confirmation=true for a future confirmed path."],
-            )
-        if ctx.bridge_kind not in {"mock", "auto", "com"}:
-            warnings.append(f"Bridge kind {ctx.bridge_kind} is reserved for future Photoshop bridge implementations.")
-        if ctx.bridge_kind == "mock":
-            warnings.append("Mock bridge returned a sandbox-safe plan only.")
-        elif not ctx.dry_run:
-            errors.append(disabled_message)
-        manifest = build_manifest(
-            job_id=ctx.job_id,
-            tool_name=tool_name,
-            risk_level=ctx.risk_level,
-            requires_confirmation=ctx.requires_confirmation,
-            dry_run=ctx.dry_run,
-            input_summary=summary,
+        proxy = _node_proxy_probe()
+        com_ok, com_data, app = _probe_com(probe_com=True)
+        layers: list[dict[str, Any]] = []
+        bridge_kind = "fallback"
+        uxp_status: dict[str, Any] = {}
+        host_info: dict[str, Any] = {}
+
+        for mode in _bridge_priority(ctx):
+            if mode == "node_proxy_uxp" and proxy["uxp_client_connected"]:
+                try:
+                    response = node_proxy_rpc("ps.layers.list", {"job_id": ctx.job_id, "max_layers": max_layers})
+                    if "result" in response:
+                        payload = response["result"]
+                        layers = [dict(item) for item in payload.get("layers") or []][:max_layers]
+                        uxp_status = {"connected": True, "method": "ps.layers.list"}
+                        host_info = dict(payload.get("photoshop_host") or {})
+                        bridge_kind = "node_proxy_uxp"
+                        break
+                except Exception as exc:
+                    warnings.append(f"node_proxy_uxp layers_list failed: {type(exc).__name__}")
+            if mode == "com" and com_ok and com_data.get("active_document") and app is not None:
+                document = app.Application.ActiveDocument if hasattr(app, "Application") else app.ActiveDocument
+                _extract_layers(document, 0, max_layers, layers, [])
+                bridge_kind = "com"
+                host_info = {"version": com_data.get("com_version")}
+                break
+            if mode == "mock":
+                layers = mock_layers()[:max_layers]
+                bridge_kind = "mock"
+                warnings.append("Mock bridge returned a placeholder layer list.")
+                break
+
+        if not layers:
+            errors.append("No active Photoshop document is available for layer inspection.")
+
+        manifest = _make_manifest(
+            ctx,
+            input_summary={"max_layers": max_layers},
             output_files=[],
             preview_files=[],
-            source_files=["<active_document>"],
-            photoshop_available=ctx.bridge_kind == "mock",
-            bridge_kind=ctx.bridge_kind if ctx.bridge_kind == "mock" else "fallback",
-            status="ok" if not errors else "disabled",
+            source_files=["<active_document>"] if layers else [],
+            photoshop_available=bridge_kind != "mock" or bool(layers),
+            bridge_kind=bridge_kind,
+            node_proxy_status=proxy["status"],
+            uxp_status=uxp_status,
+            photoshop_host=host_info,
+            layers_snapshot=layers,
+            history_state=None,
+            descriptor_summary=[],
+            validation_result={},
+            status="ok" if layers else "not_available",
             warnings=warnings,
             errors=errors,
-        ).to_dict()
-        manifest_path = _write_manifest_if_requested(ctx, manifest)
+        )
         return make_result(
-            ok=not errors,
+            ok=bool(layers),
             bridge="photoshop",
-            action=action,
-            message=f"{tool_name} planned safely." if not errors else f"{tool_name} is disabled for real writes in v1.",
+            action="layers_list",
+            message="Photoshop layers list returned." if layers else "No active Photoshop document is available for layer inspection.",
             details={
                 "job_id": ctx.job_id,
-                "bridge_kind": ctx.bridge_kind if ctx.bridge_kind == "mock" else "fallback",
-                "plan_only": True,
+                "bridge_kind": bridge_kind,
+                "layer_count": len(layers),
+                "layers": layers,
+                "node_proxy_status": proxy["status"],
                 "evidence_manifest": manifest,
-                "evidence_path": manifest_path,
-                **summary,
+                "evidence_path": _write_manifest_if_requested(ctx, manifest),
             },
             warnings=warnings,
-            next_steps=["Review the EvidenceManifest before enabling any confirmed write path.", "Upgrade the UXP or node-proxy path before attempting live Photoshop writes."],
-        )
-
-    def selection_subject(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return self._planned_write(
-            "ps.selection.subject",
-            arguments,
-            action="selection_subject",
-            summary={"source_layer_id": arguments.get("source_layer_id")},
-            disabled_message="Live subject selection is reserved for a future UXP-backed bridge.",
-        )
-
-    def layer_rename(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return self._planned_write(
-            "ps.layer.rename",
-            arguments,
-            action="layer_rename",
-            summary={"layer_id": arguments.get("layer_id"), "layer_name": arguments.get("layer_name")},
-            disabled_message="Live layer rename is reserved for a future UXP-backed bridge.",
-        )
-
-    def layer_move(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return self._planned_write(
-            "ps.layer.move",
-            arguments,
-            action="layer_move",
-            summary={"layer_id": arguments.get("layer_id"), "target_index": arguments.get("target_index")},
-            disabled_message="Live layer move is reserved for a future UXP-backed bridge.",
-        )
-
-    def layer_visibility(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return self._planned_write(
-            "ps.layer.visibility",
-            arguments,
-            action="layer_visibility",
-            summary={"layer_id": arguments.get("layer_id"), "visible": arguments.get("visible")},
-            disabled_message="Live layer visibility changes are reserved for a future UXP-backed bridge.",
+            next_steps=["Use preview export only on sandbox output.", "Validate any batchPlay descriptor before confirmed execution."],
         )
 
     def preview_export(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.preview.export")
-        refusal = _guard_confirmation(ctx, "preview_export")
+        refusal = _guard_confirmation(ctx)
         if refusal is not None:
             return refusal
+        proxy = _node_proxy_probe()
         preview_files: list[str] = []
         warnings: list[str] = []
         errors: list[str] = []
-        photoshop_available = False
-        actual_bridge = ctx.bridge_kind
-        if ctx.bridge_kind == "mock":
-            if not ctx.dry_run:
+        layers_snapshot: list[dict[str, Any]] = []
+        bridge_kind = "fallback"
+        history_state: str | None = None
+        uxp_status: dict[str, Any] = {}
+        host_info: dict[str, Any] = {}
+
+        if ctx.dry_run:
+            if proxy["uxp_client_connected"]:
+                bridge_kind = "node_proxy_uxp"
+            else:
+                bridge_kind = "mock"
+                warnings.append("Dry-run preview export did not contact Photoshop; review plan only.")
+        elif proxy["uxp_client_connected"]:
+            try:
                 preview_path = preview_path_for(ctx.output_root, ctx.job_id)
-                write_placeholder_png(preview_path)
-                preview_files.append(preview_path.relative_to(ctx.repo_root).as_posix())
-            warnings.append("Preview was generated by the mock bridge, not by Photoshop.")
+                response = node_proxy_rpc(
+                    "ps.preview.export",
+                    {"job_id": ctx.job_id, "output_path": preview_path.as_posix(), "confirm_write": True},
+                )
+                if "result" in response:
+                    payload = response["result"]
+                    written = str(payload.get("preview_path") or "").strip()
+                    if written:
+                        preview_files.append(Path(written).relative_to(self.repo_root).as_posix() if Path(written).is_absolute() else written)
+                    layers_snapshot = [dict(item) for item in payload.get("layers_snapshot") or []]
+                    history_state = payload.get("history_state")
+                    host_info = dict(payload.get("photoshop_host") or {})
+                    uxp_status = {"connected": True, "method": "ps.preview.export"}
+                    bridge_kind = "node_proxy_uxp"
+                else:
+                    errors.append("Node Proxy did not return a preview export result.")
+            except Exception as exc:
+                errors.append(f"Node Proxy preview export failed: {type(exc).__name__}")
         else:
-            available, data, app = _probe_photoshop(probe_com=True)
-            photoshop_available = available
-            actual_bridge = "com" if available else "fallback"
-            if not available or not data.get("active_document") or app is None:
-                errors.append("No active Photoshop document is available for preview export.")
-            elif not ctx.dry_run:
-                preview_path = preview_path_for(ctx.output_root, ctx.job_id)
-                write_placeholder_png(preview_path)
-                preview_files.append(preview_path.relative_to(ctx.repo_root).as_posix())
-                warnings.append("COM fallback preview export currently writes a placeholder preview while the UXP bridge is still pending.")
-        status = "ok" if not errors else "blocked"
-        manifest = build_manifest(
-            job_id=ctx.job_id,
-            tool_name=ctx.tool_name,
-            risk_level=ctx.risk_level,
-            requires_confirmation=ctx.requires_confirmation,
-            dry_run=ctx.dry_run,
+            bridge_kind = "mock"
+            preview_path = preview_path_for(ctx.output_root, ctx.job_id)
+            write_placeholder_png(preview_path)
+            preview_files.append(preview_path.relative_to(ctx.repo_root).as_posix())
+            warnings.append("Photoshop UXP was not connected; wrote a placeholder preview in sandbox output.")
+
+        manifest = _make_manifest(
+            ctx,
             input_summary={"output_dir": ctx.output_dir, "format": str(arguments.get("format") or "png")},
             output_files=preview_files,
             preview_files=preview_files,
-            source_files=["<active_document>"] if ctx.touches_user_psd else [],
-            photoshop_available=photoshop_available or ctx.bridge_kind == "mock",
-            bridge_kind=actual_bridge,
-            status=status,
+            source_files=["<active_document>"],
+            photoshop_available=bridge_kind in {"node_proxy_uxp", "com"} or bool(preview_files),
+            bridge_kind=bridge_kind,
+            node_proxy_status=proxy["status"],
+            uxp_status=uxp_status,
+            photoshop_host=host_info,
+            layers_snapshot=layers_snapshot,
+            history_state=history_state,
+            descriptor_summary=[],
+            validation_result={},
+            status="ok" if not errors else "not_available",
             warnings=warnings,
             errors=errors,
-        ).to_dict()
-        manifest_path = _write_manifest_if_requested(ctx, manifest)
-        details = {
-            "job_id": ctx.job_id,
-            "bridge_kind": actual_bridge,
-            "preview_files": preview_files,
-            "evidence_manifest": manifest,
-            "evidence_path": manifest_path,
-        }
+        )
         return make_result(
             ok=not errors,
             bridge="photoshop",
             action="preview_export",
             message="Preview export staged." if not errors else "Preview export blocked.",
-            details=details,
+            details={
+                "job_id": ctx.job_id,
+                "bridge_kind": bridge_kind,
+                "preview_files": preview_files,
+                "layers_snapshot": layers_snapshot,
+                "history_state": history_state,
+                "node_proxy_status": proxy["status"],
+                "evidence_manifest": manifest,
+                "evidence_path": _write_manifest_if_requested(ctx, manifest),
+            },
             warnings=warnings,
-            next_steps=["Review the evidence manifest before any follow-up edit.", "Upgrade to the UXP bridge for real pixel previews from Photoshop DOM/batchPlay."],
+            next_steps=["Review preview_files and layers_snapshot before follow-up edits.", "Keep writes restricted to sandbox copies."],
         )
 
     def evidence_capture(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.evidence.capture")
-        refusal = _guard_confirmation(ctx, "evidence_capture")
+        refusal = _guard_confirmation(ctx)
         if refusal is not None:
             return refusal
-        available, probe, _app = _probe_photoshop(probe_com=ctx.bridge_kind != "mock")
-        actual_bridge = "mock" if ctx.bridge_kind == "mock" else ("com" if available else "fallback")
-        warnings = list(probe.get("warnings", [])) if isinstance(probe.get("warnings"), list) else []
-        manifest = build_manifest(
-            job_id=ctx.job_id,
-            tool_name=ctx.tool_name,
-            risk_level=ctx.risk_level,
-            requires_confirmation=ctx.requires_confirmation,
-            dry_run=ctx.dry_run,
+        proxy = _node_proxy_probe()
+        manifest = _make_manifest(
+            ctx,
             input_summary={"notes": str(arguments.get("notes") or ""), "output_dir": ctx.output_dir},
             output_files=[],
             preview_files=[],
             source_files=[str(item) for item in arguments.get("source_files") or []],
-            photoshop_available=available or ctx.bridge_kind == "mock",
-            bridge_kind=actual_bridge,
+            photoshop_available=bool(proxy["photoshop_host_seen"]),
+            bridge_kind="node_proxy_uxp" if proxy["uxp_client_connected"] else "fallback",
+            node_proxy_status=proxy["status"],
+            uxp_status={"connected": proxy["uxp_client_connected"]},
+            photoshop_host=dict(proxy["status"].get("photoshop_host") or {}),
+            layers_snapshot=[],
+            history_state=None,
+            descriptor_summary=[],
+            validation_result={},
             status="ok",
-            warnings=warnings,
+            warnings=[],
             errors=[],
-        ).to_dict()
-        manifest_path = _write_manifest_if_requested(ctx, manifest)
+        )
         return make_result(
             ok=True,
             bridge="photoshop",
             action="evidence_capture",
             message="Evidence manifest captured.",
-            details={"job_id": ctx.job_id, "bridge_kind": actual_bridge, "evidence_manifest": manifest, "evidence_path": manifest_path},
-            warnings=warnings,
-            next_steps=["Attach preview and layer-inspection outputs to the same job_id for iterative review."],
+            details={"job_id": ctx.job_id, "bridge_kind": manifest["bridge_kind"], "evidence_manifest": manifest, "evidence_path": _write_manifest_if_requested(ctx, manifest)},
+            warnings=[],
+            next_steps=["Attach document, layer, preview, and validation outputs to the same job_id."],
         )
 
     def batchplay_validate(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -470,37 +550,46 @@ class PhotoshopBridgeAdapter:
             descriptors = [descriptor, *descriptors]
         if not isinstance(descriptors, list):
             raise ValueError("descriptors must be a list")
+
+        validations: list[dict[str, Any]] = []
         warnings: list[str] = []
         errors: list[str] = []
-        summaries: list[dict[str, Any]] = []
         for index, item in enumerate(descriptors, start=1):
             if not isinstance(item, dict):
                 errors.append(f"Descriptor {index} must be an object.")
                 continue
-            method = str(item.get("_obj") or item.get("method") or "unknown")
-            risk = "level_3_destructive_batch" if method in DESTRUCTIVE_METHODS else "level_1_sandbox_write"
-            if method in DESTRUCTIVE_METHODS:
-                warnings.append(f"Descriptor {index} uses destructive or write-heavy method {method}.")
-            summaries.append({"index": index, "method": method, "risk_level": risk, "keys": sorted(item.keys())})
+            validation = {"index": index, **validate_descriptor(item)}
+            validations.append(validation)
+            if not validation["allowed"]:
+                warnings.append(validation["reason"])
         if not descriptors:
             errors.append("At least one descriptor is required.")
-        manifest = build_manifest(
-            job_id=ctx.job_id,
-            tool_name=ctx.tool_name,
-            risk_level=ctx.risk_level,
-            requires_confirmation=ctx.requires_confirmation,
-            dry_run=ctx.dry_run,
+
+        validation_result = {
+            "ok": not errors and all(item["allowed"] for item in validations),
+            "descriptor_count": len(descriptors),
+            "blocked_count": sum(1 for item in validations if not item["allowed"]),
+            "validations": validations,
+        }
+        manifest = _make_manifest(
+            ctx,
             input_summary={"descriptor_count": len(descriptors)},
             output_files=[],
             preview_files=[],
             source_files=[],
             photoshop_available=False,
-            bridge_kind=ctx.bridge_kind,
-            status="ok" if not errors else "blocked",
+            bridge_kind="fallback",
+            node_proxy_status=_node_proxy_probe()["status"],
+            uxp_status={},
+            photoshop_host={},
+            layers_snapshot=[],
+            history_state=None,
+            descriptor_summary=validations,
+            validation_result=validation_result,
+            status="ok" if validation_result["ok"] else "blocked",
             warnings=warnings,
             errors=errors,
-        ).to_dict()
-        manifest_path = _write_manifest_if_requested(ctx, manifest)
+        )
         return make_result(
             ok=not errors,
             bridge="photoshop",
@@ -509,13 +598,182 @@ class PhotoshopBridgeAdapter:
             details={
                 "job_id": ctx.job_id,
                 "descriptor_count": len(descriptors),
-                "descriptors": summaries,
+                "descriptors": validations,
+                "validation_result": validation_result,
                 "evidence_manifest": manifest,
-                "evidence_path": manifest_path,
+                "evidence_path": _write_manifest_if_requested(ctx, manifest),
             },
             warnings=warnings,
-            next_steps=["Use this validator before enabling any execute_confirmed tool.", "Keep real execution disabled until the UXP bridge and typed schemas are in place."],
+            next_steps=["Only call ps.batchplay.execute_confirmed after an allowed validation result.", "Keep writes on sandbox copies only."],
         )
+
+    def batchplay_execute_confirmed(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        ctx = _build_context(arguments, self.repo_root, "ps.batchplay.execute_confirmed")
+        confirmation = _bool(arguments.get("confirm_write") or arguments.get("requires_confirmation"), False)
+        if not confirmation:
+            return make_result(
+                ok=False,
+                bridge="photoshop",
+                action="batchplay_execute_confirmed",
+                message="ps.batchplay.execute_confirmed requires_confirmation=true and confirm_write=true.",
+                details={"job_id": ctx.job_id, "executed": False, "confirmation_required": True},
+                warnings=["Confirmed execution is disabled until explicit confirmation is provided."],
+                next_steps=["Call ps.batchplay.validate first.", "Retry with requires_confirmation=true and confirm_write=true on sandbox output only."],
+            )
+        validation = self.batchplay_validate(arguments)
+        validation_payload = validation["details"] if "details" in validation else validation.get("result", {}).get("structuredContent", {}).get("details", {})
+        validation_result = dict(validation_payload.get("validation_result") or {})
+        descriptors = list(validation_payload.get("descriptors") or [])
+        if not validation_result.get("ok"):
+            return make_result(
+                ok=False,
+                bridge="photoshop",
+                action="batchplay_execute_confirmed",
+                message="Validation blocked execute_confirmed.",
+                details={"job_id": ctx.job_id, "executed": False, "validation_result": validation_result},
+                warnings=["Descriptor validation must pass before confirmed execution."],
+                next_steps=["Remove denied actions and keep the operation within sandbox copies."],
+            )
+
+        proxy = _node_proxy_probe()
+        warnings: list[str] = []
+        errors: list[str] = []
+        preview_files: list[str] = []
+        layers_snapshot: list[dict[str, Any]] = []
+        history_state: str | None = None
+        executed = False
+        bridge_kind = "not_available"
+        host_info: dict[str, Any] = {}
+        uxp_status: dict[str, Any] = {}
+
+        if not ctx.dry_run and proxy["uxp_client_connected"]:
+            try:
+                preview_path = preview_path_for(ctx.output_root, ctx.job_id)
+                response = node_proxy_rpc(
+                    "ps.batchplay.execute_confirmed",
+                    {
+                        "job_id": ctx.job_id,
+                        "descriptors": arguments.get("descriptors") or ([arguments["descriptor"]] if arguments.get("descriptor") else []),
+                        "output_path": preview_path.as_posix(),
+                        "confirm_write": True,
+                    },
+                )
+                if "result" in response:
+                    payload = response["result"]
+                    executed = bool(payload.get("executed"))
+                    bridge_kind = "node_proxy_uxp"
+                    preview = str(payload.get("preview_path") or "").strip()
+                    if preview:
+                        preview_files.append(Path(preview).relative_to(self.repo_root).as_posix() if Path(preview).is_absolute() else preview)
+                    layers_snapshot = [dict(item) for item in payload.get("layers_snapshot") or []]
+                    history_state = payload.get("history_state")
+                    host_info = dict(payload.get("photoshop_host") or {})
+                    uxp_status = {"connected": True, "method": "ps.batchplay.execute_confirmed"}
+                else:
+                    errors.append("Node Proxy did not return an execution result.")
+            except Exception as exc:
+                errors.append(f"Node Proxy execute_confirmed failed: {type(exc).__name__}")
+        elif not ctx.dry_run:
+            errors.append("Photoshop / UXP / Node Proxy is not available on this workstation.")
+        else:
+            bridge_kind = "dry_run"
+            warnings.append("Dry-run confirmed execution returned a plan only.")
+
+        manifest = _make_manifest(
+            ctx,
+            input_summary={"descriptor_count": validation_result.get("descriptor_count", 0)},
+            output_files=preview_files,
+            preview_files=preview_files,
+            source_files=["<active_document>"],
+            photoshop_available=proxy["uxp_client_connected"],
+            bridge_kind=bridge_kind,
+            node_proxy_status=proxy["status"],
+            uxp_status=uxp_status,
+            photoshop_host=host_info,
+            layers_snapshot=layers_snapshot,
+            history_state=history_state,
+            descriptor_summary=descriptors,
+            validation_result=validation_result,
+            status="ok" if executed or ctx.dry_run else "not_available",
+            warnings=warnings,
+            errors=errors,
+        )
+        return make_result(
+            ok=ctx.dry_run or (executed and not errors),
+            bridge="photoshop",
+            action="batchplay_execute_confirmed",
+            message="Confirmed BatchPlay execution completed." if executed else ("Confirmed BatchPlay dry-run staged." if ctx.dry_run else "Confirmed BatchPlay execution unavailable."),
+            details={
+                "job_id": ctx.job_id,
+                "bridge_kind": bridge_kind,
+                "descriptor_id": descriptors[0]["descriptor_id"] if descriptors else None,
+                "executed": executed,
+                "dry_run": ctx.dry_run,
+                "confirmation_required": True,
+                "history_state": history_state,
+                "preview_path": preview_files[0] if preview_files else None,
+                "layers_snapshot": layers_snapshot,
+                "evidence_path": _write_manifest_if_requested(ctx, manifest),
+                "evidence_manifest": manifest,
+                "validation_result": validation_result,
+            },
+            warnings=warnings,
+            next_steps=["Review preview_path and layers_snapshot before a second corrective pass.", "Do not run outside sandbox copies."],
+        )
+
+    def _planned_write(self, tool_name: str, arguments: dict[str, Any], *, action: str, summary: dict[str, Any]) -> dict[str, Any]:
+        ctx = _build_context(arguments, self.repo_root, tool_name)
+        if not ctx.dry_run and not ctx.requires_confirmation:
+            return make_result(
+                ok=False,
+                bridge="photoshop",
+                action=action,
+                message=f"{tool_name} refused because requires_confirmation must be true when dry_run is false.",
+                details={"job_id": ctx.job_id, "risk_level": ctx.risk_level, "output_dir": ctx.output_dir},
+                warnings=["Photoshop write-like operations stay dry-run by default."],
+                next_steps=["Repeat with dry_run=true for planning.", "Use batchplay execute_confirmed only after validation and confirmation."],
+            )
+        warnings = ["Sandbox-safe plan only."]
+        manifest = _make_manifest(
+            ctx,
+            input_summary=summary,
+            output_files=[],
+            preview_files=[],
+            source_files=["<active_document>"],
+            photoshop_available=False,
+            bridge_kind="fallback" if ctx.bridge_kind != "mock" else "mock",
+            node_proxy_status=_node_proxy_probe()["status"],
+            uxp_status={},
+            photoshop_host={},
+            layers_snapshot=[],
+            history_state=None,
+            descriptor_summary=[],
+            validation_result={},
+            status="ok",
+            warnings=warnings,
+            errors=[],
+        )
+        return make_result(
+            ok=True,
+            bridge="photoshop",
+            action=action,
+            message=f"{tool_name} planned safely.",
+            details={"job_id": ctx.job_id, "bridge_kind": manifest["bridge_kind"], "plan_only": True, "evidence_manifest": manifest, "evidence_path": _write_manifest_if_requested(ctx, manifest), **summary},
+            warnings=warnings,
+            next_steps=["Review the EvidenceManifest before enabling any confirmed write path."],
+        )
+
+    def selection_subject(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._planned_write("ps.selection.subject", arguments, action="selection_subject", summary={"source_layer_id": arguments.get("source_layer_id")})
+
+    def layer_rename(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._planned_write("ps.layer.rename", arguments, action="layer_rename", summary={"layer_id": arguments.get("layer_id"), "layer_name": arguments.get("layer_name")})
+
+    def layer_move(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._planned_write("ps.layer.move", arguments, action="layer_move", summary={"layer_id": arguments.get("layer_id"), "target_index": arguments.get("target_index")})
+
+    def layer_visibility(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._planned_write("ps.layer.visibility", arguments, action="layer_visibility", summary={"layer_id": arguments.get("layer_id"), "visible": arguments.get("visible")})
 
     def disabled_write(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, tool_name)
@@ -523,8 +781,8 @@ class PhotoshopBridgeAdapter:
             ok=False,
             bridge="photoshop",
             action=tool_name.rsplit(".", 1)[-1],
-            message=f"{tool_name} is intentionally disabled in Codex + Photoshop local advanced bridge v1.",
+            message=f"{tool_name} is intentionally disabled.",
             details={"job_id": ctx.job_id, "risk_level": ctx.risk_level, "bridge_kind": ctx.bridge_kind, "status": "disabled"},
-            warnings=["Confirmed-write and destructive Photoshop operations stay disabled by default in v1."],
-            next_steps=["Use ps.batchplay.validate and evidence-first review flows now.", "Upgrade the UXP plugin and local node proxy before enabling live write tools."],
+            warnings=["Confirmed-write and destructive Photoshop operations stay disabled by default unless they route through the typed node_proxy_uxp path."],
+            next_steps=["Use ps.batchplay.validate now.", "Use ps.batchplay.execute_confirmed only for allowed sandbox-only descriptors."],
         )

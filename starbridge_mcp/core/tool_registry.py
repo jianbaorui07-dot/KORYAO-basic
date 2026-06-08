@@ -6,6 +6,15 @@ from typing import Any
 from starbridge_mcp.core.security import sanitize
 
 
+def _current_status(maturity: str) -> str:
+    lowered = maturity.lower()
+    if "implemented" in lowered or lowered == "stable":
+        return "stable"
+    if "planned" in lowered:
+        return "planned"
+    return "experimental"
+
+
 @dataclass(frozen=True)
 class ToolCapability:
     name: str
@@ -28,6 +37,7 @@ class ToolCapability:
             "bridge": self.bridge,
             "action": self.action,
             "maturity": self.maturity,
+            "current_status": _current_status(self.maturity),
             "risk_level": self.risk_level,
             "description": self.description,
             "side_effects": self.side_effects,

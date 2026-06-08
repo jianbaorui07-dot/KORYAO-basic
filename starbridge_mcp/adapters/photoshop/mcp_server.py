@@ -21,7 +21,7 @@ TOOL_HANDLERS = {
     "ps.preview.export": _ADAPTER.preview_export,
     "ps.evidence.capture": _ADAPTER.evidence_capture,
     "ps.batchplay.validate": _ADAPTER.batchplay_validate,
-    "ps.batchplay.execute_confirmed": lambda arguments: _ADAPTER.disabled_write("ps.batchplay.execute_confirmed", arguments),
+    "ps.batchplay.execute_confirmed": _ADAPTER.batchplay_execute_confirmed,
     "ps.script.execute_confirmed": lambda arguments: _ADAPTER.disabled_write("ps.script.execute_confirmed", arguments),
     "ps.history.undo": lambda arguments: _ADAPTER.disabled_write("ps.history.undo", arguments),
     "ps.mask.refine": lambda arguments: _ADAPTER.disabled_write("ps.mask.refine", arguments),

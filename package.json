@@ -31,6 +31,7 @@
     "comfy:workflow:validate": "python examples/comfy_bridge/validate_workflow.py --json",
     "comfy:txt2img": "python examples/comfy_bridge/run_txt2img.py",
     "photoshop:probe": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/probe.ps1",
+    "photoshop:node-proxy": "node node_proxy/photoshop-bridge/server.js",
     "photoshop:diagnose": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/diagnose_local.ps1",
     "photoshop:info": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/document_info.ps1",
     "photoshop:demo:plan": "powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/create_demo_document.ps1",

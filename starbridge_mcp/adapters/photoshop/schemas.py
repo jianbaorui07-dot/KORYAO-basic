@@ -20,6 +20,8 @@ BRIDGE_KINDS = (
     "com",
     "node_proxy",
     "uxp",
+    "node_proxy_uxp",
+    "fallback",
 )
 
 
@@ -212,6 +214,13 @@ class EvidenceManifest:
     source_files: list[str]
     photoshop_available: bool
     bridge_kind: str
+    node_proxy_status: dict[str, Any]
+    uxp_status: dict[str, Any]
+    photoshop_host: dict[str, Any]
+    layers_snapshot: list[dict[str, Any]]
+    history_state: str | None
+    descriptor_summary: list[dict[str, Any]]
+    validation_result: dict[str, Any]
     status: str
     warnings: list[str]
     errors: list[str]
@@ -232,6 +241,13 @@ class EvidenceManifest:
             "source_files": self.source_files,
             "photoshop_available": self.photoshop_available,
             "bridge_kind": self.bridge_kind,
+            "node_proxy_status": self.node_proxy_status,
+            "uxp_status": self.uxp_status,
+            "photoshop_host": self.photoshop_host,
+            "layers_snapshot": self.layers_snapshot,
+            "history_state": self.history_state,
+            "descriptor_summary": self.descriptor_summary,
+            "validation_result": self.validation_result,
             "status": self.status,
             "warnings": self.warnings,
             "errors": self.errors,
