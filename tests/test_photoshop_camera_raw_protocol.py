@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 import json
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -61,13 +62,23 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
         self.assertIn('crs:Vibrance="12"', xmp)
 
     def test_export_script_refuses_without_confirmations(self) -> None:
+        script_path = REPO_ROOT / "examples/photoshop_bridge/scripts/camera_raw_export.ps1"
+        if shutil.which("powershell") is None and shutil.which("pwsh") is None:
+            script = script_path.read_text(encoding="utf-8")
+            self.assertIn("ConfirmApply", script)
+            self.assertIn("ConfirmExport", script)
+            self.assertIn("Refusing Camera Raw export without explicit confirmation", script)
+            return
+
+        powershell = shutil.which("powershell") or shutil.which("pwsh")
+        assert powershell is not None
         completed = subprocess.run(
             [
-                "powershell",
+                powershell,
                 "-ExecutionPolicy",
                 "Bypass",
                 "-File",
-                "examples/photoshop_bridge/scripts/camera_raw_export.ps1",
+                str(script_path),
                 "-InputPath",
                 "missing.CR2",
             ],
