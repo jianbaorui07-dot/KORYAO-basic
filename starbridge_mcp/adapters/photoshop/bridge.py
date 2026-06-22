@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from starbridge_mcp.core.bridge_base import BaseBridge
 from starbridge_mcp.core.result_schema import make_result
 
 from .batchplay_schema import validate_descriptor
@@ -268,9 +269,17 @@ def _make_manifest(
     ).to_dict()
 
 
-class PhotoshopBridgeAdapter:
+class PhotoshopBridgeAdapter(BaseBridge):
     def __init__(self, repo_root: Path) -> None:
-        self.repo_root = repo_root
+        self._repo_root = repo_root
+
+    @property
+    def bridge_id(self) -> str:
+        return "photoshop"
+
+    @property
+    def repo_root(self) -> Path:
+        return self._repo_root
 
     def probe(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.probe")
