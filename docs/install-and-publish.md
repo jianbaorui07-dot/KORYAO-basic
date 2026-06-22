@@ -83,4 +83,6 @@ npm.cmd run package:python:check
 - 新增 `ps.get_preview` / `ps.get_state` 后更新 capability matrix 和示例。
 - Recipes (remove_background 等) 和 Action Plan 模式已添加，保持 dry_run + manifest 安全。
 - 运行 `python -m ruff check . && python scripts/starbridge_preflight.py` 再发布。
-- 考虑 GitHub release: 用 `gh release create` 或 action，附带 CHANGELOG 片段。
+- 考虑 GitHub release: 用 `gh release create` 或 .github/workflows/release.yml，附带 CHANGELOG 片段和 artifacts。
+- 发布 workflow 触发于 tag v*，生成 release notes，包含 wheel/tar.gz。
+- 手动启用 PyPI 上传部分，使用 secrets。

@@ -23,6 +23,9 @@
 
 ### Release Process
 * Improved install-and-publish.md with clearer PyPI/npm/MCP registry paths, smoke test commands, and productization checklist.
+* Added .github/workflows/release.yml for automated GitHub releases on v* tags (with build artifacts, notes).
+* Enhanced get_preview to leverage preview_export for better plans; get_state now includes more dynamic info from probes/layers.
+* More recipe details: concrete step-by-step for remove_background and enhance_portrait with tool mappings, execution notes, and safety.
 * Updated CHANGELOG with unreleased long-term optimizations.
 * Added pre-commit config (ruff, mypy) and CI enforcement for consistent releases.
 * VERSION and pyproject kept in sync; recommend `scripts/starbridge_preflight.py` + security check before publish.
