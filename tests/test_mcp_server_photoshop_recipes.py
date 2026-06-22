@@ -40,6 +40,15 @@ class PhotoshopRecipeMcpTests(unittest.TestCase):
             }.issubset(names)
         )
 
+    def test_recipe_list_returns_core_recipes(self) -> None:
+        response = request(1, "tools/call", {"name": "photoshop.recipe_list", "arguments": {}})
+        # The handler returns in structuredContent for MCP
+        content = response.get("result", {}).get("structuredContent", response.get("result", {}))
+        recipes = content.get("recipes", [])
+        recipe_ids = {r.get("recipe_id", r.get("name", "")) for r in recipes}
+        self.assertIn("remove_background", recipe_ids)
+        self.assertIn("enhance_portrait", recipe_ids)
+
     def test_recipe_run_dry_run_does_not_start_photoshop(self) -> None:
         with patch(
             "starbridge_mcp.mcp_server.subprocess.run",

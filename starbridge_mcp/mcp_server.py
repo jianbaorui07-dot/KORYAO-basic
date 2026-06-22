@@ -1238,7 +1238,14 @@ def _handle_photoshop_recipe_run(arguments: JsonObject) -> JsonObject:
     dry_run = bool(arguments.get("dry_run", True))
     if dry_run:
         commands = ["npm.cmd run photoshop:demo:plan"]
-        if recipe_id in CORE_RECIPES:
+        if recipe_id == "remove_background":
+            commands += [
+                "# For remove_background: use extract_subject_to_png.ps1 with input from plan",
+                'powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/extract_subject_to_png.ps1 -InputPath "<source-image>" -OutputPath "examples/output/photoshop/subject.png"'
+            ]
+        elif recipe_id == "enhance_portrait":
+            commands += ["# Use frequency sep via batchplay or custom script on sandbox copy"]
+        else:
             commands += ["# execute recipe steps via BatchPlay or UXP in sandbox"]
         commands += ["npm.cmd run photoshop:manifest"]
         return sanitize(
