@@ -50,10 +50,13 @@ class McpStdioServerTests(unittest.TestCase):
         self.assertIn("starbridge.safe_roots", names)
         self.assertIn("comfyui.system_probe", names)
         self.assertIn("blender.environment_probe", names)
+        self.assertIn("blender.scene_plan", names)
         self.assertIn("cad_autocad.environment_probe", names)
         self.assertIn("photoshop.session_info", names)
         self.assertIn("illustrator.document_info", names)
+        self.assertIn("illustrator.preflight", names)
         self.assertIn("jianying_capcut.draft_probe", names)
+        self.assertIn("jianying_capcut.draft_structure", names)
         self.assertIn("autocad_dxf.validate_cad_plan", names)
         self.assertTrue(all("inputSchema" in tool for tool in tools))
         self.assert_no_private_paths(response)
@@ -90,10 +93,13 @@ class McpStdioServerTests(unittest.TestCase):
     def test_direct_bridge_probe_tools_return_structured_content(self) -> None:
         tool_calls = [
             ("blender.environment_probe", {}),
+            ("blender.scene_plan", {}),
             ("cad_autocad.environment_probe", {}),
             ("jianying_capcut.draft_probe", {}),
+            ("jianying_capcut.draft_structure", {}),
             ("photoshop.session_info", {"probe_com": False}),
             ("illustrator.document_info", {"probe_com": False}),
+            ("illustrator.preflight", {"document_summary": {"artboards": 1, "color_mode": "RGB", "missing_links": 0}}),
         ]
         for tool_name, arguments in tool_calls:
             with self.subTest(tool=tool_name):

@@ -71,9 +71,9 @@ class BridgeStatusFilesTest(unittest.TestCase):
             "comfy_bridge": "prototype",
             "photoshop_bridge": "prototype",
             "cad_bridge": "prototype",
-            "blender_bridge": "planned",
-            "illustrator_bridge": "planned",
-            "capcut_jianying_bridge": "research",
+            "blender_bridge": "prototype",
+            "illustrator_bridge": "prototype",
+            "capcut_jianying_bridge": "prototype",
         }
         for directory, maturity in expected.items():
             status_path = REPO_ROOT / "examples" / directory / "bridge_status.json"

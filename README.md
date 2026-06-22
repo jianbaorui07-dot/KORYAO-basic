@@ -18,11 +18,11 @@ StarBridge 是一个 Windows-first、local-first 的 MCP stdio server + tool reg
 | Bridge | Stable | Dry-run only | Experimental | Planned |
 | --- | --- | --- | --- | --- |
 | ComfyUI | Workflow JSON validation; safe status shape when service is offline. | None for validation. | Local HTTP probe and `txt2img` submit script require a running local ComfyUI and explicit checkpoint. | Full txt2img job lifecycle, img2img, inpaint, upscale, asset manifest. |
-| Blender | Environment probe for executable and optional MCP directory hints. | None. | No public write loop in this release. | Safe generated scene script and render manifest. |
+| Blender | Environment probe plus fixed-template `blender.scene_plan` dry-run. | Scene plan only; no Blender launch. | No public render/write loop in this release. | Confirmed local render manifest. |
 | AutoCAD/DXF | CAD plan validation, plan summary, DXF dry-run, sandbox output guard. AutoCAD/DXF plan validate / dry-run / guarded write. | DXF export defaults to dry-run. | Real test DXF write only with `confirm_write=true`, optional `ezdxf`, and `examples/cad/output`. | Richer CAD entity schema and desktop AutoCAD evidence. |
 | Photoshop | Safe status/session metadata shape; Node Proxy + UXP v2 probe, document info, layers list, typed BatchPlay validation. | Sandbox demo plan defaults to dry-run; preview export and confirmed BatchPlay require explicit confirmation. | Real COM document info and sandbox PSD/preview export require authorized local Photoshop; UXP v2 requires local Node Proxy and loaded plugin. | Broader UXP preview export evidence and reviewed local smoke evidence. |
-| Illustrator | Safe status/document metadata shape; no private `.ai` opening. | Sandbox artboard/export plan defaults to dry-run. | Real COM document info and sandbox AI/SVG/PDF/PNG export require authorized local Illustrator and explicit confirmation. | Preflight and image trace workflows. |
-| Jianying/CapCut | Draft directory probe shape only; no draft content read. | None. | Local executable/draft directory availability checks. | Safe draft skeleton and manifest research. |
+| Illustrator | Safe status/document metadata shape plus `illustrator.preflight` for sanitized summaries. | Sandbox artboard/export plan defaults to dry-run. | Real COM document info and sandbox AI/SVG/PDF/PNG export require authorized local Illustrator and explicit confirmation. | Image trace workflows. |
+| Jianying/CapCut | Draft directory probe plus redacted top-level `draft_structure` summary. | None. | Local executable/draft directory availability checks. | Safe draft skeleton and template replacement research. |
 
 Photoshop, Illustrator, Blender, and CapCut write flows are experimental or planned unless a reviewed local run proves otherwise.
 
@@ -34,7 +34,7 @@ Photoshop, Illustrator, Blender, and CapCut write flows are experimental or plan
 | --- | --- |
 | stable | MCP stdio server、tool registry、统一 status/probe、路径脱敏、安全检查、preflight、ComfyUI workflow validate、AutoCAD/DXF plan validate / dry-run / guarded write。 |
 | experimental | Photoshop sandbox 写入/导出 demo、Illustrator sandbox trace/export demo、ComfyUI txt2img job lifecycle、桌面软件 COM/UXP 探针。写入类默认必须 dry-run 或显式确认，并限制在 demo/sandbox。 |
-| planned | Blender safe scene script、CapCut / 剪映 draft skeleton、跨软件 asset handoff、可审计 E2E release evidence。 |
+| planned | Blender confirmed render、CapCut / 剪映 draft skeleton、跨软件 asset handoff、可审计 E2E release evidence。 |
 | not implemented | 自动登录、账号授权绕过、读取客户私有工程、提交模型或生成图、无确认写入真实桌面软件。 |
 
 v0.1-alpha 已有且可以验证：
@@ -44,7 +44,7 @@ v0.1-alpha 已有且可以验证：
 - 总状态与安全状态：`npm.cmd run bridge:status:safe`
 - ComfyUI：offline-safe probe、workflow JSON validate；真实生成任务仍依赖本机 ComfyUI 和显式 checkpoint。
 - AutoCAD/DXF：自然语言 / JSON plan、`validate_cad_plan`、dry-run、`confirm_write` 受控写入 `examples/cad/output`、manifest/report。
-- Adobe / Blender / CapCut：已有部分 probe/demo 入口；Photoshop 另有 Node Proxy + UXP v2 实验链路，但生产级写入闭环仍是 experimental 或 planned。
+- Adobe / Blender / CapCut：已有部分 probe/demo/metadata-only 入口；Photoshop 另有 Node Proxy + UXP v2 实验链路，但生产级写入闭环仍是 experimental 或 planned。
 
 ## 中文阅读指南
 
@@ -111,9 +111,9 @@ python -m starbridge_mcp.server job-status --json
 | 接入 ComfyUI | [docs/02-codex-comfyui.md](docs/02-codex-comfyui.md) | `python examples\comfy_bridge\comfy_probe.py` |
 | 接入 CAD / AutoCAD | [docs/01-codex-cad.md](docs/01-codex-cad.md) | `python scripts\test_autocad_mcp.py` |
 | 接入 Photoshop | [docs/03-codex-photoshop.md](docs/03-codex-photoshop.md) | `powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\diagnose_local.ps1` |
-| 接入 Illustrator / AI 矢量文件桥 | [docs/05-codex-illustrator.md](docs/05-codex-illustrator.md) | `python examples\bridge_status.py --probe-executables` |
-| 接入 Blender | [docs/04-codex-blender.md](docs/04-codex-blender.md) | `python examples\bridge_status.py --probe-executables` |
-| 研究剪映 / CapCut | [docs/06-codex-jianying.md](docs/06-codex-jianying.md) | 先手动确认本机软件和草稿目录 |
+| 接入 Illustrator / AI 矢量文件桥 | [docs/05-codex-illustrator.md](docs/05-codex-illustrator.md) | `npm.cmd run illustrator:preflight:plan` |
+| 接入 Blender | [docs/04-codex-blender.md](docs/04-codex-blender.md) | `npm.cmd run blender:scene:plan` |
+| 研究剪映 / CapCut | [docs/06-codex-jianying.md](docs/06-codex-jianying.md) | `npm.cmd run capcut:draft:structure` |
 | 判断 Computer Use 还是 MCP | [docs/computer-use-vs-mcp.md](docs/computer-use-vs-mcp.md) | 不需要运行 |
 | 查看 Computer Use 安全用法 | [docs/07-codex-computer-use.md](docs/07-codex-computer-use.md) | `npm.cmd run bridge:status:safe` |
 
@@ -166,7 +166,7 @@ python -m starbridge_mcp.mcp_server
 npm.cmd run starbridge:mcp
 ```
 
-MCP 客户端可发现首批安全工具：`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`jianying_capcut.draft_probe`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan` 和 `autocad_dxf.write_dxf`。
+MCP 客户端可发现首批安全工具：`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan` 和 `autocad_dxf.write_dxf`。
 
 ## Release Readiness
 
@@ -199,9 +199,9 @@ MCP 客户端可发现首批安全工具：`starbridge.status`、`starbridge.pro
 | 高 | 为 ComfyUI template list/get/from-template 增加更短的本地验证入口 |
 | 高 | 继续保持 MCP tools 的 safe-only registry、路径脱敏和 forbidden content 扫描 |
 | 中 | 把 Photoshop 的 `extract_subject`、`export_png`、`document_info` 继续收敛成安全 MCP 工具 |
-| 中 | 给 Illustrator 增加只读文档信息、测试画板和 `trace_image_to_vector` 参数化示例 |
-| 中 | 给 Blender 增加公开安全的基础场景生成脚本 |
-| 中 | 给剪映 / CapCut 增加只读草稿目录摘要，不读取私有草稿内容 |
+| 中 | 给 Illustrator 增加 `trace_image_to_vector` 参数化示例 |
+| 中 | 给 Blender 增加确认后的本机 render manifest |
+| 中 | 给剪映 / CapCut 增加公开安全测试草稿 skeleton，不读取私有草稿内容 |
 
 完整路线图见 [ROADMAP.md](ROADMAP.md)。
 

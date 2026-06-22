@@ -2,7 +2,7 @@
 
 调研日期：2026-05-23
 
-这份文档记录 Codex 接入剪映专业版 / CapCut Desktop 的初步路线。当前状态是 `research`：仓库只有调研、`bridge.json` manifest、环境探测和本地草稿桥方向，没有稳定的桌面自动化闭环。
+这份文档记录 Codex 接入剪映专业版 / CapCut Desktop 的初步路线。当前状态是 `prototype`：仓库有调研、`bridge.json` manifest、环境探测和草稿目录顶层结构摘要，没有稳定的桌面自动化闭环。
 
 公开仓库不提交本机草稿、素材路径、导出视频、账号信息、会员状态或剪映 / CapCut 缓存。
 
@@ -12,6 +12,7 @@
 | --- | --- | --- |
 | manifest | `examples/capcut_jianying_bridge/bridge.json` | 声明 research 状态、入口、支持任务和安全说明 |
 | 环境探测 | `examples/capcut_jianying_bridge/probe.py` | 检查剪映 / CapCut 可执行文件和草稿目录环境变量 |
+| 草稿结构摘要 | `examples/capcut_jianying_bridge/draft_structure.py` | 只统计环境变量指定草稿目录顶层结构，不读取草稿 JSON 或素材路径 |
 | 总状态探测 | `examples/bridge_status.py` | 检查 `JIANYING_EXE`、`CAPCUT_EXE`、草稿目录配置 |
 | 路线文档 | 本文档 | 说明草稿桥、模板替换和 MCP 封装方向 |
 
@@ -41,6 +42,7 @@ npm.cmd run status:probe:json
 
 ```powershell
 python examples\capcut_jianying_bridge\probe.py
+python examples\capcut_jianying_bridge\draft_structure.py --json
 python examples\bridge_status.py --json
 ```
 
@@ -67,7 +69,7 @@ $env:CAPCUT_DRAFTS_DIR="<path-to-capcut-drafts>"
 探针只做这些事：
 
 - 检查草稿目录是否存在。
-- 统计公开安全的摘要信息，不输出真实素材路径。
+- 统计公开安全的摘要信息，不输出真实草稿名、素材路径或字幕内容。
 - 检查候选依赖是否安装。
 - 输出状态和下一步建议。
 
@@ -102,8 +104,8 @@ $env:CAPCUT_DRAFTS_DIR="<path-to-capcut-drafts>"
 
 ## 下一步
 
-1. 保持 `examples/capcut_jianying_bridge/probe.py` 只读。
-2. 增加草稿目录结构检查，但不打印真实素材路径。
+1. 保持 `examples/capcut_jianying_bridge/probe.py` 和 `draft_structure.py` 只读。
+2. 扩展草稿目录结构检查，但不打印真实草稿名、素材路径或字幕内容。
 3. 本机临时验证 `pyJianYingDraft` 与 `pyCapCut` 的最小草稿生成能力。
 4. 选择一个模板替换实验：标题、字幕、图片和一段视频。
 5. 评估是否需要单独的本地 MCP 服务，而不是把剪映逻辑塞进通用状态检查脚本。

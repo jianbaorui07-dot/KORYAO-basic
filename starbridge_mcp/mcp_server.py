@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from starbridge_mcp.bridges import autocad_dxf
+from starbridge_mcp.bridges.blender_safe_scene import build_scene_plan
+from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summary
+from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
 from starbridge_mcp.adapters.photoshop import TOOL_DEFINITIONS as PHOTOSHOP_V1_TOOL_DEFINITIONS
 from starbridge_mcp.adapters.photoshop import TOOL_HANDLERS as PHOTOSHOP_V1_TOOL_HANDLERS
 from starbridge_mcp.core.evidence import DEFAULT_MANIFEST_FILENAME, ensure_evidence_path, load_manifest, manifest_validation_result, repo_relative
@@ -406,6 +409,18 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         input_schema=_object_schema({}),
     ),
     _standard_tool(
+        name="blender.scene_plan",
+        title="Blender Safe Scene Plan",
+        description="生成公开安全的 Blender 基础场景 dry-run 计划；不启动 Blender，不打开 .blend，不执行任意 Python。",
+        input_schema=_object_schema(
+            {
+                "scene_name": {"type": "string", "default": "starbridge_public_scene"},
+                "render_width": {"type": "integer", "default": 1280, "minimum": 320, "maximum": 4096},
+                "render_height": {"type": "integer", "default": 720, "minimum": 240, "maximum": 4096},
+            }
+        ),
+    ),
+    _standard_tool(
         name="cad_autocad.environment_probe",
         title="Probe CAD / AutoCAD",
         description="检查 AutoCAD 可执行文件、COM 注册和 pywin32 线索。不打开 DWG/DXF。",
@@ -571,10 +586,34 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         read_only=False,
     ),
     _standard_tool(
+        name="illustrator.preflight",
+        title="Illustrator Preflight",
+        description="对传入的脱敏 Illustrator 文档摘要做只读 preflight；不打开 .ai，不导出文件。",
+        input_schema=_object_schema(
+            {
+                "document_summary": {
+                    "type": "object",
+                    "description": "Optional sanitized summary from illustrator.document_info.",
+                    "default": {},
+                }
+            }
+        ),
+    ),
+    _standard_tool(
         name="jianying_capcut.draft_probe",
         title="Probe Jianying / CapCut Drafts",
         description="检查剪映/CapCut 可执行文件和草稿目录环境变量。不读取草稿内容，不导出视频。",
         input_schema=_object_schema({}),
+    ),
+    _standard_tool(
+        name="jianying_capcut.draft_structure",
+        title="Jianying / CapCut Draft Structure",
+        description="只读统计草稿目录顶层结构，不递归扫描，不读取 draft_content.json 或素材路径。",
+        input_schema=_object_schema(
+            {
+                "max_entries": {"type": "integer", "default": 25, "minimum": 1, "maximum": 200},
+            }
+        ),
     ),
     _standard_tool(
         name="autocad_dxf.status",
@@ -1423,6 +1462,11 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
         display_name="Blender 三维场景桥",
         module_name="examples.blender_bridge.probe",
     ),
+    "blender.scene_plan": lambda arguments: build_scene_plan(
+        scene_name=str(arguments.get("scene_name") or "starbridge_public_scene"),
+        render_width=int(arguments.get("render_width") or 1280),
+        render_height=int(arguments.get("render_height") or 720),
+    ),
     "cad_autocad.environment_probe": lambda _arguments: _handle_python_probe(
         bridge="cad_autocad",
         action="environment_probe",
@@ -1451,11 +1495,15 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "illustrator.create_demo_artboard": _handle_illustrator_create,
     "illustrator.export_demo_assets": _handle_illustrator_export,
     "illustrator.run_demo": _handle_illustrator_run,
+    "illustrator.preflight": lambda arguments: preflight_summary(arguments.get("document_summary") or {}),
     "jianying_capcut.draft_probe": lambda _arguments: _handle_python_probe(
         bridge="jianying_capcut",
         action="draft_probe",
         display_name="剪映/CapCut 草稿桥",
         module_name="examples.capcut_jianying_bridge.probe",
+    ),
+    "jianying_capcut.draft_structure": lambda arguments: draft_structure_summary(
+        max_entries=int(arguments.get("max_entries") or 25)
     ),
     "autocad_dxf.status": lambda _arguments: autocad_dxf.status(),
     "autocad_dxf.validate_cad_plan": lambda arguments: autocad_dxf.validate_cad_plan(arguments.get("plan")),

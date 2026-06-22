@@ -93,6 +93,19 @@ class ToolRegistryTests(unittest.TestCase):
         self.assertFalse(by_name["photoshop.recipe_run"]["safe_default"])
         self.assertEqual("guarded_local_write", by_name["photoshop.recipe_run"]["risk_level"])
 
+    def test_deepened_bridge_capabilities_are_safe_default(self) -> None:
+        for bridge, expected in {
+            "blender": "blender.scene_plan",
+            "illustrator": "illustrator.preflight",
+            "jianying_capcut": "jianying_capcut.draft_structure",
+        }.items():
+            with self.subTest(bridge=bridge):
+                capabilities = list_capabilities(bridge=bridge, include_guarded=False)
+                by_name = {item["name"]: item for item in capabilities}
+                self.assertIn(expected, by_name)
+                self.assertTrue(by_name[expected]["safe_default"])
+                self.assertEqual("safe_read_only", by_name[expected]["risk_level"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,7 @@
 | 环境探测 | `examples/illustrator_bridge/probe.ps1` | 检查 Illustrator 环境和 COM 线索 |
 | 总状态探测 | `examples/bridge_status.py` | 检查 `ILLUSTRATOR_EXE` 和 `Illustrator.Application` COM |
 | 当前文档信息 | `examples/illustrator_bridge/scripts/document_info.ps1` | 只读当前打开文档的名称、画板、图层和对象数量 |
+| 只读 preflight | `examples/illustrator_bridge/scripts/preflight_plan.py` | 对脱敏文档摘要做链接、颜色模式、文本对象风险检查，不打开 `.ai` |
 | sandbox 画板 demo | `examples/illustrator_bridge/scripts/create_demo_artboard.ps1` | 默认 dry-run；确认后创建公开安全测试 `.ai` |
 | sandbox 导出 demo | `examples/illustrator_bridge/scripts/export_demo_assets.ps1` | 确认后只从 demo 文档导出 SVG、PNG 和 PDF |
 | demo manifest | `examples/illustrator_bridge/write_demo_manifest.py` | 汇总本地 demo 输出，manifest 本身不提交 |
@@ -40,6 +41,7 @@ npm.cmd run status:probe:json
 ```powershell
 powershell -ExecutionPolicy Bypass -File examples\illustrator_bridge\probe.ps1
 python examples\bridge_status.py --probe-executables --json
+python examples\illustrator_bridge\scripts\preflight_plan.py --json
 ```
 
 ## 推荐 MCP 工具方向
@@ -48,6 +50,7 @@ python examples\bridge_status.py --probe-executables --json
 | --- | --- | --- |
 | `illustrator.document_info` | 读取当前文档名称、画板数量、尺寸、颜色模式、图层和对象数量 | 已有只读脚本 |
 | `illustrator.create_demo_artboard` | 创建公开安全测试画板和基础矢量对象 | 已有 sandbox demo，默认 dry-run |
+| `illustrator.preflight` | 对脱敏文档摘要做只读 preflight，不打开 `.ai` | 已实现 metadata-only |
 | `trace_image_to_vector` | 输入图片，调用 Image Trace，导出 SVG/PDF | 待补脚本 |
 | `illustrator.export_demo_assets` | 从 sandbox demo 文档导出 SVG、PDF 和 PNG | 已有 sandbox demo，需显式确认 |
 | `illustrator.run_demo` | 创建测试画板、导出 demo 产物并生成 manifest | 已有一键流程，需显式确认 |
@@ -65,5 +68,5 @@ python examples\bridge_status.py --probe-executables --json
 1. 保留 `examples/bridge_status.py` 的 Illustrator 状态检查入口。
 2. 继续把 demo 输出保持在 `examples/output/illustrator/`，不提交真实生成物。
 3. 再做 `trace_image_to_vector`，输入和输出路径全部参数化。
-4. 稳定后补更多 preflight 检查，例如字体、颜色空间和链接资产风险。
+4. 扩展 preflight 检查，例如字体替换风险、颜色空间和链接资产风险。
 5. 所有真实写入继续要求 dry-run 之后显式确认。
