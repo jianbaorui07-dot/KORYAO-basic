@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">StarBridge Creative Console preview</title>
+  <desc id="desc">A static public-safe preview of the StarBridge visual console showing bridge cards, safety checks, and local verification commands.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#071317"/>
+      <stop offset="0.45" stop-color="#12202a"/>
+      <stop offset="1" stop-color="#1b1c21"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="1">
+      <stop offset="0" stop-color="#11272c"/>
+      <stop offset="1" stop-color="#182126"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <g opacity="0.35">
+    <circle cx="940" cy="160" r="170" fill="none" stroke="#54d6ff" stroke-width="1.5"/>
+    <circle cx="940" cy="160" r="245" fill="none" stroke="#7cf29a" stroke-width="1"/>
+    <circle cx="940" cy="160" r="315" fill="none" stroke="#ff8a3d" stroke-width="1"/>
+    <path d="M0 610 C220 520 360 650 560 560 C780 460 960 510 1280 400" fill="none" stroke="#63e6be" stroke-width="2"/>
+  </g>
+
+  <rect x="56" y="54" width="1168" height="612" rx="28" fill="#0d171b" opacity="0.76" filter="url(#softShadow)"/>
+  <rect x="86" y="82" width="80" height="556" rx="22" fill="#0a1114" stroke="#263b42"/>
+  <circle cx="126" cy="126" r="18" fill="#63e6be"/>
+  <rect x="110" y="184" width="32" height="32" rx="10" fill="#14262b" stroke="#36545d"/>
+  <rect x="110" y="238" width="32" height="32" rx="10" fill="#14262b" stroke="#36545d"/>
+  <rect x="110" y="292" width="32" height="32" rx="10" fill="#14262b" stroke="#36545d"/>
+  <rect x="110" y="346" width="32" height="32" rx="10" fill="#14262b" stroke="#36545d"/>
+
+  <text x="198" y="126" fill="#8be8ff" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="1">WINDOWS-FIRST / LOCAL-FIRST / SAFETY VERIFICATION</text>
+  <text x="198" y="184" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">StarBridge Creative Console</text>
+  <text x="202" y="228" fill="#b7cbd1" font-family="Segoe UI, Arial, sans-serif" font-size="22">Codex 接入本地创意软件的公开安全面板</text>
+
+  <rect x="198" y="270" width="430" height="230" rx="18" fill="url(#panel)" stroke="#28424a"/>
+  <text x="228" y="314" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="700">Capability Matrix</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="17">
+    <rect x="228" y="340" width="358" height="34" rx="10" fill="#123641" stroke="#54d6ff"/>
+    <text x="246" y="363" fill="#f4fbff">ComfyUI</text><text x="498" y="363" fill="#54d6ff">Stable</text>
+    <rect x="228" y="384" width="358" height="34" rx="10" fill="#17252b" stroke="#37515a"/>
+    <text x="246" y="407" fill="#f4fbff">AutoCAD / DXF</text><text x="498" y="407" fill="#7cf29a">Stable</text>
+    <rect x="228" y="428" width="358" height="34" rx="10" fill="#17252b" stroke="#37515a"/>
+    <text x="246" y="451" fill="#f4fbff">Photoshop</text><text x="462" y="451" fill="#ffcf66">Experimental</text>
+  </g>
+
+  <rect x="662" y="270" width="238" height="230" rx="18" fill="#141f24" stroke="#37515a"/>
+  <text x="692" y="314" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="700">Safety</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#d8edf2">
+    <text x="692" y="356">✓ redact-paths</text>
+    <text x="692" y="390">✓ dry-run default</text>
+    <text x="692" y="424">✓ safe-only tools</text>
+    <text x="692" y="458">✓ soft-exit probes</text>
+  </g>
+
+  <rect x="934" y="270" width="238" height="230" rx="18" fill="#141f24" stroke="#37515a"/>
+  <text x="964" y="314" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="700">Preflight</text>
+  <text x="964" y="356" fill="#b7cbd1" font-family="Consolas, monospace" font-size="16">npm.cmd run</text>
+  <text x="964" y="384" fill="#63e6be" font-family="Consolas, monospace" font-size="16">bridge:status:safe</text>
+  <text x="964" y="426" fill="#b7cbd1" font-family="Consolas, monospace" font-size="16">python scripts\</text>
+  <text x="964" y="454" fill="#63e6be" font-family="Consolas, monospace" font-size="16">security_check.py</text>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="198" y="538" width="178" height="62" rx="16" fill="#10262b" stroke="#28424a"/>
+    <text x="224" y="565" fill="#f4fbff" font-size="22" font-weight="700">v0.1-alpha</text>
+    <text x="224" y="589" fill="#8fa9af" font-size="15">当前阶段</text>
+    <rect x="402" y="538" width="178" height="62" rx="16" fill="#10262b" stroke="#28424a"/>
+    <text x="428" y="565" fill="#f4fbff" font-size="22" font-weight="700">6 bridges</text>
+    <text x="428" y="589" fill="#8fa9af" font-size="15">软件桥数量</text>
+    <rect x="606" y="538" width="178" height="62" rx="16" fill="#10262b" stroke="#28424a"/>
+    <text x="632" y="565" fill="#f4fbff" font-size="22" font-weight="700">dry-run</text>
+    <text x="632" y="589" fill="#8fa9af" font-size="15">写入默认策略</text>
+    <rect x="810" y="538" width="178" height="62" rx="16" fill="#10262b" stroke="#28424a"/>
+    <text x="836" y="565" fill="#f4fbff" font-size="22" font-weight="700">redacted</text>
+    <text x="836" y="589" fill="#8fa9af" font-size="15">路径输出策略</text>
+    <rect x="1014" y="538" width="158" height="62" rx="16" fill="#10262b" stroke="#28424a"/>
+    <text x="1040" y="565" fill="#f4fbff" font-size="22" font-weight="700">local</text>
+    <text x="1040" y="589" fill="#8fa9af" font-size="15">私有资产边界</text>
+  </g>
+</svg>

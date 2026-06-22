@@ -1,7 +1,7 @@
 {
   "bridge_id": "illustrator",
   "display_name": "Illustrator / AI \u77e2\u91cf\u6587\u4ef6\u6865",
-  "maturity": "planned",
+  "maturity": "prototype",
   "platforms": [
     "Windows"
   ],
@@ -19,10 +19,10 @@
   "last_verified": null,
   "known_risks": [
     "\u5ba2\u6237 .ai\u3001\u6e90\u56fe\u3001\u5bfc\u51fa SVG/PDF/PNG\u3001\u5546\u4e1a\u5b57\u4f53\u548c Creative Cloud \u7f13\u5b58\u4e0d\u80fd\u63d0\u4ea4\u3002",
-    "planned \u9636\u6bb5\u4e0d\u80fd\u58f0\u79f0\u5df2\u7ecf\u5b8c\u6210 Image Trace \u6216\u6279\u91cf\u5bfc\u51fa\u3002"
+    "prototype \u9636\u6bb5\u5df2\u6709\u5f53\u524d\u6587\u6863\u6458\u8981\u3001sandbox demo \u548c\u53ea\u8bfb preflight\uff1b\u4e0d\u80fd\u58f0\u79f0\u5df2\u7ecf\u5b8c\u6210 Image Trace \u6216\u751f\u4ea7\u7ea7\u6279\u91cf\u5bfc\u51fa\u3002"
   ],
   "next_steps": [
-    "\u5148\u5b9e\u73b0\u53ea\u8bfb document_info\u3002",
-    "\u518d\u8bc4\u4f30\u53c2\u6570\u5316 Image Trace \u548c\u5bfc\u51fa\u811a\u672c\u3002"
+    "\u7ee7\u7eed\u7a33\u5b9a\u53ea\u8bfb document_info \u548c preflight\u3002",
+    "\u518d\u8bc4\u4f30\u53c2\u6570\u5316 Image Trace\uff0c\u8f93\u5165\u548c\u8f93\u51fa\u8def\u5f84\u5fc5\u987b\u663e\u5f0f\u4f20\u5165\u3002"
   ]
 }

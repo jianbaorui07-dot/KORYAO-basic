@@ -1,0 +1,61 @@
+{
+  "name": "starbridge-creative-software-mcp",
+  "display_name": "StarBridge Creative Software MCP",
+  "description": "Windows-first, local-first MCP stdio bridge for safe probes, workflow validation, DXF dry-run planning, and guarded creative software automation.",
+  "version": "0.1.0-alpha",
+  "homepage": "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software",
+  "license": "MIT",
+  "transport": {
+    "type": "stdio",
+    "command": "python",
+    "args": [
+      "-m",
+      "starbridge_mcp.mcp_server"
+    ]
+  },
+  "platforms": [
+    "windows"
+  ],
+  "categories": [
+    "creative-software",
+    "local-automation",
+    "workflow-validation",
+    "safety"
+  ],
+  "capabilities": [
+    "starbridge.status",
+    "starbridge.tools",
+    "starbridge.evidence_init",
+    "starbridge.evidence_validate",
+    "starbridge.job_status",
+    "comfyui.workflow_validate",
+    "autocad_dxf.validate_cad_plan",
+    "autocad_dxf.write_dxf",
+    "photoshop.session_info",
+    "illustrator.document_info",
+    "blender.environment_probe",
+    "jianying_capcut.draft_probe"
+  ],
+  "safety": {
+    "local_first": true,
+    "safe_default": true,
+    "dry_run_default": true,
+    "redacts_paths": true,
+    "requires_confirmation_for_writes": true,
+    "does_not_upload_private_assets": true
+  },
+  "environment": [
+    "STARBRIDGE_COMFYUI_URL",
+    "STARBRIDGE_BLENDER_EXE",
+    "STARBRIDGE_AUTOCAD_EXE",
+    "PHOTOSHOP_EXE",
+    "ILLUSTRATOR_EXE",
+    "JIANYING_EXE",
+    "CAPCUT_EXE",
+    "STARBRIDGE_DOWNLOAD_INBOX"
+  ],
+  "notes": [
+    "This is an example registry entry, not a submitted registry publication.",
+    "Desktop software writes remain dry-run or confirmation-gated and must stay in ignored output directories."
+  ]
+}
