@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 
 from starbridge_mcp.core.result_schema import REQUIRED_RESULT_FIELDS, make_result, validate_result
-from starbridge_mcp.server import BRIDGE_PROFILES, normalize_legacy_status
+from starbridge_mcp.core.tool_registry import BRIDGE_PROFILES
+from starbridge_mcp.server import normalize_legacy_status
 
 
 class StarBridgeSchemaTests(unittest.TestCase):

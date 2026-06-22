@@ -5,13 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "starbridge-creative-software-mcp"
 version = "0.1.0a0"
-description = "Windows-first local-first MCP stdio bridge prototype for creative desktop software."
+description = "Windows-first, local-first MCP stdio server and safety bridge for connecting AI agents (Codex, Cursor, Claude) to creative desktop software."
 readme = "README.md"
-requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "StarBridge contributors" }]
-keywords = ["mcp", "codex", "comfyui", "autocad", "dxf", "photoshop", "illustrator", "blender"]
+keywords = ["mcp", "model-context-protocol", "codex", "comfyui", "autocad", "dxf", "photoshop", "illustrator", "blender", "ai-agent", "local-first", "safety"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+  "Topic :: Multimedia :: Graphics",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software"
+Repository = "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software"
+Issues = "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/issues"
+Documentation = "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/tree/main/docs"
 
 [project.optional-dependencies]
 dev = [

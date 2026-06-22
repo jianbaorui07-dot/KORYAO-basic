@@ -4,6 +4,37 @@
 ![Windows first](https://img.shields.io/badge/Windows-first-2563eb)
 ![MCP stdio](https://img.shields.io/badge/MCP-stdio-16a34a)
 ![Local first](https://img.shields.io/badge/local--first-safe-0f766e)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+
+## Getting Started
+
+### Quick Install (Windows PowerShell)
+
+```powershell
+# Clone
+git clone https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git
+cd Codex-Integration-with-Creative-Industry-Software
+
+# Python + dev deps
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+
+# Node for some bridges (Photoshop node proxy, frontend examples)
+npm install
+```
+
+### Smoke checks
+
+```powershell
+python -m pytest -q || python -m unittest discover -s tests
+python scripts\security_check.py
+npm.cmd run preflight
+npm.cmd run bridge:status:safe
+npm.cmd run starbridge:tools:safe
+```
+
+See [docs/windows-install.md](docs/windows-install.md) for full local setup.
 
 ## Current Capability Matrix
 
@@ -96,6 +127,12 @@ See [docs/demo-illustrator.md](docs/demo-illustrator.md) and [docs/demo-photosho
 **English quick summary:** StarBridge is a Windows-first, local-first MCP stdio server and safety bridge for connecting AI coding agents to creative desktop software: ComfyUI, Blender, AutoCAD / DXF, Photoshop, Illustrator, and CapCut / Jianying. It focuses on safe probes, workflow validation, redacted status reports, and guarded automation examples instead of uploading private assets or replacing the creative tools.
 
 **Search keywords:** MCP, Model Context Protocol, Codex, AI agent, creative software automation, ComfyUI workflow, Blender automation, AutoCAD DXF, Photoshop COM, Illustrator scripting, CapCut Jianying, local-first AI tools.
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 曹瑞 and contributors.
 
 这个仓库整理 **Codex 接入本机创作软件** 的公开方案。新定位不是“用 StarBridge 替代 Computer Use”，而是把两者分工清楚：Computer Use 看真实 GUI、点击和复现问题；StarBridge MCP 把稳定动作做成参数化工具；Safety layer 在两者外侧做路径脱敏、权限边界、只读检查和发布前体检。成熟的只读检查、workflow 校验和受保护 DXF 能力继续通过 MCP stdio tools 交给 Codex / Cursor / Claude Code 调用。
 

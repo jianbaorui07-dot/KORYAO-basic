@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased / Optimizations
+
+### Repo & Packaging
+* Added root `LICENSE` (MIT) to match pyproject declaration.
+* Added `.github/FUNDING.yml` for sponsorship visibility.
+* Enhanced `pyproject.toml`: added classifiers, project.urls (GitHub repo, issues, docs), expanded description and keywords for better discoverability.
+* Improved CI workflow: added Windows runner (project is Windows-first), pip/npm caching, modern actions, broader Python matrix.
+* Centralized `BRIDGE_PROFILES`, `BRIDGE_NAME_MAP`, `BRIDGE_ALIASES` in `core/tool_registry.py` as single source of truth (previously duplicated in server.py). Updated imports and test. This eliminates metadata duplication while keeping compat.
+
+### Documentation & Structure
+* Polished README: added prominent Getting Started / Quick Install section, License badges and section, better onboarding.
+* Central tool capability metadata in `core/tool_registry.py` and bridge profiles in `server.py` — added cross-reference notes to reduce drift.
+
 ## [0.1.0] - 2026-05-29
 
 ### Added

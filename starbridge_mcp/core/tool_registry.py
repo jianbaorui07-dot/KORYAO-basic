@@ -843,6 +843,90 @@ CAPABILITIES: tuple[ToolCapability, ...] = (
     ),
 )
 
+# Centralized bridge metadata (moved/shared to reduce duplication with server.py).
+# BRIDGE_PROFILES and related maps are defined here as the single source for high-level summaries.
+# Detailed per-action info is in CAPABILITIES.
+BRIDGE_NAME_MAP = {
+    "ComfyUI": "comfyui",
+    "Blender": "blender",
+    "CAD": "autocad",
+    "Photoshop": "photoshop",
+    "Illustrator": "illustrator",
+    "JianyingCapCut": "jianying_capcut",
+}
+
+BRIDGE_ALIASES = {
+    "cad_autocad": "autocad",
+    "cad_dxf": "autocad_dxf",
+    "capcut_jianying": "jianying_capcut",
+}
+
+BRIDGE_PROFILES: dict[str, dict[str, Any]] = {
+    "comfyui": {
+        "display_name": "ComfyUI 图像生成桥",
+        "software": "ComfyUI",
+        "probe_type": "HTTP read-only probe",
+        "required_env": ["STARBRIDGE_COMFYUI_URL", "COMFY_ROOT", "COMFY_LAUNCHER"],
+        "ready_when": "ComfyUI API 可访问，且 /system_stats 与 /object_info 可读。",
+        "safety_boundary": "只读检查本机 API，不读取模型文件，不提交生成图片。",
+        "current_actions": ["status", "probe"],
+    },
+    "photoshop": {
+        "display_name": "Photoshop 修图桥",
+        "software": "Adobe Photoshop",
+        "probe_type": "Windows COM / executable configuration probe",
+        "required_env": ["PHOTOSHOP_EXE"],
+        "ready_when": "pywin32 可用；严格探测时能连接 Photoshop.Application COM。",
+        "safety_boundary": "不打开 PSD，不读取素材路径，不写出导出结果。",
+        "current_actions": ["status", "probe"],
+    },
+    "illustrator": {
+        "display_name": "AI 矢量文件桥",
+        "software": "Adobe Illustrator",
+        "probe_type": "Windows COM / executable configuration probe",
+        "required_env": ["ILLUSTRATOR_EXE"],
+        "ready_when": "pywin32 可用；严格探测时能连接 Illustrator.Application COM。",
+        "safety_boundary": "不打开 .ai 私有工程，不读取源图或导出目录。",
+        "current_actions": ["status", "probe"],
+    },
+    "blender": {
+        "display_name": "Blender 三维场景桥",
+        "software": "Blender",
+        "probe_type": "Executable and optional MCP directory probe",
+        "required_env": ["BLENDER_EXE", "BLENDER_MCP_DIR"],
+        "ready_when": "找到 blender.exe；可选找到 Blender MCP 桥目录。",
+        "safety_boundary": "不打开私有 .blend，不渲染资产，不下载外部模型。",
+        "current_actions": ["status", "probe"],
+    },
+    "autocad": {
+        "display_name": "CAD 工程制图桥",
+        "software": "AutoCAD / CAD",
+        "probe_type": "MCP project, executable, and win32com probe",
+        "required_env": ["AUTOCAD_EXE", "STARBRIDGE_CAD_MODE"],
+        "ready_when": "AutoCAD MCP 子项目存在，且找到 AutoCAD 可执行文件或 COM 线索。",
+        "safety_boundary": "不打开客户 DWG/DXF，不写真实项目输出；离线 DXF 与真实 CAD 控制分开处理。",
+        "current_actions": ["status", "probe"],
+    },
+    "autocad_dxf": {
+        "display_name": "AutoCAD / DXF 离线生成桥",
+        "software": "DXF headless bridge",
+        "probe_type": "schema and dry-run status",
+        "required_env": [],
+        "ready_when": "无需 AutoCAD；CAD plan 可校验，DXF 写入默认 dry-run。",
+        "safety_boundary": "不打开 DWG，不控制 AutoCAD；dry_run=False 时只允许写入 examples/cad/output。",
+        "current_actions": ["status", "validate_cad_plan", "summarize_plan", "write_dxf"],
+    },
+    "jianying_capcut": {
+        "display_name": "剪映/CapCut 草稿桥",
+        "software": "剪映 / CapCut",
+        "probe_type": "Executable and draft directory configuration probe",
+        "required_env": ["JIANYING_EXE", "JIANYING_DRAFTS_DIR", "CAPCUT_EXE", "CAPCUT_DRAFTS_DIR"],
+        "ready_when": "找到剪映或 CapCut 可执行文件，并确认对应草稿目录。",
+        "safety_boundary": "只读检查配置，不读取草稿内容，不导出视频，不触碰账号。",
+        "current_actions": ["status", "probe"],
+    },
+}
+
 
 def list_capabilities(*, bridge: str = "all", include_guarded: bool = True) -> list[dict[str, Any]]:
     selected = []
