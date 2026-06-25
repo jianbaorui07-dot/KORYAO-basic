@@ -1,0 +1,4 @@
+interface:
+  display_name: "StarBridge Illustrator MCP"
+  short_description: "安全使用 Illustrator/AI 矢量 MCP 探针和 preflight"
+  default_prompt: "Use $starbridge-illustrator-mcp to inspect Illustrator MCP availability and run a redacted preflight plan."

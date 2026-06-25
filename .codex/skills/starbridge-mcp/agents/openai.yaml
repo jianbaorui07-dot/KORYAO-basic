@@ -1,0 +1,4 @@
+interface:
+  display_name: "StarBridge MCP"
+  short_description: "使用 StarBridge MCP 安全接入本机创意软件"
+  default_prompt: "Use $starbridge-mcp to inspect the safe StarBridge MCP tools and run a redacted local bridge status check."
