@@ -7,6 +7,18 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
+## Codex Skills
+
+本仓库已经拆出 5 个 Codex skill，用来按软件结构安全调用 StarBridge MCP：
+
+| Skill | 用途 |
+| --- | --- |
+| `starbridge-mcp` | StarBridge MCP 总入口：配置、运行、工具发现、MCP / Computer Use 路由。 |
+| `starbridge-photoshop-mcp` | Photoshop / PS / PSD / 图层 / BatchPlay / recipe 安全接入。 |
+| `starbridge-illustrator-mcp` | Illustrator / AI 矢量文件 / `.ai` / 画板 / Image Trace / preflight。 |
+| `starbridge-cad-mcp` | CAD / AutoCAD / DXF / DWG / CAD plan 校验和 sandbox 写入。 |
+| `starbridge-blender-mcp` | Blender / `.blend` / 3D scene plan / viewport / render 安全 dry-run。 |
+
 ## Getting Started
 
 ### Quick Install (Windows PowerShell)
