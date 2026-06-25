@@ -14,6 +14,13 @@ This note tracks ideas from comparable public creative-software MCP projects tha
 | [krVatsal/illustrator-mcp](https://github.com/krVatsal/illustrator-mcp) | Illustrator MCP | Windows COM and macOS AppleScript wrapper split plus screenshot feedback. |
 | [loonghao/photoshop-python-api-mcp-server](https://github.com/loonghao/photoshop-python-api-mcp-server) | Photoshop MCP | Photoshop COM session/document/layer read-only boundary and controlled operations. |
 | [00bx/00bx-photoshop-mcp](https://github.com/00bx/00bx-photoshop-mcp) | Photoshop MCP | MCP tools plus skills knowledge-loading pattern and tool categorization. |
+| [adobe/generator-app-remote-mcp-server-generic](https://github.com/adobe/generator-app-remote-mcp-server-generic) | Adobe MCP template | Official Adobe App Builder + MCP server template; useful for remote MCP packaging, not local desktop control. |
+| [stewberticus/adobe-mcp](https://github.com/stewberticus/adobe-mcp) | Adobe suite MCP | Unified bridge registry across Photoshop, Premiere Pro, Illustrator, and InDesign. |
+| [dcc-mcp/dcc-mcp-photoshop](https://github.com/dcc-mcp/dcc-mcp-photoshop) | Photoshop UXP MCP | UXP WebSocket adapter pattern for separating Photoshop plugin code from MCP tool calls. |
+| [Dakkshin/after-effects-mcp](https://github.com/Dakkshin/after-effects-mcp) | After Effects MCP | ExtendScript-based composition/layer/property tool grouping for a future AE bridge. |
+| [leancoderkavy/premiere-pro-mcp](https://github.com/leancoderkavy/premiere-pro-mcp) | Premiere Pro MCP | CEP/ExtendScript bridge and timeline-oriented tool vocabulary. |
+| [zachshallbetter/indesign-mcp-server](https://github.com/zachshallbetter/indesign-mcp-server) | InDesign MCP | Document/page/text/style tool grouping for future layout preflight. |
+| [Automaat/lightroom-mcp](https://github.com/Automaat/lightroom-mcp) | Lightroom MCP | Lightroom Classic metadata and catalog bridge direction; useful only after strict photo-library boundaries are defined. |
 
 ## Directly Pullable Ideas
 
@@ -51,6 +58,11 @@ This note tracks ideas from comparable public creative-software MCP projects tha
    - evidence
    - cleanup
 
+6. Keep Adobe expansion staged:
+   - Photoshop and Illustrator stay as the current implementation focus.
+   - Premiere Pro, After Effects, InDesign, and Lightroom remain research-only until read-only schemas and privacy boundaries are documented.
+   - UXP, CEP, Generator API, and cloud Adobe APIs require separate approval because they can write user directories, require account state, or depend on desktop plugins.
+
 ## Not Directly Pulled Yet
 
 - External source code was not copied.
@@ -58,6 +70,7 @@ This note tracks ideas from comparable public creative-software MCP projects tha
 - Node.js/TypeScript tool implementations were not ported into the Python StarBridge server.
 - Blender addon server patterns were not added because this repository keeps real desktop automation behind probes, sandbox plans, and explicit user approval.
 - Model download, registry search, and custom node installation were not added because they need stricter token, license, cache, and path policies first.
+- Adobe third-party plugin code, arbitrary JSX/ExtendScript executors, cloud API calls, and generated project files were not copied or enabled.
 
 ## Recommended Next PR
 
