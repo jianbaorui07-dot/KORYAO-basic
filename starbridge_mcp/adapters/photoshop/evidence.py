@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from .schemas import ADAPTER_NAME, ADAPTER_VERSION, EvidenceManifest
@@ -11,6 +13,8 @@ from .schemas import ADAPTER_NAME, ADAPTER_VERSION, EvidenceManifest
 _PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn13dQAAAAASUVORK5CYII="
 )
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def utc_now_iso() -> str:
@@ -40,6 +44,53 @@ def preview_path_for(base_dir: Path, job_id: str) -> Path:
     return base_dir / f"ps_preview_{job_id}.png"
 
 
+def read_png_dimensions(data: bytes) -> tuple[int, int]:
+    if not data.startswith(_PNG_SIGNATURE):
+        raise ValueError("file is not a PNG (signature mismatch)")
+    if len(data) < 24:
+        raise ValueError("PNG payload is too short to contain an IHDR chunk")
+    width = int.from_bytes(data[16:20], "big")
+    height = int.from_bytes(data[20:24], "big")
+    return width, height
+
+
+def build_output_artifact(
+    path: Path,
+    *,
+    repo_root: Path,
+    format_hint: str = "png",
+    document_name: str | None = None,
+    width_hint: int | None = None,
+    height_hint: int | None = None,
+) -> dict[str, Any]:
+    if not path.is_file():
+        raise FileNotFoundError(f"expected output artifact does not exist: {path}")
+    data = path.read_bytes()
+    sha256 = hashlib.sha256(data).hexdigest()
+    width: int | None = width_hint
+    height: int | None = height_hint
+    fmt = format_hint
+    if data.startswith(_PNG_SIGNATURE):
+        png_w, png_h = read_png_dimensions(data)
+        width, height = png_w, png_h
+        fmt = "png"
+    try:
+        relative = path.relative_to(repo_root).as_posix()
+    except ValueError:
+        relative = path.as_posix()
+    return {
+        "relative_path": relative,
+        "absolute_path": path.as_posix(),
+        "format": fmt,
+        "bytes": len(data),
+        "sha256": sha256,
+        "width": width,
+        "height": height,
+        "document_name": document_name,
+        "verified_at": utc_now_iso(),
+    }
+
+
 def build_manifest(
     *,
     job_id: str,
@@ -63,6 +114,7 @@ def build_manifest(
     status: str,
     warnings: list[str],
     errors: list[str],
+    output_artifacts: list[dict] | None = None,
 ) -> EvidenceManifest:
     return EvidenceManifest(
         job_id=job_id,
@@ -89,4 +141,5 @@ def build_manifest(
         status=status,
         warnings=warnings,
         errors=errors,
+        output_artifacts=list(output_artifacts or []),
     )
