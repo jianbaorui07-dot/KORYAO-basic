@@ -77,14 +77,22 @@ MCP stdio 配置：
 {
   "mcpServers": {
     "starbridge": {
+      "type": "stdio",
       "command": "python",
-      "args": ["-m", "starbridge_mcp.mcp_server"]
+      "args": ["-m", "starbridge_mcp.mcp_server"],
+      "env": {
+        "STARBRIDGE_PHOTOSHOP_SAFE_ONLY": "1",
+        "STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN": "1",
+        "STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE": "0"
+      }
     }
   }
 }
 ```
 
-如果客户端需要从指定仓库目录启动，可使用绝对 `cwd` 或在客户端配置里指定工作目录；不要把本机用户名、安装路径或素材目录写进公开文档。
+Claude Code 可直接使用仓库根目录的 `.mcp.json`。Codex 使用 `.codex/config.example.toml` 作为模板，把真实配置复制到 `.codex/config.toml` 或合并到 `~/.codex/config.toml`；真实配置不要提交。
+
+如果客户端需要从指定仓库目录启动，可使用绝对 `cwd` 或在客户端配置里指定工作目录；不要把本机用户名、安装路径或素材目录写进公开文档。ChatGPT Apps / Connectors 需要远程 HTTPS MCP server，不直接使用这个本地 stdio 配置。
 
 当前 MCP server 暴露的首批工具：
 
@@ -93,6 +101,7 @@ MCP stdio 配置：
 - `starbridge.tools`：能力注册表，可用 `safe_only=true` 过滤。
 - `comfyui.system_probe`：读取 `/system_stats` 和 `/object_info`，不提交生成任务。
 - `comfyui.workflow_validate`：只读校验 ComfyUI API workflow。
+- `comfy.workflow_lifecycle_summary`：生成脱敏 job / asset 生命周期摘要，不提交队列。
 - `blender.environment_probe`：检查 Blender 可执行文件和环境线索。
 - `cad_autocad.environment_probe`：检查 AutoCAD 可执行文件、COM 注册和 pywin32 线索。
 - `photoshop.session_info`：检查 Photoshop COM/session 线索，不打开 PSD、不导出。
@@ -126,7 +135,7 @@ MCP stdio 配置：
 
 1. `starbridge.status`：返回所有桥统一状态。
 2. `starbridge.probe(bridge)`：返回单桥探针结果。
-3. `comfyui.system_probe` / `comfyui.workflow_validate` 已实现；下一步再做 job/asset 摘要，不直接公开生成图路径。
+3. `comfyui.system_probe` / `comfyui.workflow_validate` / `comfy.workflow_lifecycle_summary` 已实现；下一步做 lint/repair、probe gate 和 queue payload dry-run。
 4. `photoshop.session_info` / `illustrator.document_info` 已挂入 MCP；下一步把只读当前文档摘要做细。
 5. `cad_autocad.environment_probe` / `autocad_dxf.*` 已挂入 MCP；真实 AutoCAD COM 仍作为可选。
 6. `jianying_capcut.draft_probe` 已挂入 MCP；下一步只读草稿目录结构摘要，不输出素材路径。

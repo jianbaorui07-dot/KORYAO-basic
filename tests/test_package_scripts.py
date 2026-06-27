@@ -52,6 +52,10 @@ class PackageScriptsTest(unittest.TestCase):
                 "blender:scene:plan",
                 "comfy:probe",
                 "comfy:workflow:validate",
+                "comfy:templates:list",
+                "comfy:templates:get",
+                "comfy:templates:from",
+                "comfy:lifecycle:template",
                 "comfy:txt2img",
                 "photoshop:probe",
                 "photoshop:node-proxy",
@@ -112,6 +116,24 @@ class PackageScriptsTest(unittest.TestCase):
             "photoshop:demo:plan",
         ):
             self.assertIn(name, self.scripts)
+
+    def test_comfy_template_shortcuts_are_registered(self) -> None:
+        self.assertEqual(
+            "python examples/comfy_bridge/workflow_templates.py list --json",
+            self.scripts["comfy:templates:list"],
+        )
+        self.assertEqual(
+            "python examples/comfy_bridge/workflow_templates.py get --template-id txt2img_basic_v1 --json",
+            self.scripts["comfy:templates:get"],
+        )
+        self.assertEqual(
+            "python examples/comfy_bridge/workflow_templates.py from-template --template-id txt2img_basic_v1 --json",
+            self.scripts["comfy:templates:from"],
+        )
+        self.assertEqual(
+            "python examples/comfy_bridge/workflow_lifecycle.py --template-id txt2img_basic_v1 --json",
+            self.scripts["comfy:lifecycle:template"],
+        )
 
     def test_pyproject_declares_expected_extras(self) -> None:
         text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")

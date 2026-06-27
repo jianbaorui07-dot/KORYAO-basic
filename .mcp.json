@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "starbridge": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "starbridge_mcp.mcp_server"],
+      "env": {
+        "STARBRIDGE_PHOTOSHOP_SAFE_ONLY": "1",
+        "STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN": "1",
+        "STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE": "0"
+      }
+    }
+  }
+}

@@ -27,6 +27,8 @@
 | `sample_report.example.json` | 可提交的安全 report 样例 |
 | `run_txt2img.py` | 文生图提交脚本：把 prompt 提交给本机 ComfyUI |
 | `validate_workflow.py` | 只读 workflow 校验：检查 API format、节点和连线引用 |
+| `workflow_templates.py` | 公开 workflow template 快捷入口：list/get/from-template，只生成 JSON，不提交队列 |
+| `workflow_lifecycle.py` | 脱敏 job / asset 生命周期摘要：只返回节点统计、资产角色和确认门 |
 | `workflows/txt2img_basic_api.json` | API 工作流：给脚本提交到 `/prompt` 使用 |
 | `workflows/txt2img_basic_visual.json` | 可视化工作流：给人在 ComfyUI 画布中打开检查 |
 
@@ -70,7 +72,22 @@ python examples/comfy_bridge/probe.py --json
 ```powershell
 python examples/comfy_bridge/validate_workflow.py --json
 npm.cmd run comfy:workflow:validate
+npm.cmd run comfy:templates:list
+npm.cmd run comfy:templates:get
+npm.cmd run comfy:templates:from
+npm.cmd run comfy:lifecycle:template
 ```
+
+直接调用模板入口：
+
+```powershell
+python examples/comfy_bridge/workflow_templates.py list --json
+python examples/comfy_bridge/workflow_templates.py get --template-id txt2img_basic_v1 --json
+python examples/comfy_bridge/workflow_templates.py from-template --template-id txt2img_basic_v1 --json
+python examples/comfy_bridge/workflow_lifecycle.py --template-id txt2img_basic_v1 --json
+```
+
+这些命令只读取仓库内公开模板 registry，生成 placeholder workflow、校验报告和脱敏 lifecycle 摘要；不会访问网络、扫描模型目录、读取私有图片或提交 `/prompt`。
 
 probe report 默认写入：
 
