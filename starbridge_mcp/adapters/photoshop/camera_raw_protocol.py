@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-
 CAMERA_RAW_BLOCKED_REASON = "camera_raw_batchplay_descriptor_not_recorded"
 CAMERA_RAW_NEXT_STEP = "Record a verified Camera Raw Filter descriptor with Alchemist or Photoshop Action listener and add it as a fixture."
 CAMERA_RAW_METHOD = "ps.camera_raw.tune"
@@ -120,7 +119,9 @@ def _output_plan(arguments: dict[str, Any], repo_root: Path) -> tuple[dict[str, 
     }, []
 
 
-def build_camera_raw_tune_protocol(arguments: dict[str, Any], repo_root: Path) -> tuple[dict[str, Any] | None, list[str]]:
+def build_camera_raw_tune_protocol(
+    arguments: dict[str, Any], repo_root: Path
+) -> tuple[dict[str, Any] | None, list[str]]:
     preset = str(arguments.get("preset") or "blue_artwork_clean")
     if preset not in CAMERA_RAW_PRESETS:
         return None, [f"preset must be one of: {', '.join(sorted(CAMERA_RAW_PRESETS))}"]
@@ -220,8 +221,12 @@ def render_descriptor_template(value: Any, context: dict[str, Any]) -> Any:
     return value
 
 
-def load_verified_descriptor_fixture(arguments: dict[str, Any], plan: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
-    fixture_value = arguments.get("descriptor_fixture_path") or os.environ.get(CAMERA_RAW_DESCRIPTOR_ENV)
+def load_verified_descriptor_fixture(
+    arguments: dict[str, Any], plan: dict[str, Any]
+) -> tuple[dict[str, Any] | None, list[str]]:
+    fixture_value = arguments.get("descriptor_fixture_path") or os.environ.get(
+        CAMERA_RAW_DESCRIPTOR_ENV
+    )
     if not fixture_value:
         return None, []
     fixture_path = Path(str(fixture_value)).expanduser()
@@ -246,7 +251,15 @@ def load_verified_descriptor_fixture(arguments: dict[str, Any], plan: dict[str, 
     if errors:
         return None, errors
     try:
-        descriptors = render_descriptor_template(raw_descriptors, {"plan": plan, "params": plan["params"], "output": plan["output"], "source": plan["source"]})
+        descriptors = render_descriptor_template(
+            raw_descriptors,
+            {
+                "plan": plan,
+                "params": plan["params"],
+                "output": plan["output"],
+                "source": plan["source"],
+            },
+        )
     except KeyError as exc:
         return None, [f"descriptor fixture template variable is missing: {exc}"]
     return {

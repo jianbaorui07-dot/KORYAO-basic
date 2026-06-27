@@ -79,8 +79,6 @@ class PackageScriptsTest(unittest.TestCase):
                 "frontend:build",
                 "test",
                 "test:pytest",
-                "frontend:dev",
-                "frontend:build",
                 "lint",
                 "format",
                 "format-check",

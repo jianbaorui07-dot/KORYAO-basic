@@ -77,7 +77,9 @@ class PhotoshopAdapterV1Tests(unittest.TestCase):
         self.assertEqual([], payload["details"]["preview_files"])
 
     def test_camera_raw_tune_defaults_to_dry_run_plan(self) -> None:
-        response = request(45, "tools/call", {"name": "ps.camera_raw.tune", "arguments": {"bridge_kind": "mock"}})
+        response = request(
+            45, "tools/call", {"name": "ps.camera_raw.tune", "arguments": {"bridge_kind": "mock"}}
+        )
         payload = response["result"]["structuredContent"]
 
         self.assertTrue(payload["ok"])
@@ -118,8 +120,12 @@ class PhotoshopAdapterV1Tests(unittest.TestCase):
         payload = response["result"]["structuredContent"]
 
         self.assertFalse(payload["ok"])
-        self.assertEqual("camera_raw_batchplay_descriptor_not_recorded", payload["details"]["blocked_reason"])
-        self.assertIn("Record a verified Camera Raw Filter descriptor", payload["details"]["next_step"])
+        self.assertEqual(
+            "camera_raw_batchplay_descriptor_not_recorded", payload["details"]["blocked_reason"]
+        )
+        self.assertIn(
+            "Record a verified Camera Raw Filter descriptor", payload["details"]["next_step"]
+        )
 
     def test_camera_raw_tune_output_dir_cannot_escape_photoshop_output(self) -> None:
         response = request(

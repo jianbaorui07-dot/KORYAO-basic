@@ -14,16 +14,38 @@ def preflight_summary(document_summary: dict[str, Any] | None = None) -> dict[st
     color_mode = str(summary.get("color_mode") or summary.get("document_color_space") or "unknown")
 
     checks = [
-        {"name": "active_document", "ok": bool(summary), "severity": "info" if summary else "needs_user"},
+        {
+            "name": "active_document",
+            "ok": bool(summary),
+            "severity": "info" if summary else "needs_user",
+        },
         {"name": "artboards_present", "ok": artboards > 0 if summary else None, "severity": "warn"},
-        {"name": "missing_links", "ok": missing_links == 0 if summary else None, "severity": "error"},
-        {"name": "linked_assets_counted", "ok": linked_assets >= 0 if summary else None, "severity": "info"},
-        {"name": "text_objects_counted", "ok": text_objects >= 0 if summary else None, "severity": "info"},
-        {"name": "color_mode_known", "ok": color_mode.lower() in {"rgb", "cmyk"} if summary else None, "severity": "warn"},
+        {
+            "name": "missing_links",
+            "ok": missing_links == 0 if summary else None,
+            "severity": "error",
+        },
+        {
+            "name": "linked_assets_counted",
+            "ok": linked_assets >= 0 if summary else None,
+            "severity": "info",
+        },
+        {
+            "name": "text_objects_counted",
+            "ok": text_objects >= 0 if summary else None,
+            "severity": "info",
+        },
+        {
+            "name": "color_mode_known",
+            "ok": color_mode.lower() in {"rgb", "cmyk"} if summary else None,
+            "severity": "warn",
+        },
     ]
     warnings = []
     if not summary:
-        warnings.append("No document_summary was supplied; returning a safe preflight checklist only.")
+        warnings.append(
+            "No document_summary was supplied; returning a safe preflight checklist only."
+        )
     if missing_links:
         warnings.append("Missing linked assets were reported by the provided summary.")
     if color_mode == "unknown" and summary:

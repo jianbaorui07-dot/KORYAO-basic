@@ -566,9 +566,7 @@ class ComfyWorkflowBuilderTests(unittest.TestCase):
         self.assertNotIn("public placeholder prompt", encoded)
         self.assertTrue(result["asset_summary"]["model_assets"])
         checkpoint = next(
-            item
-            for item in result["asset_summary"]["model_assets"]
-            if item["role"] == "checkpoint"
+            item for item in result["asset_summary"]["model_assets"] if item["role"] == "checkpoint"
         )
         self.assertEqual("placeholder_only", checkpoint["reference_policy"])
         output = result["asset_summary"]["output_assets"][0]
@@ -611,9 +609,7 @@ class ComfyWorkflowBuilderTests(unittest.TestCase):
         self.assertNotIn("private prompt should stay out", encoded)
         self.assertNotIn("workflow", result)
         checkpoint = next(
-            item
-            for item in result["asset_summary"]["model_assets"]
-            if item["role"] == "checkpoint"
+            item for item in result["asset_summary"]["model_assets"] if item["role"] == "checkpoint"
         )
         self.assertEqual("redacted_reference_requires_review", checkpoint["reference_policy"])
 

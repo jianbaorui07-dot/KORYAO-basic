@@ -2,11 +2,20 @@
   "manifestVersion": 5,
   "id": "com.starbridge.photoshop.bridge",
   "name": "StarBridge Photoshop Bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "src/index.js",
   "host": {
     "app": "PS",
     "minVersion": "25.0.0"
+  },
+  "requiredPermissions": {
+    "localFileSystem": "fullAccess",
+    "network": {
+      "domains": [
+        "ws://127.0.0.1:8971",
+        "http://127.0.0.1:8971"
+      ]
+    }
   },
   "entrypoints": [
     {

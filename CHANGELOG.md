@@ -2,6 +2,43 @@
 
 ## Unreleased / Optimizations
 
+### 2026-06-27 — MCP Prompts (complete the 3 primitives)
+
+* **MCP Prompts capability (new).** Added the third MCP primitive alongside tools
+  and resources. The stdio server now serves `prompts/list` and `prompts/get`,
+  declares the `prompts` capability in `initialize`, and exposes five reusable,
+  parameterized safe-by-default prompt templates: `bridge_status_check`,
+  `comfyui_safe_workflow`, `cad_dxf_from_spec`, `photoshop_recipe_run`, and
+  `safe_write_protocol`. Each template bakes in the validate-first / dry-run /
+  explicit-confirmation / sandbox-only protocol. Implemented in
+  `starbridge_mcp/core/prompts.py`, covered by `tests/test_mcp_prompts.py`.
+* StarBridge now exposes the full MCP surface: Tools (what the client can do),
+  Resources (what the client should know), and Prompts (how to do it safely).
+
+### 2026-06-27 — MCP Resources, regression fix, lint gate
+
+* **MCP Resources capability (new).** Following the comparable-project pattern
+  "resources describe what the client should know, tools describe what the client
+  can do", the stdio server now exposes read-only, sanitized resources via
+  `resources/list` and `resources/read`: `starbridge://safety-policy`,
+  `starbridge://capabilities`, `starbridge://safe-roots`, and
+  `starbridge://bridges`. Implemented in `starbridge_mcp/core/resources.py`.
+* `initialize` now declares the `resources` capability and returns an
+  `instructions` field that teaches clients the safe-by-default protocol
+  (dry-run defaults, confirmation flags, sandbox output boundaries) before any
+  tool call. Covered by `tests/test_mcp_resources.py`.
+* **Regression fix:** removed a duplicated block in `starbridge_mcp/mcp_server.py`
+  that defined `_recipe_output_dir` and the five `photoshop.recipe_*` handlers a
+  second time, silently overriding the richer recipe implementations (the
+  "fleshed out 5 core recipes" work) with stub versions. The detailed recipe
+  plans, steps, tool mappings, and quality gates are now actually served.
+* Removed a duplicate `from starbridge_mcp.bridges import autocad_dxf` import.
+* **Lint gate:** added a dedicated `lint` job to `.github/workflows/ci.yml`
+  running `ruff check` and `ruff format --check`, and brought the whole repo to a
+  clean ruff state (import sorting, an unused import, a `SIM103` simplification,
+  and format drift across tests). Previously ruff was only wired into
+  `pre-commit`, not CI, despite the note below.
+
 ### Repo & Packaging
 * Added root `LICENSE` (MIT) to match pyproject declaration.
 * Added `.github/FUNDING.yml` for sponsorship visibility.

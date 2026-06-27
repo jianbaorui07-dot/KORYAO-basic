@@ -45,7 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Inspect and compose bundled public ComfyUI workflow templates."
     )
     output_parent = argparse.ArgumentParser(add_help=False)
-    output_parent.add_argument("--json", action="store_true", help="Output JSON. This is the default.")
+    output_parent.add_argument(
+        "--json", action="store_true", help="Output JSON. This is the default."
+    )
     output_parent.add_argument("--compact", action="store_true", help="Use compact JSON output.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

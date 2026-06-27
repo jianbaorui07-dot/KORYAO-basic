@@ -77,7 +77,7 @@ def write_svg(path: Path, width: float, height: float, lines: list[dict[str, Any
         parts.append(
             f'<path id="line-{line["id"]}" d="{escape(line["path_d"])}" '
             f'stroke="{color_to_hex(line.get("color"))}" stroke-width="{line["width_pt"]:.4f}">'
-            f'<title>line {line["id"]}; length {line["length_pt"]:.4f} pt</title></path>'
+            f"<title>line {line['id']}; length {line['length_pt']:.4f} pt</title></path>"
         )
     parts.append("</g>")
     parts.append("</svg>")
@@ -88,7 +88,9 @@ def load_fitz() -> Any:
     try:
         import fitz  # type: ignore[import-not-found]
     except ImportError as exc:  # pragma: no cover - optional example dependency
-        raise SystemExit("Install optional dependency first: python -m pip install pymupdf") from exc
+        raise SystemExit(
+            "Install optional dependency first: python -m pip install pymupdf"
+        ) from exc
     return fitz
 
 
@@ -144,7 +146,9 @@ def main() -> None:
         json.dumps({"summary": summary, "lines": lines}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    (out_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out_dir / "summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     write_svg(out_dir / "rebuild.svg", float(page.rect.width), float(page.rect.height), lines)
 
 

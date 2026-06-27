@@ -19,6 +19,7 @@ from .camera_raw_protocol import (
 )
 from .evidence import (
     build_manifest,
+    build_output_artifact,
     manifest_path_for,
     new_job_id,
     preview_path_for,
@@ -55,6 +56,9 @@ def _safe_name(tool_name: str) -> str:
     return tool_name.replace(".", "_")
 
 
+_PHOTOSHOP_REAL_OUTPUT_REL = "examples/output/photoshop"
+
+
 def _resolve_output_dir(repo_root: Path, requested: str) -> Path:
     relative = Path(requested)
     if relative.is_absolute():
@@ -62,13 +66,22 @@ def _resolve_output_dir(repo_root: Path, requested: str) -> Path:
             "output_dir must be relative to the repository sandbox or output directories"
         )
     candidate = (repo_root / relative).resolve()
-    allowed_roots = [(repo_root / "sandbox").resolve(), (repo_root / "output").resolve()]
+    allowed_roots = [
+        (repo_root / "sandbox").resolve(),
+        (repo_root / "output").resolve(),
+        (repo_root / _PHOTOSHOP_REAL_OUTPUT_REL).resolve(),
+    ]
     if not any(candidate == root or root in candidate.parents for root in allowed_roots):
-        raise ValueError("output_dir must stay inside sandbox/ or output/")
+        raise ValueError(
+            "output_dir must stay inside sandbox/, output/, or examples/output/photoshop/"
+        )
     return candidate
 
 
 def _evidence_dir_for(repo_root: Path, output_dir: Path) -> Path:
+    real_root = (repo_root / _PHOTOSHOP_REAL_OUTPUT_REL).resolve()
+    if output_dir == real_root or real_root in output_dir.parents:
+        return (real_root / "evidence").resolve()
     top = output_dir.relative_to(repo_root).parts[0]
     return (repo_root / top / "evidence").resolve()
 
@@ -98,13 +111,18 @@ def _build_context(arguments: dict[str, Any], repo_root: Path, tool_name: str) -
 def _build_camera_raw_context(arguments: dict[str, Any], repo_root: Path) -> RequestContext:
     raw_output = arguments.get("output") or {}
     requested_output = raw_output.get("dir") if isinstance(raw_output, dict) else None
-    output_root = resolve_camera_raw_output_dir(repo_root, str(requested_output or arguments.get("output_dir") or "examples/output/photoshop"))
+    output_root = resolve_camera_raw_output_dir(
+        repo_root,
+        str(requested_output or arguments.get("output_dir") or "examples/output/photoshop"),
+    )
     evidence_dir = (output_root / "evidence").resolve()
     return RequestContext(
         tool_name="ps.camera_raw.tune",
         job_id=str(arguments.get("job_id") or new_job_id()),
         risk_level=str(arguments.get("risk_level") or "level_2_confirmed_write"),
-        requires_confirmation=_bool(arguments.get("requires_confirmation") or arguments.get("confirm_apply"), False),
+        requires_confirmation=_bool(
+            arguments.get("requires_confirmation") or arguments.get("confirm_apply"), False
+        ),
         dry_run=_bool(arguments.get("dry_run"), True),
         writes_files=_bool(arguments.get("writes_files"), False),
         touches_user_psd=_bool(arguments.get("touches_user_psd"), True),
@@ -272,6 +290,7 @@ def _make_manifest(
     status: str,
     warnings: list[str],
     errors: list[str],
+    output_artifacts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return build_manifest(
         job_id=ctx.job_id,
@@ -295,6 +314,7 @@ def _make_manifest(
         status=status,
         warnings=warnings,
         errors=errors,
+        output_artifacts=output_artifacts,
     ).to_dict()
 
 
@@ -312,6 +332,7 @@ class PhotoshopBridgeAdapter(BaseBridge):
 
     def probe(self, arguments: dict[str, Any]) -> dict[str, Any]:
         ctx = _build_context(arguments, self.repo_root, "ps.probe")
+        strict = _bool(arguments.get("strict"), False)
         proxy = _node_proxy_probe()
         com_ok, com_data, _app = _probe_com(probe_com=_bool(arguments.get("probe_com"), True))
         bridge_kind = (
@@ -320,21 +341,42 @@ class PhotoshopBridgeAdapter(BaseBridge):
         details = {
             "job_id": ctx.job_id,
             "bridge_kind": bridge_kind,
+            "strict": strict,
             "node_proxy_status": proxy["status"],
             "uxp_client_connected": proxy["uxp_client_connected"],
             "photoshop_host": proxy["status"].get("photoshop_host") or {},
             "com_availability": com_data,
             "mock_fallback": mock_probe(),
         }
+        warnings = (
+            []
+            if proxy["uxp_client_connected"]
+            else ["node_proxy_uxp not connected; live UXP routing is unavailable."]
+        )
+        if strict and bridge_kind == "mock":
+            return make_result(
+                ok=False,
+                bridge="photoshop",
+                action="probe",
+                message=(
+                    "strict=true: refusing to report success on the mock bridge. "
+                    "Start the node_proxy and connect the UXP plugin (or enable COM) to pass strict probe."
+                ),
+                details=details,
+                warnings=warnings,
+                next_steps=[
+                    "Start node_proxy: npm.cmd run photoshop:node-proxy.",
+                    "Load uxp/photoshop-bridge in UXP Developer Tool and connect to Photoshop.",
+                    "Retry ps.probe with strict=true.",
+                ],
+            )
         return make_result(
             ok=True,
             bridge="photoshop",
             action="probe",
             message="Photoshop bridge probe completed.",
             details=details,
-            warnings=[]
-            if proxy["uxp_client_connected"]
-            else ["node_proxy_uxp not connected; live UXP routing is unavailable."],
+            warnings=warnings,
             next_steps=[
                 "Use ps.document.info for active-document metadata.",
                 "Use ps.layers.list for live or mock layer inspection.",
@@ -516,8 +558,10 @@ class PhotoshopBridgeAdapter(BaseBridge):
         refusal = _guard_confirmation(ctx)
         if refusal is not None:
             return refusal
+        strict = _bool(arguments.get("strict"), False)
         proxy = _node_proxy_probe()
         preview_files: list[str] = []
+        output_artifacts: list[dict[str, Any]] = []
         warnings: list[str] = []
         errors: list[str] = []
         layers_snapshot: list[dict[str, Any]] = []
@@ -525,58 +569,130 @@ class PhotoshopBridgeAdapter(BaseBridge):
         history_state: str | None = None
         uxp_status: dict[str, Any] = {}
         host_info: dict[str, Any] = {}
+        document_name: str | None = None
+        width_hint: int | None = None
+        height_hint: int | None = None
 
         if ctx.dry_run:
             if proxy["uxp_client_connected"]:
                 bridge_kind = "node_proxy_uxp"
             else:
                 bridge_kind = "mock"
-                warnings.append(
-                    "Dry-run preview export did not contact Photoshop; review plan only."
-                )
+                if strict:
+                    errors.append(
+                        "strict=true: dry-run cannot use the mock bridge because no real UXP link is connected."
+                    )
+                else:
+                    warnings.append(
+                        "Dry-run preview export did not contact Photoshop; review plan only."
+                    )
         elif proxy["uxp_client_connected"]:
             try:
                 preview_path = preview_path_for(ctx.output_root, ctx.job_id)
+                preview_path.parent.mkdir(parents=True, exist_ok=True)
                 response = node_proxy_rpc(
                     "ps.preview.export",
                     {
                         "job_id": ctx.job_id,
                         "output_path": preview_path.as_posix(),
                         "confirm_write": True,
+                        "dry_run": False,
                     },
                 )
                 if "result" in response:
-                    payload = response["result"]
-                    written = str(payload.get("preview_path") or "").strip()
-                    if written:
-                        preview_files.append(
-                            Path(written).relative_to(self.repo_root).as_posix()
-                            if Path(written).is_absolute()
-                            else written
+                    payload = response["result"] or {}
+                    if payload.get("ok") is False:
+                        errors.append(
+                            "UXP refused preview export: "
+                            + str(payload.get("message") or "unknown_uxp_error")
                         )
-                    layers_snapshot = [dict(item) for item in payload.get("layers_snapshot") or []]
-                    history_state = payload.get("history_state")
-                    host_info = dict(payload.get("photoshop_host") or {})
-                    uxp_status = {"connected": True, "method": "ps.preview.export"}
-                    bridge_kind = "node_proxy_uxp"
+                    else:
+                        written = str(payload.get("preview_path") or "").strip()
+                        document_name = payload.get("document_name") or None
+                        try:
+                            width_hint = (
+                                int(payload["width"]) if payload.get("width") is not None else None
+                            )
+                            height_hint = (
+                                int(payload["height"])
+                                if payload.get("height") is not None
+                                else None
+                            )
+                        except (TypeError, ValueError):
+                            width_hint = height_hint = None
+                        written_path = Path(written) if written else preview_path
+                        if not written_path.is_absolute():
+                            written_path = (self.repo_root / written_path).resolve()
+                        if written_path.is_file():
+                            try:
+                                artifact = build_output_artifact(
+                                    written_path,
+                                    repo_root=self.repo_root,
+                                    document_name=document_name,
+                                    width_hint=width_hint,
+                                    height_hint=height_hint,
+                                )
+                                output_artifacts.append(artifact)
+                                preview_files.append(artifact["relative_path"])
+                            except (ValueError, FileNotFoundError) as artifact_exc:
+                                errors.append(
+                                    "preview verification failed: "
+                                    f"{type(artifact_exc).__name__}: {artifact_exc}"
+                                )
+                        else:
+                            errors.append(
+                                "UXP reported success but the PNG was not found at "
+                                f"{written_path.as_posix()}"
+                            )
+                        layers_snapshot = [
+                            dict(item) for item in payload.get("layers_snapshot") or []
+                        ]
+                        history_state = payload.get("history_state")
+                        host_info = dict(payload.get("photoshop_host") or {})
+                        uxp_status = {"connected": True, "method": "ps.preview.export"}
+                        bridge_kind = "node_proxy_uxp"
+                elif "error" in response:
+                    rpc_error = response["error"] or {}
+                    errors.append(
+                        "Node Proxy RPC error: "
+                        + str(rpc_error.get("message") or rpc_error.get("code") or "unknown")
+                    )
                 else:
                     errors.append("Node Proxy did not return a preview export result.")
             except Exception as exc:
                 errors.append(f"Node Proxy preview export failed: {type(exc).__name__}")
+        elif strict:
+            bridge_kind = "mock"
+            errors.append(
+                "strict=true: refusing to write a placeholder PNG because the UXP bridge is not connected. "
+                "Start node_proxy and connect the UXP plugin, then retry."
+            )
         else:
             bridge_kind = "mock"
             preview_path = preview_path_for(ctx.output_root, ctx.job_id)
             write_placeholder_png(preview_path)
-            preview_files.append(preview_path.relative_to(ctx.repo_root).as_posix())
+            relative = preview_path.relative_to(ctx.repo_root).as_posix()
+            preview_files.append(relative)
             warnings.append(
                 "Photoshop UXP was not connected; wrote a placeholder preview in sandbox output."
             )
+            try:
+                artifact = build_output_artifact(
+                    preview_path,
+                    repo_root=self.repo_root,
+                    document_name=None,
+                )
+                artifact["placeholder"] = True
+                output_artifacts.append(artifact)
+            except (ValueError, FileNotFoundError):
+                pass
 
         manifest = _make_manifest(
             ctx,
             input_summary={
                 "output_dir": ctx.output_dir,
                 "format": str(arguments.get("format") or "png"),
+                "strict": strict,
             },
             output_files=preview_files,
             preview_files=preview_files,
@@ -593,6 +709,7 @@ class PhotoshopBridgeAdapter(BaseBridge):
             status="ok" if not errors else "not_available",
             warnings=warnings,
             errors=errors,
+            output_artifacts=output_artifacts,
         )
         return make_result(
             ok=not errors,
@@ -602,7 +719,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
             details={
                 "job_id": ctx.job_id,
                 "bridge_kind": bridge_kind,
+                "strict": strict,
                 "preview_files": preview_files,
+                "output_artifacts": output_artifacts,
                 "layers_snapshot": layers_snapshot,
                 "history_state": history_state,
                 "node_proxy_status": proxy["status"],
@@ -629,7 +748,13 @@ class PhotoshopBridgeAdapter(BaseBridge):
                 bridge="photoshop",
                 action="camera_raw_tune",
                 message="Camera Raw tuning plan validation failed.",
-                details={"job_id": ctx.job_id, "errors": errors, "dry_run": ctx.dry_run, "confirm_apply": confirm_apply, "confirm_export": confirm_export},
+                details={
+                    "job_id": ctx.job_id,
+                    "errors": errors,
+                    "dry_run": ctx.dry_run,
+                    "confirm_apply": confirm_apply,
+                    "confirm_export": confirm_export,
+                },
                 warnings=["Camera Raw tuning accepts only reviewed numeric slider ranges."],
                 next_steps=["Fix params and rerun with dry_run=true."],
             )
@@ -640,8 +765,14 @@ class PhotoshopBridgeAdapter(BaseBridge):
         manifest_errors: list[str] = []
         if not ctx.dry_run and not confirm_apply:
             manifest_errors.append("confirm_apply=true is required when dry_run=false.")
-        elif not ctx.dry_run and bool(plan["output"].get("export_after_apply")) and not confirm_export:
-            manifest_errors.append("confirm_export=true is required when output.export_after_apply=true and dry_run=false.")
+        elif (
+            not ctx.dry_run
+            and bool(plan["output"].get("export_after_apply"))
+            and not confirm_export
+        ):
+            manifest_errors.append(
+                "confirm_export=true is required when output.export_after_apply=true and dry_run=false."
+            )
         elif not ctx.dry_run and descriptor_errors:
             manifest_errors.extend(descriptor_errors)
         elif not ctx.dry_run and descriptor_fixture is None:
@@ -664,7 +795,10 @@ class PhotoshopBridgeAdapter(BaseBridge):
             photoshop_available=bool(proxy["uxp_client_connected"]),
             bridge_kind="node_proxy_uxp" if proxy["uxp_client_connected"] else "fallback",
             node_proxy_status=proxy["status"],
-            uxp_status={"connected": proxy["uxp_client_connected"], "method": "ps.camera_raw.tune" if proxy["uxp_client_connected"] else None},
+            uxp_status={
+                "connected": proxy["uxp_client_connected"],
+                "method": "ps.camera_raw.tune" if proxy["uxp_client_connected"] else None,
+            },
             photoshop_host=dict(proxy["status"].get("photoshop_host") or {}),
             layers_snapshot=[],
             history_state=None,
@@ -672,7 +806,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
             validation_result={
                 "ok": not errors,
                 "descriptor_available": descriptor_fixture is not None,
-                "descriptor_count": int(descriptor_fixture.get("descriptor_count", 0)) if descriptor_fixture else 0,
+                "descriptor_count": int(descriptor_fixture.get("descriptor_count", 0))
+                if descriptor_fixture
+                else 0,
                 "blocked_reason": None if descriptor_fixture else CAMERA_RAW_BLOCKED_REASON,
             },
             status=manifest_status,
@@ -700,7 +836,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_path": None,
                 },
                 warnings=["Camera Raw tuning is experimental; no Photoshop state was modified."],
-                next_steps=["Record and review a Camera Raw Filter BatchPlay descriptor before enabling confirmed apply."],
+                next_steps=[
+                    "Record and review a Camera Raw Filter BatchPlay descriptor before enabling confirmed apply."
+                ],
             )
 
         if not confirm_apply:
@@ -719,7 +857,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
                 warnings=["Real Camera Raw tuning would modify the active Photoshop document."],
-                next_steps=["Rerun dry_run first, then set confirm_apply=true only after reviewing the plan."],
+                next_steps=[
+                    "Rerun dry_run first, then set confirm_apply=true only after reviewing the plan."
+                ],
             )
 
         if bool(plan["output"].get("export_after_apply")) and not confirm_export:
@@ -737,8 +877,12 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
-                warnings=["Real Camera Raw export would write files and must stay inside examples/output/photoshop."],
-                next_steps=["Rerun dry_run first, then set confirm_export=true only for reviewed sandbox output."],
+                warnings=[
+                    "Real Camera Raw export would write files and must stay inside examples/output/photoshop."
+                ],
+                next_steps=[
+                    "Rerun dry_run first, then set confirm_export=true only for reviewed sandbox output."
+                ],
             )
 
         if descriptor_errors:
@@ -757,7 +901,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
-                warnings=["Only locally recorded and explicitly verified Camera Raw descriptor fixtures may be used."],
+                warnings=[
+                    "Only locally recorded and explicitly verified Camera Raw descriptor fixtures may be used."
+                ],
                 next_steps=[CAMERA_RAW_NEXT_STEP],
             )
 
@@ -784,7 +930,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                         ok=executed,
                         bridge="photoshop",
                         action="camera_raw_tune",
-                        message="Camera Raw tuning apply completed." if executed else "Camera Raw tuning apply returned without execution.",
+                        message="Camera Raw tuning apply completed."
+                        if executed
+                        else "Camera Raw tuning apply returned without execution.",
                         details={
                             "job_id": ctx.job_id,
                             "dry_run": False,
@@ -797,10 +945,14 @@ class PhotoshopBridgeAdapter(BaseBridge):
                             "evidence_path": _write_manifest_if_requested(ctx, manifest),
                         },
                         warnings=[str(item) for item in payload.get("warnings") or []],
-                        next_steps=["Review Photoshop history and exported files before additional edits."],
+                        next_steps=[
+                            "Review Photoshop history and exported files before additional edits."
+                        ],
                     )
             except Exception as exc:
-                manifest["errors"].append(f"Node Proxy camera_raw_tune failed: {type(exc).__name__}")
+                manifest["errors"].append(
+                    f"Node Proxy camera_raw_tune failed: {type(exc).__name__}"
+                )
                 return make_result(
                     ok=False,
                     bridge="photoshop",
@@ -817,7 +969,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                         "evidence_path": _write_manifest_if_requested(ctx, manifest),
                     },
                     warnings=["Photoshop UXP bridge must be running and connected for real apply."],
-                    next_steps=["Start the Photoshop node proxy and UXP plugin, then retry the confirmed command."],
+                    next_steps=[
+                        "Start the Photoshop node proxy and UXP plugin, then retry the confirmed command."
+                    ],
                 )
 
         if descriptor_fixture is not None and not proxy["uxp_client_connected"]:
@@ -831,13 +985,19 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "dry_run": False,
                     "confirm_apply": True,
                     "confirm_export": confirm_export,
-                    "descriptor_fixture": {"available": True, "verified": True, "descriptor_count": descriptor_fixture["descriptor_count"]},
+                    "descriptor_fixture": {
+                        "available": True,
+                        "verified": True,
+                        "descriptor_count": descriptor_fixture["descriptor_count"],
+                    },
                     "plan": plan,
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
                 warnings=["Node Proxy / UXP is required for real Photoshop apply."],
-                next_steps=["Run npm.cmd run photoshop:node-proxy and connect the UXP plugin, then retry."],
+                next_steps=[
+                    "Run npm.cmd run photoshop:node-proxy and connect the UXP plugin, then retry."
+                ],
             )
 
         return make_result(
@@ -1260,12 +1420,16 @@ class PhotoshopBridgeAdapter(BaseBridge):
                 # Try to find a preview png/jpg in sandbox
                 for pf in preview_files:
                     p = self.repo_root / pf
-                    if p.exists() and p.suffix in ('.png', '.jpg', '.jpeg'):
-                        with open(p, 'rb') as f:
-                            base64_data = f"data:image/{fmt};base64," + base64.b64encode(f.read()).decode()
+                    if p.exists() and p.suffix in (".png", ".jpg", ".jpeg"):
+                        with open(p, "rb") as f:
+                            base64_data = (
+                                f"data:image/{fmt};base64," + base64.b64encode(f.read()).decode()
+                            )
                         break
             except Exception:
-                base64_data = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..."  # fallback placeholder
+                base64_data = (
+                    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..."  # fallback placeholder
+                )
         details = {
             "job_id": ctx.job_id,
             "max_side": max_side,
@@ -1286,7 +1450,7 @@ class PhotoshopBridgeAdapter(BaseBridge):
             next_steps=[
                 "Feed base64 to vision LLM for analysis.",
                 "Follow with ps.get_state for full context.",
-                "Use in Action Plan for iterative edits."
+                "Use in Action Plan for iterative edits.",
             ],
         )
 
@@ -1301,7 +1465,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
             "job_id": ctx.job_id,
             "document": info.get("details", {}).get("document", {}),
             "layer_count": layers.get("details", {}).get("count", 0) if include_layers else None,
-            "active_layer": layers.get("details", {}).get("active", None) if include_layers else None,
+            "active_layer": layers.get("details", {}).get("active", None)
+            if include_layers
+            else None,
             "lightweight": lightweight,
             "bridge_kind": info.get("details", {}).get("bridge_kind", "node_proxy_uxp"),
             "probe_status": "ok",
@@ -1317,6 +1483,6 @@ class PhotoshopBridgeAdapter(BaseBridge):
             next_steps=[
                 "Use before/after in recipes or Action Plan.",
                 "Combine with get_preview for vision context.",
-                "Ideal for state diff in optimization workflows."
+                "Ideal for state diff in optimization workflows.",
             ],
         )

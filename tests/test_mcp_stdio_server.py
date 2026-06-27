@@ -106,7 +106,10 @@ class McpStdioServerTests(unittest.TestCase):
             ("jianying_capcut.draft_structure", {}),
             ("photoshop.session_info", {"probe_com": False}),
             ("illustrator.document_info", {"probe_com": False}),
-            ("illustrator.preflight", {"document_summary": {"artboards": 1, "color_mode": "RGB", "missing_links": 0}}),
+            (
+                "illustrator.preflight",
+                {"document_summary": {"artboards": 1, "color_mode": "RGB", "missing_links": 0}},
+            ),
         ]
         for tool_name, arguments in tool_calls:
             with self.subTest(tool=tool_name):

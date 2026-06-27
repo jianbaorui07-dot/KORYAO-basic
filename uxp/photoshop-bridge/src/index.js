@@ -3,6 +3,9 @@ import { executeTypedBatchPlay, runModalJob, validateBatchPlay } from "./batchpl
 
 const photoshop = require("photoshop");
 const { action, app } = photoshop;
+const uxp = require("uxp");
+const storage = uxp.storage;
+const localFileSystem = storage.localFileSystem;
 
 const CAMERA_RAW_BLOCKED_REASON = "camera_raw_batchplay_descriptor_not_recorded";
 const CAMERA_RAW_NEXT_STEP = "Record a verified Camera Raw Filter descriptor with Alchemist or Photoshop Action listener and add it as a fixture.";
@@ -270,20 +273,98 @@ async function layersList() {
   };
 }
 
+function splitOutputPath(rawPath) {
+  const normalized = String(rawPath || "").replace(/\\/g, "/");
+  if (!normalized) {
+    return { folderUrl: "", filename: "", absolute: "" };
+  }
+  const lastSlash = normalized.lastIndexOf("/");
+  if (lastSlash <= 0) {
+    return { folderUrl: "", filename: normalized, absolute: normalized };
+  }
+  return {
+    folderUrl: normalized.slice(0, lastSlash),
+    filename: normalized.slice(lastSlash + 1),
+    absolute: normalized,
+  };
+}
+
+function toFileUrl(absoluteFolder) {
+  if (!absoluteFolder) {
+    return "";
+  }
+  if (absoluteFolder.startsWith("file:")) {
+    return absoluteFolder;
+  }
+  if (/^[A-Za-z]:/.test(absoluteFolder)) {
+    return "file:///" + absoluteFolder;
+  }
+  return "file://" + absoluteFolder;
+}
+
+async function resolveOutputEntry(absolutePath) {
+  const { folderUrl, filename } = splitOutputPath(absolutePath);
+  if (!folderUrl || !filename) {
+    throw new Error("output_path must be an absolute path with a filename");
+  }
+  const folderEntry = await localFileSystem.getEntryWithUrl(toFileUrl(folderUrl));
+  if (!folderEntry || !folderEntry.isFolder) {
+    throw new Error("output folder is not a directory: " + folderUrl);
+  }
+  const fileEntry = await folderEntry.createFile(filename, { overwrite: true });
+  return fileEntry;
+}
+
+async function saveActiveDocumentAsPng(document, absolutePath) {
+  const fileEntry = await resolveOutputEntry(absolutePath);
+  const saveAs = document.saveAs || (document.api && document.api.saveAs);
+  if (!saveAs || typeof saveAs.png !== "function") {
+    throw new Error("Photoshop UXP DOM does not expose document.saveAs.png on this host");
+  }
+  await saveAs.png(fileEntry, { compression: 6, interlaced: false }, true);
+  return fileEntry;
+}
+
 async function previewExport(params) {
   const document = activeDocumentOrNull();
   if (!document) {
     return { ok: false, installed: true, message: "No active Photoshop document." };
   }
+  if (params?.dry_run === true) {
+    return {
+      ok: true,
+      dry_run: true,
+      preview_path: String(params.output_path || ""),
+      document_name: String(document.title || document.name || ""),
+      width: Number(document.width || 0),
+      height: Number(document.height || 0),
+      photoshop_host: currentHost(),
+      warnings: ["dry_run=true: no PNG was written."],
+    };
+  }
   if (!params?.confirm_write) {
     return { ok: false, message: "confirm_write=true is required." };
   }
-  return runModalJob("ps.preview.export", { commandName: "StarBridge Preview Export" }, async () => ({
-    preview_path: String(params.output_path || ""),
-    layers_snapshot: flattenLayers(document.layers || []),
-    photoshop_host: currentHost(),
-    warnings: ["UXP preview export path is registered, but actual bitmap encoding still depends on local host support."],
-  }));
+  const absolutePath = String(params?.output_path || "");
+  if (!absolutePath) {
+    return { ok: false, message: "output_path is required for real preview export." };
+  }
+  return runModalJob("ps.preview.export", { commandName: "StarBridge Preview Export" }, async () => {
+    const fileEntry = await saveActiveDocumentAsPng(document, absolutePath);
+    return {
+      ok: true,
+      executed: true,
+      preview_path: absolutePath,
+      written_path: String(fileEntry?.nativePath || absolutePath),
+      document_name: String(document.title || document.name || ""),
+      width: Number(document.width || 0),
+      height: Number(document.height || 0),
+      format: "png",
+      layers_snapshot: flattenLayers(document.layers || []),
+      photoshop_host: currentHost(),
+      warnings: [],
+    };
+  });
 }
 
 async function batchplayValidate(params) {

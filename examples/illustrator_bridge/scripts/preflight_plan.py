@@ -21,7 +21,9 @@ def _load_summary(path: str | None) -> dict[str, Any] | None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate a public-safe Illustrator preflight summary.")
+    parser = argparse.ArgumentParser(
+        description="Generate a public-safe Illustrator preflight summary."
+    )
     parser.add_argument("--summary-json", help="Optional sanitized document summary JSON.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

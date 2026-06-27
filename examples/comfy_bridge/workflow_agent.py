@@ -347,12 +347,8 @@ def _asset_entry(
 
 def workflow_asset_summary(workflow: dict[str, Any]) -> dict[str, Any]:
     grouped: dict[str, dict[str, dict[str, Any]]] = {
-        "model_assets": {
-            role: {"node_ids": [], "string_inputs": []} for role in MODEL_ASSET_ROLES
-        },
-        "input_assets": {
-            role: {"node_ids": [], "string_inputs": []} for role in INPUT_ASSET_ROLES
-        },
+        "model_assets": {role: {"node_ids": [], "string_inputs": []} for role in MODEL_ASSET_ROLES},
+        "input_assets": {role: {"node_ids": [], "string_inputs": []} for role in INPUT_ASSET_ROLES},
         "output_assets": {
             role: {"node_ids": [], "string_inputs": []} for role in OUTPUT_ASSET_ROLES
         },
@@ -434,7 +430,9 @@ def workflow_lifecycle_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     if isinstance(workflow, dict):
         source = "provided_workflow"
         workflow = copy.deepcopy(workflow)
-        validation = validate_workflow_payload(workflow, workflow_name="provided_lifecycle_workflow")
+        validation = validate_workflow_payload(
+            workflow, workflow_name="provided_lifecycle_workflow"
+        )
     elif template_id:
         from examples.comfy_bridge.workflow_template_registry import compose_from_template
 
@@ -494,10 +492,12 @@ def workflow_lifecycle_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     asset_summary = workflow_asset_summary(workflow)
     validation_details = _validation_details(validation)
 
-    submit_status = "ready_for_separate_confirmed_submit" if confirm_run and valid else (
-        "blocked_until_workflow_valid"
-        if not valid
-        else "blocked_until_explicit_confirmation"
+    submit_status = (
+        "ready_for_separate_confirmed_submit"
+        if confirm_run and valid
+        else (
+            "blocked_until_workflow_valid" if not valid else "blocked_until_explicit_confirmation"
+        )
     )
     job_status = JobStatus(
         job_id=f"comfy_lifecycle_{workflow_digest[:12]}",
@@ -527,7 +527,9 @@ def workflow_lifecycle_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     if asset_summary["review_required"]:
         warnings.append("One or more asset references were redacted and require review.")
     if not confirm_run:
-        warnings.append("Queue submission is blocked until confirm_run=true in a separate run flow.")
+        warnings.append(
+            "Queue submission is blocked until confirm_run=true in a separate run flow."
+        )
     if not valid:
         warnings.append("Workflow validation failed; queue submission remains blocked.")
 

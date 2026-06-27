@@ -1,0 +1,4 @@
+interface:
+  display_name: "StarBridge CAD MCP"
+  short_description: "安全使用 CAD/AutoCAD/DXF MCP dry-run 和校验"
+  default_prompt: "Use $starbridge-cad-mcp to validate a CAD plan and keep DXF output in a sandbox."

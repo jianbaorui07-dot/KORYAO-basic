@@ -68,12 +68,14 @@
 
 代表方向：
 
+- MCP `Resources`
 - MCP `Roots`
 - MCP `Elicitation`
 - MCP `Sampling`
 
 共同核心：
 
+- `Resources` 负责表达“客户端该知道什么”，是只读、application-controlled、低风险的上下文通道（与 `Tools` 表达“客户端能做什么”互补）。
 - `Roots` 负责正式表达文件系统边界。
 - `Elicitation` 负责正式表达需要用户确认或补充信息的交互。
 - `Sampling` 负责让 server 在不自带模型 key 的情况下，向 client 请求模型推理。
@@ -81,8 +83,26 @@
 对 StarBridge 的启发：
 
 - 你的仓库最该跟进的不是“更多工具”，而是“更标准地表达安全边界”。
+- `Resources` 与本仓库“安全优先、只读默认”的定位高度契合：把能力矩阵、安全根目录、bridge 元信息和安全策略做成只读资源，比继续堆工具更稳。
 
 ## 这次落地到 StarBridge 的升级
+
+### -1. 补齐 MCP `Prompts` 能力（2026-06-27）
+
+继 Resources 之后补齐 MCP 第三个标准原语 Prompts。stdio server 实现 `prompts/list` / `prompts/get`，`initialize` 声明 `prompts` 能力，暴露 5 个可复用、参数化、把安全协议（validate-first / dry-run / 显式确认 / sandbox-only）固化进去的提示模板：`bridge_status_check`、`comfyui_safe_workflow`、`cad_dxf_from_spec`、`photoshop_recipe_run`、`safe_write_protocol`。实现见 `starbridge_mcp/core/prompts.py`，测试见 `tests/test_mcp_prompts.py`。
+
+至此 StarBridge 完整暴露 MCP 三大原语：Tools（能做什么）+ Resources（该知道什么）+ Prompts（怎样安全地做）。
+
+### 0. 新增 MCP `Resources` 能力（2026-06-27）
+
+stdio server 现在按 MCP 规范暴露只读资源，客户端可用 `resources/list` 和 `resources/read` 在不调用工具的情况下拉取已脱敏上下文：
+
+- `starbridge://safety-policy`（markdown）：安全默认协议，建议客户端先读。
+- `starbridge://capabilities`（json）：完整能力注册表。
+- `starbridge://safe-roots`（json）：可写边界与 roots 对齐建议。
+- `starbridge://bridges`（json）：各 bridge 静态元信息。
+
+同时 `initialize` 声明 `resources` 能力，并在 `instructions` 字段返回安全优先使用说明。实现见 `starbridge_mcp/core/resources.py`，测试见 `tests/test_mcp_resources.py`。这就把“安全边界”从文档约定升级为客户端可程序化读取的正式能力。
 
 ### 1. 新增 `starbridge.safe_roots`
 
