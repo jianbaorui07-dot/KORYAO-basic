@@ -154,13 +154,20 @@
       "bridge_dir": "examples/illustrator_bridge",
       "status_file": "examples/illustrator_bridge/bridge_status.json",
       "primary_docs": [
-        "docs/05-codex-illustrator.md"
+        "docs/05-codex-illustrator.md",
+        "docs/adobe-ai-agent-integration-map.md",
+        "docs/illustrator-vector-line-rebuild-pipeline.md"
       ],
       "safe_probe_commands": [
         "powershell -ExecutionPolicy Bypass -File examples\\illustrator_bridge\\probe.ps1",
-        "python examples\\bridge_status.py --probe-executables"
+        "python examples\\bridge_status.py --probe-executables",
+        "python examples\\illustrator_bridge\\vector_rebuild\\extract_vector_lines.py --help",
+        "python examples\\illustrator_bridge\\vector_rebuild\\reduce_closed_contours.py --help"
       ],
-      "local_action_commands": [],
+      "local_action_commands": [
+        "python examples\\illustrator_bridge\\vector_rebuild\\extract_vector_lines.py --input <source.ai> --out <local-output-dir>",
+        "python examples\\illustrator_bridge\\vector_rebuild\\reduce_closed_contours.py --lines-json <local-output-dir>\\lines.json --out <local-output-dir> --mode fine"
+      ],
       "capability_categories": [
         "discovery",
         "planning",
@@ -170,17 +177,21 @@
         "cleanup"
       ],
       "current_capabilities": [
-        "\u68c0\u6d4b Illustrator \u53ef\u6267\u884c\u6587\u4ef6\u548c COM \u7ebf\u7d22",
-        "\u8bf4\u660e .ai \u77e2\u91cf\u5de5\u7a0b\u3001Image Trace \u548c\u5bfc\u51fa\u5b89\u5168\u8fb9\u754c",
-        "\u751f\u6210\u5b89\u5168 probe report"
+        "Detect Illustrator executable and COM availability hints",
+        "Document .ai vector project, Image Trace, and export safety boundaries",
+        "Generate safe probe reports",
+        "Extract vector line data from PDF-compatible .ai, PDF, or SVG inputs",
+        "Generate local rebuild.svg previews for reviewed vector line data"
       ],
       "planned_capabilities": [
-        "\u65b0\u589e\u53ea\u8bfb document_info",
-        "\u65b0\u589e\u6d4b\u8bd5\u753b\u677f\u548c trace_image_to_vector \u53c2\u6570\u5316\u793a\u4f8b"
+        "Promote read-only document_info into a stable MCP tool",
+        "Wrap vector rebuild examples behind guarded MCP tools",
+        "Add a parameterized trace_image_to_vector sandbox example"
       ],
       "public_safety_rules": [
-        "\u4e0d\u63d0\u4ea4\u5ba2\u6237 .ai\u3001\u6e90\u56fe\u3001\u5bfc\u51fa SVG/PDF/PNG \u548c\u5546\u4e1a\u5b57\u4f53",
-        "planned \u9636\u6bb5\u4e0d\u58f0\u79f0\u5df2\u5b8c\u6210\u6279\u91cf Image Trace"
+        "Do not commit customer .ai files, source images, exported SVG/PDF/PNG files, or commercial fonts",
+        "Vector rebuild examples must keep private inputs and generated artwork local-only",
+        "Only public fixtures and parameterized examples may be committed"
       ]
     },
     {

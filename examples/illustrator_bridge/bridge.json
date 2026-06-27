@@ -1,7 +1,7 @@
 {
   "bridge_id": "illustrator",
   "name": "Illustrator / AI vector files",
-  "status": "planned",
+  "status": "experimental",
   "platform": [
     "Windows"
   ],
@@ -11,18 +11,22 @@
     "Illustrator.Application COM"
   ],
   "entrypoints": {
-    "probe": "powershell -ExecutionPolicy Bypass -File examples/illustrator_bridge/probe.ps1"
+    "probe": "powershell -ExecutionPolicy Bypass -File examples/illustrator_bridge/probe.ps1",
+    "vector_line_extract": "python examples/illustrator_bridge/vector_rebuild/extract_vector_lines.py --input <source.ai|source.pdf|source.svg> --out <local-output-dir>",
+    "closed_contour_reduce": "python examples/illustrator_bridge/vector_rebuild/reduce_closed_contours.py --lines-json <local-output-dir>/lines.json --out <local-output-dir> --mode fine"
   },
   "supported_tasks": [
     "environment probe",
-    "COM availability check"
+    "COM availability check",
+    "PDF-compatible AI/PDF/SVG vector line extraction",
+    "local rebuilt SVG export",
+    "local closed-contour simplification"
   ],
   "unsupported_tasks": [
     "Image Trace automation",
-    "SVG export",
-    "PDF export",
     "PNG export",
-    "private .ai project processing"
+    "automatic desktop Illustrator writes",
+    "committing private .ai project outputs"
   ],
   "safety_notes": [
     "Do not commit customer .ai files, source images, exported SVG/PDF/PNG files, commercial fonts, or brushes.",

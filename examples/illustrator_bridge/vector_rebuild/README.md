@@ -15,12 +15,12 @@ These scripts are intentionally file-based. They do not upload artwork, do not c
 
 ```powershell
 python examples\illustrator_bridge\vector_rebuild\extract_vector_lines.py `
-  --input "C:\path\to\source.ai" `
-  --out "examples\output\vector_rebuild"
+  --input "<local-source.ai>" `
+  --out "<local-output-dir>"
 
 python examples\illustrator_bridge\vector_rebuild\reduce_closed_contours.py `
-  --lines-json "examples\output\vector_rebuild\lines.json" `
-  --out "examples\output\vector_rebuild_closed" `
+  --lines-json "<local-output-dir>\lines.json" `
+  --out "<local-output-dir-closed>" `
   --mode fine
 ```
 
@@ -39,4 +39,3 @@ python examples\illustrator_bridge\vector_rebuild\reduce_closed_contours.py `
 - `closed_contours_summary.json`
 
 Private source files and generated artwork should remain local and out of git.
-

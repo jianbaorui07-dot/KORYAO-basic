@@ -14,12 +14,6 @@ from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
 
-try:
-    import fitz  # type: ignore[import-not-found]
-except ImportError as exc:  # pragma: no cover - optional example dependency
-    raise SystemExit("Install optional dependency first: python -m pip install pymupdf") from exc
-
-
 Point = tuple[float, float]
 
 
@@ -90,6 +84,14 @@ def write_svg(path: Path, width: float, height: float, lines: list[dict[str, Any
     path.write_text("\n".join(parts), encoding="utf-8")
 
 
+def load_fitz() -> Any:
+    try:
+        import fitz  # type: ignore[import-not-found]
+    except ImportError as exc:  # pragma: no cover - optional example dependency
+        raise SystemExit("Install optional dependency first: python -m pip install pymupdf") from exc
+    return fitz
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="PDF-compatible .ai, PDF, or SVG input")
@@ -97,6 +99,7 @@ def main() -> None:
     parser.add_argument("--samples-per-curve", type=int, default=12)
     args = parser.parse_args()
 
+    fitz = load_fitz()
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     doc = fitz.open(args.input)
@@ -147,4 +150,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

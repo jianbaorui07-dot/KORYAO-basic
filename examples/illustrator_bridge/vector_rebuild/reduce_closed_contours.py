@@ -15,12 +15,9 @@ from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
 
-try:
-    import cv2  # type: ignore[import-not-found]
-    import fitz  # type: ignore[import-not-found]
-    import numpy as np
-except ImportError as exc:  # pragma: no cover - optional example dependency
-    raise SystemExit("Install optional dependencies: python -m pip install pymupdf opencv-python numpy") from exc
+cv2: Any = None
+fitz: Any = None
+np: Any = None
 
 
 TOKEN_RE = re.compile(r"[A-Za-z]|[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
@@ -108,6 +105,22 @@ def write_svg(path: Path, width: float, height: float, contours: list[dict[str, 
     path.write_text("\n".join(parts), encoding="utf-8")
 
 
+def load_optional_dependencies() -> None:
+    global cv2, fitz, np
+    try:
+        import cv2 as cv2_module  # type: ignore[import-not-found]
+        import fitz as fitz_module  # type: ignore[import-not-found]
+        import numpy as np_module
+    except ImportError as exc:  # pragma: no cover - optional example dependency
+        raise SystemExit(
+            "Install optional dependencies: python -m pip install pymupdf opencv-python numpy"
+        ) from exc
+
+    cv2 = cv2_module
+    fitz = fitz_module
+    np = np_module
+
+
 def parameters_for_mode(mode: str) -> dict[str, float | int]:
     if mode == "coarse":
         return {"scale": 8.0, "dilate_px": 8, "close_px": 18, "min_area_pt2": 10.0, "epsilon_ratio": 0.0018}
@@ -123,6 +136,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=["coarse", "fine", "outer-only"], default="fine")
     args = parser.parse_args()
 
+    load_optional_dependencies()
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     payload = json.loads(Path(args.lines_json).read_text(encoding="utf-8"))
@@ -189,4 +203,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
