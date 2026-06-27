@@ -14,7 +14,9 @@ from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summar
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Summarize Jianying / CapCut draft directories without reading draft content.")
+    parser = argparse.ArgumentParser(
+        description="Summarize Jianying / CapCut draft directories without reading draft content."
+    )
     parser.add_argument("--max-entries", type=int, default=25)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -27,7 +29,9 @@ def main() -> None:
     print("mode:", result["mode"])
     print("ok:", result["ok"])
     for root in result["roots"]:
-        print(f"- {root['env']}: exists={root['exists']}, sample_entries={root['entry_count_sample']}")
+        print(
+            f"- {root['env']}: exists={root['exists']}, sample_entries={root['entry_count_sample']}"
+        )
 
 
 if __name__ == "__main__":

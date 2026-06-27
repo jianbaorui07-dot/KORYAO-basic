@@ -165,24 +165,50 @@ def camera_raw_tune_schema() -> dict[str, Any]:
                 touches_user_psd=True,
                 default_output_dir="examples/output/photoshop",
             ),
-            "protocol_version": {"type": "string", "enum": ["camera_raw_tune.v1"], "default": "camera_raw_tune.v1"},
-            "method": {"type": "string", "enum": ["ps.camera_raw.tune"], "default": "ps.camera_raw.tune"},
+            "protocol_version": {
+                "type": "string",
+                "enum": ["camera_raw_tune.v1"],
+                "default": "camera_raw_tune.v1",
+            },
+            "method": {
+                "type": "string",
+                "enum": ["ps.camera_raw.tune"],
+                "default": "ps.camera_raw.tune",
+            },
             "confirm_apply": {"type": "boolean", "default": False},
             "confirm_export": {"type": "boolean", "default": False},
-            "descriptor_fixture_path": {"type": "string", "description": "Optional local verified Camera Raw BatchPlay descriptor fixture path. Do not commit real local paths."},
-            "preset": {"type": "string", "enum": ["blue_artwork_clean"], "default": "blue_artwork_clean"},
+            "descriptor_fixture_path": {
+                "type": "string",
+                "description": "Optional local verified Camera Raw BatchPlay descriptor fixture path. Do not commit real local paths.",
+            },
+            "preset": {
+                "type": "string",
+                "enum": ["blue_artwork_clean"],
+                "default": "blue_artwork_clean",
+            },
             "params": camera_raw_params,
             "source": object_schema(
                 {
-                    "mode": {"type": "string", "enum": ["active_document", "explicit_path"], "default": "active_document"},
-                    "path": {"type": "string", "description": "User-explicit local image path; recorded in the plan only and never scanned recursively."},
+                    "mode": {
+                        "type": "string",
+                        "enum": ["active_document", "explicit_path"],
+                        "default": "active_document",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "User-explicit local image path; recorded in the plan only and never scanned recursively.",
+                    },
                 }
             ),
             "output": object_schema(
                 {
                     "dir": {"type": "string", "default": "examples/output/photoshop"},
                     "basename": {"type": "string", "default": "camera_raw_tune_preview"},
-                    "formats": {"type": "array", "items": {"type": "string", "enum": ["jpg", "png"]}, "default": ["jpg"]},
+                    "formats": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": ["jpg", "png"]},
+                        "default": ["jpg"],
+                    },
                     "export_after_apply": {"type": "boolean", "default": False},
                 }
             ),
@@ -268,7 +294,11 @@ def get_preview_schema() -> dict[str, Any]:
             "max_side": {"type": "integer", "minimum": 64, "maximum": 4096, "default": 1024},
             "format": {"type": "string", "enum": ["png", "jpg"], "default": "jpg"},
             "quality": {"type": "integer", "minimum": 1, "maximum": 100, "default": 80},
-            "include_base64": {"type": "boolean", "default": True, "description": "Return base64 data for vision models."},
+            "include_base64": {
+                "type": "boolean",
+                "default": True,
+                "description": "Return base64 data for vision models.",
+            },
         }
     )
 
@@ -285,7 +315,11 @@ def get_state_schema() -> dict[str, Any]:
             ),
             "include_layers": {"type": "boolean", "default": True},
             "include_history": {"type": "boolean", "default": False},
-            "lightweight": {"type": "boolean", "default": True, "description": "Cheap snapshot without full pixel data."},
+            "lightweight": {
+                "type": "boolean",
+                "default": True,
+                "description": "Cheap snapshot without full pixel data.",
+            },
         }
     )
 

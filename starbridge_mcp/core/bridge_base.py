@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -17,8 +17,7 @@ class BaseBridge(ABC):
 
     @property
     @abstractmethod
-    def bridge_id(self) -> str:
-        ...
+    def bridge_id(self) -> str: ...
 
     @property
     def repo_root(self) -> Path:

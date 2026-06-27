@@ -6,14 +6,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SAFE_OUTPUT_DIR = "examples/output/photoshop"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from starbridge_mcp.mcp_server import handle_request
 from starbridge_mcp.adapters.photoshop.camera_raw_protocol import camera_raw_xmp_document
+from starbridge_mcp.mcp_server import handle_request
 
 
 def _slider_args(parser: argparse.ArgumentParser) -> None:
@@ -111,11 +110,21 @@ def write_xmp(payload: dict[str, Any], basename: str) -> Path:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build a StarBridge Photoshop Camera Raw tuning protocol plan.")
-    parser.add_argument("--source-path", help="User-explicit local RAW/image path. The script records it in the plan but does not scan directories.")
-    parser.add_argument("--source-mode", choices=["active_document", "explicit_path"], default="active_document")
+    parser = argparse.ArgumentParser(
+        description="Build a StarBridge Photoshop Camera Raw tuning protocol plan."
+    )
+    parser.add_argument(
+        "--source-path",
+        help="User-explicit local RAW/image path. The script records it in the plan but does not scan directories.",
+    )
+    parser.add_argument(
+        "--source-mode", choices=["active_document", "explicit_path"], default="active_document"
+    )
     parser.add_argument("--preset", default="blue_artwork_clean", choices=["blue_artwork_clean"])
-    parser.add_argument("--descriptor-fixture-path", help="Optional local verified Camera Raw BatchPlay descriptor fixture JSON.")
+    parser.add_argument(
+        "--descriptor-fixture-path",
+        help="Optional local verified Camera Raw BatchPlay descriptor fixture JSON.",
+    )
     parser.add_argument("--output-dir", default=SAFE_OUTPUT_DIR)
     parser.add_argument("--basename", default="camera_raw_tune_preview")
     parser.add_argument("--formats", nargs="+", default=["jpg"], choices=["jpg", "png"])
@@ -124,8 +133,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-dry-run", dest="dry_run", action="store_false")
     parser.add_argument("--confirm-apply", action="store_true")
     parser.add_argument("--confirm-export", action="store_true")
-    parser.add_argument("--write-plan", action="store_true", help=f"Write the JSON response under {SAFE_OUTPUT_DIR}.")
-    parser.add_argument("--write-xmp", action="store_true", help=f"Write an XMP sidecar preview under {SAFE_OUTPUT_DIR}.")
+    parser.add_argument(
+        "--write-plan",
+        action="store_true",
+        help=f"Write the JSON response under {SAFE_OUTPUT_DIR}.",
+    )
+    parser.add_argument(
+        "--write-xmp",
+        action="store_true",
+        help=f"Write an XMP sidecar preview under {SAFE_OUTPUT_DIR}.",
+    )
     _slider_args(parser)
     return parser.parse_args()
 
@@ -135,10 +152,14 @@ def main() -> None:
     payload = call_tool(build_arguments(args))
     if args.write_plan:
         plan_path = write_plan(payload, args.basename)
-        payload.setdefault("details", {})["written_plan_path"] = plan_path.relative_to(REPO_ROOT).as_posix()
+        payload.setdefault("details", {})["written_plan_path"] = plan_path.relative_to(
+            REPO_ROOT
+        ).as_posix()
     if args.write_xmp:
         xmp_path = write_xmp(payload, args.basename)
-        payload.setdefault("details", {})["written_xmp_path"] = xmp_path.relative_to(REPO_ROOT).as_posix()
+        payload.setdefault("details", {})["written_xmp_path"] = xmp_path.relative_to(
+            REPO_ROOT
+        ).as_posix()
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 

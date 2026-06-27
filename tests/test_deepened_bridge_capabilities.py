@@ -11,7 +11,6 @@ from starbridge_mcp.bridges.blender_safe_scene import build_scene_plan
 from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summary
 from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
 
-
 BANNED_OUTPUT_FRAGMENTS = ("C:\\Users\\", "/Users/", "/home/", "Desktop", "Documents", "AppData")
 
 
@@ -32,7 +31,15 @@ class DeepenedBridgeCapabilitiesTest(unittest.TestCase):
         self.assert_no_private_paths(plan)
 
     def test_illustrator_preflight_uses_sanitized_summary_only(self) -> None:
-        result = preflight_summary({"artboards": 1, "linked_assets": 2, "missing_links": 0, "text_objects": 3, "color_mode": "RGB"})
+        result = preflight_summary(
+            {
+                "artboards": 1,
+                "linked_assets": 2,
+                "missing_links": 0,
+                "text_objects": 3,
+                "color_mode": "RGB",
+            }
+        )
 
         self.assertTrue(result["ok"])
         self.assertEqual("metadata_only", result["mode"])
@@ -50,7 +57,9 @@ class DeepenedBridgeCapabilitiesTest(unittest.TestCase):
 
         text = json.dumps(result, ensure_ascii=False)
         self.assertTrue(result["ok"])
-        self.assertEqual(["<SENSITIVE_DRAFT_FILE>"], result["roots"][0]["sensitive_marker_names_detected"])
+        self.assertEqual(
+            ["<SENSITIVE_DRAFT_FILE>"], result["roots"][0]["sensitive_marker_names_detected"]
+        )
         self.assertNotIn("draft_content.json", text)
         self.assertNotIn("private_project_name", text)
         self.assertNotIn("do not read", text)

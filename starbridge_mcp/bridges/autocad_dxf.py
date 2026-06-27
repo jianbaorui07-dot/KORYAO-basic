@@ -1,7 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import importlib.util
-import json
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -91,7 +90,9 @@ class AutocadDxfBridge(BaseBridge):
                 "entity_count": len(normalized.get("entities", []))
                 if isinstance(normalized, dict)
                 else 0,
-                "layer_count": len(normalized.get("layers", [])) if isinstance(normalized, dict) else 0,
+                "layer_count": len(normalized.get("layers", []))
+                if isinstance(normalized, dict)
+                else 0,
             },
             warnings=warnings,
             next_steps=[] if not errors else ["Fix the validation errors before exporting DXF."],
@@ -134,8 +135,18 @@ class AutocadDxfBridge(BaseBridge):
                     "width": width,
                     "height": height,
                 },
-                {"type": "line", "layer": "AUX", "start": [width / 2, 0], "end": [width / 2, height]},
-                {"type": "line", "layer": "AUX", "start": [0, height / 2], "end": [width, height / 2]},
+                {
+                    "type": "line",
+                    "layer": "AUX",
+                    "start": [width / 2, 0],
+                    "end": [width / 2, height],
+                },
+                {
+                    "type": "line",
+                    "layer": "AUX",
+                    "start": [0, height / 2],
+                    "end": [width, height / 2],
+                },
                 {
                     "type": "text",
                     "layer": "TEXT",
@@ -164,7 +175,9 @@ class AutocadDxfBridge(BaseBridge):
             message="CAD plan summary is ready."
             if validation["ok"]
             else "Cannot summarize invalid CAD plan.",
-            details=self._summary_details(normalized) if validation["ok"] else self._empty_summary(),
+            details=self._summary_details(normalized)
+            if validation["ok"]
+            else self._empty_summary(),
             warnings=validation["warnings"],
             next_steps=validation["next_steps"],
         )
@@ -175,9 +188,7 @@ class AutocadDxfBridge(BaseBridge):
             root = self.OUTPUT_ROOT.resolve()
             rel_path = resolved.relative_to(root)
             rel_str = str(rel_path).replace("\\", "/").lower()
-            if rel_str.startswith("examples/output"):
-                return False
-            return True
+            return not rel_str.startswith("examples/output")
         except (ValueError, OSError):
             # outside root or error -> not allowed
             return False
@@ -243,7 +254,15 @@ class AutocadDxfBridge(BaseBridge):
             "normalized_plan": normalized,
         }
 
-    def write_dxf(self, plan: Any, output: str | None = None, output_path: str | None = None, *, dry_run: bool = True, confirm_write: bool = False) -> dict[str, Any]:
+    def write_dxf(
+        self,
+        plan: Any,
+        output: str | None = None,
+        output_path: str | None = None,
+        *,
+        dry_run: bool = True,
+        confirm_write: bool = False,
+    ) -> dict[str, Any]:
         if output is None:
             output = output_path
         validation = self.validate_cad_plan(plan)
@@ -340,8 +359,17 @@ def summarize_plan(plan: Any) -> dict[str, Any]:
     return _bridge.summarize_plan(plan)
 
 
-def write_dxf(plan: Any, output: str | None = None, output_path: str | None = None, *, dry_run: bool = True, confirm_write: bool = False) -> dict[str, Any]:
-    return _bridge.write_dxf(plan, output=output, output_path=output_path, dry_run=dry_run, confirm_write=confirm_write)
+def write_dxf(
+    plan: Any,
+    output: str | None = None,
+    output_path: str | None = None,
+    *,
+    dry_run: bool = True,
+    confirm_write: bool = False,
+) -> dict[str, Any]:
+    return _bridge.write_dxf(
+        plan, output=output, output_path=output_path, dry_run=dry_run, confirm_write=confirm_write
+    )
 
 
 # Module level compat for tests and legacy code
@@ -350,23 +378,32 @@ BRIDGE_ID = AutocadDxfBridge.BRIDGE_ID
 
 _bridge_instance = _bridge
 
+
 def _ezdxf_available() -> bool:
     return _bridge_instance._ezdxf_available()
+
 
 def _output_is_allowed(output_path: Path) -> bool:
     return _bridge_instance._output_is_allowed(output_path)
 
+
 def _entity_points(entity: dict[str, Any]) -> list[list[float]]:
     return _bridge_instance._entity_points(entity)
+
 
 def _plan_bbox(entities: list[dict[str, Any]]) -> dict[str, float] | None:
     return _bridge_instance._plan_bbox(entities)
 
+
 def _empty_summary() -> dict[str, Any]:
     return _bridge_instance._empty_summary()
+
 
 def _summary_details(normalized: dict[str, Any]) -> dict[str, Any]:
     return _bridge_instance._summary_details(normalized)
 
-def _manifest_for(normalized: dict[str, Any], output: Path, summary: dict[str, Any]) -> dict[str, Any]:
+
+def _manifest_for(
+    normalized: dict[str, Any], output: Path, summary: dict[str, Any]
+) -> dict[str, Any]:
     return _bridge_instance._manifest_for(normalized, output, summary)

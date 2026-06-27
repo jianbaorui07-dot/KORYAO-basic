@@ -20,13 +20,21 @@ try:
     import fitz  # type: ignore[import-not-found]
     import numpy as np
 except ImportError as exc:  # pragma: no cover - optional example dependency
-    raise SystemExit("Install optional dependencies: python -m pip install pymupdf opencv-python numpy") from exc
+    raise SystemExit(
+        "Install optional dependencies: python -m pip install pymupdf opencv-python numpy"
+    ) from exc
 
 
 TOKEN_RE = re.compile(r"[A-Za-z]|[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
 
 
-def cubic_point(p0: tuple[float, float], p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float], t: float) -> tuple[float, float]:
+def cubic_point(
+    p0: tuple[float, float],
+    p1: tuple[float, float],
+    p2: tuple[float, float],
+    p3: tuple[float, float],
+    t: float,
+) -> tuple[float, float]:
     u = 1.0 - t
     return (
         u**3 * p0[0] + 3 * u**2 * t * p1[0] + 3 * u * t**2 * p2[0] + t**3 * p3[0],
@@ -65,15 +73,21 @@ def path_samples(path_d: str, samples_per_curve: int = 10) -> list[list[tuple[fl
     return segments
 
 
-def draw_mask(lines: list[dict[str, Any]], scale: float, pad: float) -> tuple[Any, tuple[float, float, float]]:
+def draw_mask(
+    lines: list[dict[str, Any]], scale: float, pad: float
+) -> tuple[Any, tuple[float, float, float]]:
     x0 = min(line["bbox"][0] for line in lines) - pad
     y0 = min(line["bbox"][1] for line in lines) - pad
     x1 = max(line["bbox"][2] for line in lines) + pad
     y1 = max(line["bbox"][3] for line in lines) + pad
-    mask = np.zeros((int(math.ceil((y1 - y0) * scale)), int(math.ceil((x1 - x0) * scale))), dtype=np.uint8)
+    mask = np.zeros(
+        (int(math.ceil((y1 - y0) * scale)), int(math.ceil((x1 - x0) * scale))), dtype=np.uint8
+    )
     for line in lines:
         for segment in path_samples(line["path_d"]):
-            points = np.array([[(x - x0) * scale, (y - y0) * scale] for x, y in segment], dtype=np.int32)
+            points = np.array(
+                [[(x - x0) * scale, (y - y0) * scale] for x, y in segment], dtype=np.int32
+            )
             if len(points) > 1:
                 cv2.polylines(mask, [points], False, 255, 1, cv2.LINE_AA)
     return mask, (x0, y0, scale)
@@ -101,7 +115,7 @@ def write_svg(path: Path, width: float, height: float, contours: list[dict[str, 
     for contour in contours:
         parts.append(
             f'<path id="closed-contour-{contour["id"]}" d="{escape(contour["path_d"])}">'
-            f'<title>{contour["kind"]}; area {contour["area_pt2"]:.2f} pt2</title></path>'
+            f"<title>{contour['kind']}; area {contour['area_pt2']:.2f} pt2</title></path>"
         )
     parts.append("</g>")
     parts.append("</svg>")
@@ -110,10 +124,28 @@ def write_svg(path: Path, width: float, height: float, contours: list[dict[str, 
 
 def parameters_for_mode(mode: str) -> dict[str, float | int]:
     if mode == "coarse":
-        return {"scale": 8.0, "dilate_px": 8, "close_px": 18, "min_area_pt2": 10.0, "epsilon_ratio": 0.0018}
+        return {
+            "scale": 8.0,
+            "dilate_px": 8,
+            "close_px": 18,
+            "min_area_pt2": 10.0,
+            "epsilon_ratio": 0.0018,
+        }
     if mode == "fine":
-        return {"scale": 10.0, "dilate_px": 5, "close_px": 12, "min_area_pt2": 3.0, "epsilon_ratio": 0.0007}
-    return {"scale": 8.0, "dilate_px": 8, "close_px": 18, "min_area_pt2": 10.0, "epsilon_ratio": 0.0018}
+        return {
+            "scale": 10.0,
+            "dilate_px": 5,
+            "close_px": 12,
+            "min_area_pt2": 3.0,
+            "epsilon_ratio": 0.0007,
+        }
+    return {
+        "scale": 8.0,
+        "dilate_px": 8,
+        "close_px": 18,
+        "min_area_pt2": 10.0,
+        "epsilon_ratio": 0.0018,
+    }
 
 
 def main() -> None:
@@ -133,8 +165,14 @@ def main() -> None:
     mask, transform = draw_mask(lines, float(params["scale"]), pad=16)
     dilate_px = int(params["dilate_px"])
     close_px = int(params["close_px"])
-    blob = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_px * 2 + 1, dilate_px * 2 + 1)))
-    blob = cv2.morphologyEx(blob, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_px * 2 + 1, close_px * 2 + 1)))
+    blob = cv2.dilate(
+        mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_px * 2 + 1, dilate_px * 2 + 1))
+    )
+    blob = cv2.morphologyEx(
+        blob,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_px * 2 + 1, close_px * 2 + 1)),
+    )
     contours, hierarchy = cv2.findContours(blob, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
     exported: list[dict[str, Any]] = []
@@ -147,7 +185,9 @@ def main() -> None:
             if area_pt2 < float(params["min_area_pt2"]):
                 continue
             perimeter = cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, max(0.8, float(params["epsilon_ratio"]) * perimeter), True)
+            approx = cv2.approxPolyDP(
+                contour, max(0.8, float(params["epsilon_ratio"]) * perimeter), True
+            )
             exported.append(
                 {
                     "id": len(exported),
@@ -189,4 +229,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

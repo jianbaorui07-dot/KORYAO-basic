@@ -8,13 +8,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from starbridge_mcp.adapters.photoshop import TOOL_DEFINITIONS as PHOTOSHOP_V1_TOOL_DEFINITIONS
+from starbridge_mcp.adapters.photoshop import TOOL_HANDLERS as PHOTOSHOP_V1_TOOL_HANDLERS
 from starbridge_mcp.bridges import autocad_dxf
 from starbridge_mcp.bridges.blender_safe_scene import build_scene_plan
 from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summary
 from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
-from starbridge_mcp.adapters.photoshop import TOOL_DEFINITIONS as PHOTOSHOP_V1_TOOL_DEFINITIONS
-from starbridge_mcp.adapters.photoshop import TOOL_HANDLERS as PHOTOSHOP_V1_TOOL_HANDLERS
-from starbridge_mcp.bridges import autocad_dxf
 from starbridge_mcp.core.evidence import (
     DEFAULT_MANIFEST_FILENAME,
     ensure_evidence_path,
@@ -23,6 +22,12 @@ from starbridge_mcp.core.evidence import (
     repo_relative,
 )
 from starbridge_mcp.core.job_status import JobStatus
+from starbridge_mcp.core.prompts import get_prompt, list_prompts
+from starbridge_mcp.core.resources import (
+    SERVER_INSTRUCTIONS,
+    list_resources,
+    read_resource,
+)
 from starbridge_mcp.core.safe_roots import safe_roots_summary
 from starbridge_mcp.core.security import sanitize
 from starbridge_mcp.core.tool_registry import capability_summary, list_capabilities
@@ -448,8 +453,18 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         input_schema=_object_schema(
             {
                 "scene_name": {"type": "string", "default": "starbridge_public_scene"},
-                "render_width": {"type": "integer", "default": 1280, "minimum": 320, "maximum": 4096},
-                "render_height": {"type": "integer", "default": 720, "minimum": 240, "maximum": 4096},
+                "render_width": {
+                    "type": "integer",
+                    "default": 1280,
+                    "minimum": 320,
+                    "maximum": 4096,
+                },
+                "render_height": {
+                    "type": "integer",
+                    "default": 720,
+                    "minimum": 240,
+                    "maximum": 4096,
+                },
             }
         ),
     ),
@@ -1064,7 +1079,13 @@ CORE_RECIPES = {
             "7. starbridge.evidence.capture + manifest",
             "8. Optional: ps.preview.export for final",
         ],
-        "tools": ["ps.probe", "ps.get_state", "ps.selection.subject", "ps.preview.export", "starbridge.evidence"],
+        "tools": [
+            "ps.probe",
+            "ps.get_state",
+            "ps.selection.subject",
+            "ps.preview.export",
+            "starbridge.evidence",
+        ],
         "safety": "dry_run default; confirm for real mask application on copy. Never on original PSD.",
         "example_execution": "Use recipe_plan then recipe_run with confirm_write after review. Maps to existing subject_extract + layer scripts.",
     },
@@ -1080,25 +1101,48 @@ CORE_RECIPES = {
             "7. ps.get_preview",
             "8. evidence + manifest",
         ],
-        "tools": ["ps.document.info", "ps.layer.duplicate", "ps.batchplay", "ps.preview.export", "starbridge.evidence"],
+        "tools": [
+            "ps.document.info",
+            "ps.layer.duplicate",
+            "ps.batchplay",
+            "ps.preview.export",
+            "starbridge.evidence",
+        ],
         "safety": "sandbox only; non-destructive where possible. Use on copy layers.",
         "example_execution": "recipe_plan with action_plan, then run via photoshop scripts or batchplay sequence.",
     },
     "frequency_separation": {
         "goal": "Set up frequency separation for retouching on active raster layer.",
-        "steps": ["duplicate for high/low", "apply gaussian blur to low", "high = original - low", "group layers"],
+        "steps": [
+            "duplicate for high/low",
+            "apply gaussian blur to low",
+            "high = original - low",
+            "group layers",
+        ],
         "tools": ["ps.layer.ops", "ps.batchplay.execute"],
         "safety": "plan first, dry_run for preview.",
     },
     "color_grade": {
         "goal": "Apply non-destructive color grade with adjustment layers (curves, hsl, gradient).",
-        "steps": ["add curves adj", "add hsl adj", "add gradient map", "clip to subject", "preview"],
+        "steps": [
+            "add curves adj",
+            "add hsl adj",
+            "add gradient map",
+            "clip to subject",
+            "preview",
+        ],
         "tools": ["ps.adjustment.layers", "ps.preview.export"],
         "safety": "adjustment layers on copy.",
     },
     "prepare_for_web": {
         "goal": "Prepare for web: convert sRGB, resize, sharpen, export optimized variants.",
-        "steps": ["convert profile", "resize for web", "unsharp mask", "export jpeg/png", "export variants"],
+        "steps": [
+            "convert profile",
+            "resize for web",
+            "unsharp mask",
+            "export jpeg/png",
+            "export variants",
+        ],
         "tools": ["ps.document.profile", "ps.export", "ps.preview"],
         "safety": "exports to sandbox.",
     },
@@ -1134,7 +1178,10 @@ def _recipe_definition(output_dir: str, recipe_id: str = None) -> JsonObject:
             "recipe_id": recipe_id,
             "goal": recipe["goal"],
             "allowed_inputs": ["recipe_id", "dry_run", "confirm_write", "output_dir"],
-            "allowed_outputs": [f"{output_dir}/result_{recipe_id}.psd", f"{output_dir}/preview_{recipe_id}.png"],
+            "allowed_outputs": [
+                f"{output_dir}/result_{recipe_id}.psd",
+                f"{output_dir}/preview_{recipe_id}.png",
+            ],
             "steps": recipe["steps"],
             "tools": recipe["tools"],
             "validations": [item["name"] for item in _recipe_validations(output_dir)],
@@ -1146,7 +1193,9 @@ def _recipe_definition(output_dir: str, recipe_id: str = None) -> JsonObject:
                 "redacted EvidenceManifest",
                 "sandbox outputs only",
             ],
-            "safety_boundary": recipe.get("safety", "dry_run default; sandbox only; confirm for real."),
+            "safety_boundary": recipe.get(
+                "safety", "dry_run default; sandbox only; confirm for real."
+            ),
         }
     # fallback to demo
     return {
@@ -1241,7 +1290,7 @@ def _handle_photoshop_recipe_run(arguments: JsonObject) -> JsonObject:
         if recipe_id == "remove_background":
             commands += [
                 "# For remove_background: use extract_subject_to_png.ps1 with input from plan",
-                'powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/extract_subject_to_png.ps1 -InputPath "<source-image>" -OutputPath "examples/output/photoshop/subject.png"'
+                'powershell -ExecutionPolicy Bypass -File examples/photoshop_bridge/scripts/extract_subject_to_png.ps1 -InputPath "<source-image>" -OutputPath "examples/output/photoshop/subject.png"',
             ]
         elif recipe_id == "enhance_portrait":
             commands += ["# Use frequency sep via batchplay or custom script on sandbox copy"]
@@ -1281,7 +1330,9 @@ def _handle_photoshop_recipe_run(arguments: JsonObject) -> JsonObject:
             "output_dir": output_dir,
             "recipe_id": recipe_id,
             "next_steps": [
-                "Run authorized local script for the recipe (e.g. BatchPlay sequence for " + recipe_id + ")",
+                "Run authorized local script for the recipe (e.g. BatchPlay sequence for "
+                + recipe_id
+                + ")",
                 "Capture evidence manifest after run.",
             ],
         }
@@ -1302,7 +1353,8 @@ def _handle_photoshop_recipe_debug(arguments: JsonObject) -> JsonObject:
                 "start with recipe_plan and recipe_validate",
                 "keep output_dir inside examples/output/photoshop",
                 "only enable confirm_write after reviewing the EvidenceManifest path and output file list",
-            ] + extra.get("steps", []),
+            ]
+            + extra.get("steps", []),
             "common_failures": [
                 "Photoshop COM unavailable",
                 "sandbox output path escaped the allowed root",
@@ -1642,105 +1694,6 @@ def _handle_photoshop_run(arguments: JsonObject) -> JsonObject:
     return _run_powershell_json("examples/photoshop_bridge/scripts/run_demo.ps1")
 
 
-def _recipe_output_dir(arguments: JsonObject) -> str:
-    output_dir = str(arguments.get("output_dir") or "examples/output/photoshop").replace("\\", "/")
-    if output_dir != "examples/output/photoshop":
-        raise ValueError("output_dir must stay inside examples/output/photoshop")
-    return output_dir
-
-
-def _handle_photoshop_recipe_list(_arguments: JsonObject) -> JsonObject:
-    recipes = []
-    for rid in [PHOTOSHOP_RECIPE_ID] + list(CORE_RECIPES.keys()):
-        recipes.append({"name": rid, "safe_default": True, "writes": False})
-    return sanitize(
-        {
-            "ok": True,
-            "bridge": "photoshop",
-            "action": "recipe_list",
-            "recipes": recipes,
-        }
-    )
-
-
-def _handle_photoshop_recipe_plan(arguments: JsonObject) -> JsonObject:
-    output_dir = _recipe_output_dir(arguments)
-    recipe_id = str(arguments.get("recipe_id") or PHOTOSHOP_RECIPE_ID)
-    plan_def = _recipe_definition(output_dir, recipe_id) | {"recipe_id": recipe_id}
-    if arguments.get("action_plan"):
-        plan_def["action_plan"] = {"mode": "plan_then_execute", "steps": plan_def.get("steps", [])}
-    return sanitize(
-        {
-            "ok": True,
-            "bridge": "photoshop",
-            "action": "recipe_plan",
-            "dry_run": bool(arguments.get("dry_run", True)),
-            "output_dir": output_dir,
-            "plan": plan_def,
-        }
-    )
-
-
-def _handle_photoshop_recipe_validate(arguments: JsonObject) -> JsonObject:
-    output_dir = _recipe_output_dir(arguments)
-    validation = [
-        {"name": "manifest_schema", "ok": True},
-        {"name": "no_private_path_leak", "ok": True},
-        {"name": "sandbox_output_dir", "ok": output_dir == "examples/output/photoshop"},
-    ]
-    return sanitize(
-        {
-            "ok": True,
-            "bridge": "photoshop",
-            "action": "recipe_validate",
-            "dry_run": bool(arguments.get("dry_run", True)),
-            "output_dir": output_dir,
-            "validation": validation,
-        }
-    )
-
-
-def _handle_photoshop_recipe_run(arguments: JsonObject) -> JsonObject:
-    output_dir = _recipe_output_dir(arguments)
-    dry_run = bool(arguments.get("dry_run", True))
-    confirm_write = bool(arguments.get("confirm_write", False))
-    if not dry_run and not confirm_write:
-        return sanitize(
-            {
-                "ok": False,
-                "bridge": "photoshop",
-                "action": "recipe_run",
-                "dry_run": False,
-                "message": "confirm_write=true is required for real recipe execution.",
-            }
-        )
-    return sanitize(
-        {
-            "ok": True,
-            "bridge": "photoshop",
-            "action": "recipe_run",
-            "dry_run": dry_run,
-            "output_dir": output_dir,
-            "commands": ["ps.probe", "ps.document.info", "ps.layers.list", "ps.preview.export"],
-        }
-    )
-
-
-def _handle_photoshop_recipe_debug(_arguments: JsonObject) -> JsonObject:
-    return sanitize(
-        {
-            "ok": True,
-            "bridge": "photoshop",
-            "action": "recipe_debug",
-            "status": "safe_read_only",
-            "notes": [
-                "Use ps.probe for live bridge details.",
-                "Recipe debug does not open or overwrite PSD files.",
-            ],
-        }
-    )
-
-
 TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.status": _handle_status,
     "starbridge.probe": _handle_probe,
@@ -1799,7 +1752,9 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "illustrator.create_demo_artboard": _handle_illustrator_create,
     "illustrator.export_demo_assets": _handle_illustrator_export,
     "illustrator.run_demo": _handle_illustrator_run,
-    "illustrator.preflight": lambda arguments: preflight_summary(arguments.get("document_summary") or {}),
+    "illustrator.preflight": lambda arguments: preflight_summary(
+        arguments.get("document_summary") or {}
+    ),
     "jianying_capcut.draft_probe": lambda _arguments: _handle_python_probe(
         bridge="jianying_capcut",
         action="draft_probe",
@@ -1861,14 +1816,42 @@ def handle_request(message: JsonObject) -> JsonObject | None:
             message_id,
             {
                 "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
+                "capabilities": {
+                    "tools": {"listChanged": False},
+                    "resources": {"subscribe": False, "listChanged": False},
+                    "prompts": {"listChanged": False},
+                },
                 "serverInfo": SERVER_INFO,
+                "instructions": SERVER_INSTRUCTIONS,
             },
         )
     if method == "ping":
         return _response(message_id, {})
     if method == "tools/list":
         return _response(message_id, {"tools": TOOL_DEFINITIONS})
+    if method == "resources/list":
+        return _response(message_id, {"resources": list_resources()})
+    if method == "resources/read":
+        uri = params.get("uri")
+        if not isinstance(uri, str):
+            return _error(message_id, -32602, "resources/read params.uri must be a string")
+        content = read_resource(uri)
+        if content is None:
+            return _error(message_id, -32602, f"unknown resource: {uri}")
+        return _response(message_id, {"contents": [content]})
+    if method == "prompts/list":
+        return _response(message_id, {"prompts": list_prompts()})
+    if method == "prompts/get":
+        name = params.get("name")
+        arguments = params.get("arguments") or {}
+        if not isinstance(name, str):
+            return _error(message_id, -32602, "prompts/get params.name must be a string")
+        if not isinstance(arguments, dict):
+            return _error(message_id, -32602, "prompts/get params.arguments must be an object")
+        prompt = get_prompt(name, arguments)
+        if prompt is None:
+            return _error(message_id, -32602, f"unknown prompt: {name}")
+        return _response(message_id, prompt)
     if method == "tools/call":
         name = params.get("name")
         arguments = params.get("arguments") or {}

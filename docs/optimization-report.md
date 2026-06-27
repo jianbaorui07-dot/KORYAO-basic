@@ -238,3 +238,73 @@ exit code 0
 npm.cmd test
 通过
 ```
+
+## 第四轮：MCP Resources + 回归修复 + lint 门禁
+
+时间：2026-06-27
+
+本轮重新复核了同类成熟 MCP server 的当下做法，落地了一条对标“先进处”但完全符合本仓库安全定位的能力，并顺手修掉一个真实回归和补齐 CI lint 门禁。
+
+完成内容：
+
+- **新增 MCP `Resources` 能力**：业界共识是“资源描述客户端该知道什么，工具描述客户端能做什么”，且资源只读、低风险。新增 `starbridge_mcp/core/resources.py`，stdio server 通过 `resources/list` / `resources/read` 暴露四个只读、脱敏资源：
+  - `starbridge://safety-policy`（markdown）
+  - `starbridge://capabilities`（json）
+  - `starbridge://safe-roots`（json）
+  - `starbridge://bridges`（json）
+- `initialize` 现在声明 `resources` 能力，并返回 `instructions` 字段（安全优先使用说明）。新增 `tests/test_mcp_resources.py`（7 个用例 + 子测试，含脱敏校验和未知资源错误码）。
+- **回归修复**：`starbridge_mcp/mcp_server.py` 里 `_recipe_output_dir` 与五个 `photoshop.recipe_*` handler 被重复定义了第二遍，简陋版静默覆盖了“充实的 5 个核心 recipe”实现。删除重复块后，详细 recipe 计划、步骤、工具映射和质量门重新生效。
+- 删除重复的 `from starbridge_mcp.bridges import autocad_dxf` import。
+- **lint 门禁**：CI 此前只在 pre-commit 里跑 ruff（README/CHANGELOG 却声称已进 CI）。本轮在 `.github/workflows/ci.yml` 新增独立 `lint` job（`ruff check` + `ruff format --check`），并把整个仓库整理到 ruff 干净状态（import 排序、未使用 import、一处 `SIM103` 简化、tests 目录格式漂移）。
+
+第四轮验证结果：
+
+```text
+python -m pytest -q
+224 passed, 501 subtests passed
+
+python -m ruff check .
+All checks passed!
+
+python -m ruff format --check .
+108 files already formatted
+
+python scripts\security_check.py
+security check passed
+
+python -m starbridge_mcp.server tools --json --safe-only / evidence --init/--validate / job-status
+exit code 0
+
+python scripts\starbridge_preflight.py --markdown
+exit code 0
+
+npm.cmd test
+Ran 224 tests OK
+```
+
+## 第五轮：补齐 MCP Prompts（完成三大原语）
+
+时间：2026-06-27
+
+继第四轮的 Resources 之后，补齐 MCP 第三个标准原语 **Prompts**，让 StarBridge 完整暴露 Tools + Resources + Prompts，对齐同类成熟 MCP server 的完整能力面。
+
+完成内容：
+
+- 新增 `starbridge_mcp/core/prompts.py`，stdio server 实现 `prompts/list` / `prompts/get`，`initialize` 声明 `prompts` 能力。
+- 暴露 5 个可复用、参数化提示模板，全部把安全协议（validate-first / 默认 dry-run / 显式确认 / sandbox-only）固化进文本：
+  - `bridge_status_check`（参数 bridge）
+  - `comfyui_safe_workflow`（参数 goal、workflow_type）
+  - `cad_dxf_from_spec`（参数 spec）
+  - `photoshop_recipe_run`（参数 recipe_id）
+  - `safe_write_protocol`（无参数）
+- 新增 `tests/test_mcp_prompts.py`（7 用例 + 子测试，含参数替换、required 标记、脱敏校验、未知 prompt 错误码）。
+
+第五轮验证结果：
+
+```text
+python -m pytest -q
+231 passed, 506 subtests passed
+
+python -m ruff check .  ->  All checks passed!
+python -m ruff format --check .  ->  110 files already formatted
+```

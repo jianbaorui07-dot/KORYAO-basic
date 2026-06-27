@@ -149,6 +149,33 @@ MCP 客户端可发现首批安全工具：
 
 `starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan`、`autocad_dxf.write_dxf`。
 
+### MCP Resources（只读上下文）
+
+除工具外，StarBridge 还按 MCP 规范暴露**只读资源**（“资源描述客户端该知道什么，工具描述客户端能做什么”）。客户端可通过 `resources/list` 与 `resources/read` 在不调用工具的情况下拉取静态、已脱敏的上下文：
+
+| 资源 URI | 类型 | 内容 |
+| --- | --- | --- |
+| `starbridge://safety-policy` | text/markdown | 安全默认协议：dry-run 默认、确认标志、输出边界、禁区动作。建议客户端先读这条。 |
+| `starbridge://capabilities` | application/json | 完整工具能力注册表（风险等级、成熟度、确认要求）。 |
+| `starbridge://safe-roots` | application/json | 仓库相对的只读根、可写 sandbox 根、写入策略和 MCP roots 对齐建议。 |
+| `starbridge://bridges` | application/json | 各 bridge 静态元信息：目标软件、探针类型、所需环境变量、就绪条件、安全边界。 |
+
+`initialize` 响应同时声明 `resources` 能力，并在 `instructions` 字段返回安全优先的使用说明，帮助客户端在发起任何写入前先理解 dry-run / 确认流程。
+
+### MCP Prompts（可复用安全提示词）
+
+StarBridge 同时暴露 MCP 的第三个标准原语 **Prompts**（`prompts/list` + `prompts/get`），把安全优先协议（validate-first、默认 dry-run、显式确认、sandbox-only）固化进可复用、参数化的提示模板。客户端可把它们当 slash-command 使用：
+
+| Prompt | 参数 | 用途 |
+| --- | --- | --- |
+| `bridge_status_check` | `bridge`（可选） | 对一个或全部 bridge 做只读状态检查。 |
+| `comfyui_safe_workflow` | `goal`、`workflow_type` | ComfyUI validate-first 流程，默认不提交生成任务。 |
+| `cad_dxf_from_spec` | `spec` | 离线 DXF：plan → validate → summarize → dry-run write。 |
+| `photoshop_recipe_run` | `recipe_id`（可选） | 受控 Photoshop recipe：list → plan → validate → dry-run run。 |
+| `safe_write_protocol` | 无 | 返回通用安全写入协议提示词。 |
+
+至此 StarBridge 完整暴露 MCP 三大原语：**Tools（能做什么）+ Resources（该知道什么）+ Prompts（怎样安全地做）**。
+
 MCP stdio 配置示例：
 
 ```json

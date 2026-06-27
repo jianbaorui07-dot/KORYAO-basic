@@ -98,13 +98,18 @@ def _build_context(arguments: dict[str, Any], repo_root: Path, tool_name: str) -
 def _build_camera_raw_context(arguments: dict[str, Any], repo_root: Path) -> RequestContext:
     raw_output = arguments.get("output") or {}
     requested_output = raw_output.get("dir") if isinstance(raw_output, dict) else None
-    output_root = resolve_camera_raw_output_dir(repo_root, str(requested_output or arguments.get("output_dir") or "examples/output/photoshop"))
+    output_root = resolve_camera_raw_output_dir(
+        repo_root,
+        str(requested_output or arguments.get("output_dir") or "examples/output/photoshop"),
+    )
     evidence_dir = (output_root / "evidence").resolve()
     return RequestContext(
         tool_name="ps.camera_raw.tune",
         job_id=str(arguments.get("job_id") or new_job_id()),
         risk_level=str(arguments.get("risk_level") or "level_2_confirmed_write"),
-        requires_confirmation=_bool(arguments.get("requires_confirmation") or arguments.get("confirm_apply"), False),
+        requires_confirmation=_bool(
+            arguments.get("requires_confirmation") or arguments.get("confirm_apply"), False
+        ),
         dry_run=_bool(arguments.get("dry_run"), True),
         writes_files=_bool(arguments.get("writes_files"), False),
         touches_user_psd=_bool(arguments.get("touches_user_psd"), True),
@@ -629,7 +634,13 @@ class PhotoshopBridgeAdapter(BaseBridge):
                 bridge="photoshop",
                 action="camera_raw_tune",
                 message="Camera Raw tuning plan validation failed.",
-                details={"job_id": ctx.job_id, "errors": errors, "dry_run": ctx.dry_run, "confirm_apply": confirm_apply, "confirm_export": confirm_export},
+                details={
+                    "job_id": ctx.job_id,
+                    "errors": errors,
+                    "dry_run": ctx.dry_run,
+                    "confirm_apply": confirm_apply,
+                    "confirm_export": confirm_export,
+                },
                 warnings=["Camera Raw tuning accepts only reviewed numeric slider ranges."],
                 next_steps=["Fix params and rerun with dry_run=true."],
             )
@@ -640,8 +651,14 @@ class PhotoshopBridgeAdapter(BaseBridge):
         manifest_errors: list[str] = []
         if not ctx.dry_run and not confirm_apply:
             manifest_errors.append("confirm_apply=true is required when dry_run=false.")
-        elif not ctx.dry_run and bool(plan["output"].get("export_after_apply")) and not confirm_export:
-            manifest_errors.append("confirm_export=true is required when output.export_after_apply=true and dry_run=false.")
+        elif (
+            not ctx.dry_run
+            and bool(plan["output"].get("export_after_apply"))
+            and not confirm_export
+        ):
+            manifest_errors.append(
+                "confirm_export=true is required when output.export_after_apply=true and dry_run=false."
+            )
         elif not ctx.dry_run and descriptor_errors:
             manifest_errors.extend(descriptor_errors)
         elif not ctx.dry_run and descriptor_fixture is None:
@@ -664,7 +681,10 @@ class PhotoshopBridgeAdapter(BaseBridge):
             photoshop_available=bool(proxy["uxp_client_connected"]),
             bridge_kind="node_proxy_uxp" if proxy["uxp_client_connected"] else "fallback",
             node_proxy_status=proxy["status"],
-            uxp_status={"connected": proxy["uxp_client_connected"], "method": "ps.camera_raw.tune" if proxy["uxp_client_connected"] else None},
+            uxp_status={
+                "connected": proxy["uxp_client_connected"],
+                "method": "ps.camera_raw.tune" if proxy["uxp_client_connected"] else None,
+            },
             photoshop_host=dict(proxy["status"].get("photoshop_host") or {}),
             layers_snapshot=[],
             history_state=None,
@@ -672,7 +692,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
             validation_result={
                 "ok": not errors,
                 "descriptor_available": descriptor_fixture is not None,
-                "descriptor_count": int(descriptor_fixture.get("descriptor_count", 0)) if descriptor_fixture else 0,
+                "descriptor_count": int(descriptor_fixture.get("descriptor_count", 0))
+                if descriptor_fixture
+                else 0,
                 "blocked_reason": None if descriptor_fixture else CAMERA_RAW_BLOCKED_REASON,
             },
             status=manifest_status,
@@ -700,7 +722,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_path": None,
                 },
                 warnings=["Camera Raw tuning is experimental; no Photoshop state was modified."],
-                next_steps=["Record and review a Camera Raw Filter BatchPlay descriptor before enabling confirmed apply."],
+                next_steps=[
+                    "Record and review a Camera Raw Filter BatchPlay descriptor before enabling confirmed apply."
+                ],
             )
 
         if not confirm_apply:
@@ -719,7 +743,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
                 warnings=["Real Camera Raw tuning would modify the active Photoshop document."],
-                next_steps=["Rerun dry_run first, then set confirm_apply=true only after reviewing the plan."],
+                next_steps=[
+                    "Rerun dry_run first, then set confirm_apply=true only after reviewing the plan."
+                ],
             )
 
         if bool(plan["output"].get("export_after_apply")) and not confirm_export:
@@ -737,8 +763,12 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
-                warnings=["Real Camera Raw export would write files and must stay inside examples/output/photoshop."],
-                next_steps=["Rerun dry_run first, then set confirm_export=true only for reviewed sandbox output."],
+                warnings=[
+                    "Real Camera Raw export would write files and must stay inside examples/output/photoshop."
+                ],
+                next_steps=[
+                    "Rerun dry_run first, then set confirm_export=true only for reviewed sandbox output."
+                ],
             )
 
         if descriptor_errors:
@@ -757,7 +787,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
-                warnings=["Only locally recorded and explicitly verified Camera Raw descriptor fixtures may be used."],
+                warnings=[
+                    "Only locally recorded and explicitly verified Camera Raw descriptor fixtures may be used."
+                ],
                 next_steps=[CAMERA_RAW_NEXT_STEP],
             )
 
@@ -784,7 +816,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                         ok=executed,
                         bridge="photoshop",
                         action="camera_raw_tune",
-                        message="Camera Raw tuning apply completed." if executed else "Camera Raw tuning apply returned without execution.",
+                        message="Camera Raw tuning apply completed."
+                        if executed
+                        else "Camera Raw tuning apply returned without execution.",
                         details={
                             "job_id": ctx.job_id,
                             "dry_run": False,
@@ -797,10 +831,14 @@ class PhotoshopBridgeAdapter(BaseBridge):
                             "evidence_path": _write_manifest_if_requested(ctx, manifest),
                         },
                         warnings=[str(item) for item in payload.get("warnings") or []],
-                        next_steps=["Review Photoshop history and exported files before additional edits."],
+                        next_steps=[
+                            "Review Photoshop history and exported files before additional edits."
+                        ],
                     )
             except Exception as exc:
-                manifest["errors"].append(f"Node Proxy camera_raw_tune failed: {type(exc).__name__}")
+                manifest["errors"].append(
+                    f"Node Proxy camera_raw_tune failed: {type(exc).__name__}"
+                )
                 return make_result(
                     ok=False,
                     bridge="photoshop",
@@ -817,7 +855,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
                         "evidence_path": _write_manifest_if_requested(ctx, manifest),
                     },
                     warnings=["Photoshop UXP bridge must be running and connected for real apply."],
-                    next_steps=["Start the Photoshop node proxy and UXP plugin, then retry the confirmed command."],
+                    next_steps=[
+                        "Start the Photoshop node proxy and UXP plugin, then retry the confirmed command."
+                    ],
                 )
 
         if descriptor_fixture is not None and not proxy["uxp_client_connected"]:
@@ -831,13 +871,19 @@ class PhotoshopBridgeAdapter(BaseBridge):
                     "dry_run": False,
                     "confirm_apply": True,
                     "confirm_export": confirm_export,
-                    "descriptor_fixture": {"available": True, "verified": True, "descriptor_count": descriptor_fixture["descriptor_count"]},
+                    "descriptor_fixture": {
+                        "available": True,
+                        "verified": True,
+                        "descriptor_count": descriptor_fixture["descriptor_count"],
+                    },
                     "plan": plan,
                     "evidence_manifest": manifest,
                     "evidence_path": _write_manifest_if_requested(ctx, manifest),
                 },
                 warnings=["Node Proxy / UXP is required for real Photoshop apply."],
-                next_steps=["Run npm.cmd run photoshop:node-proxy and connect the UXP plugin, then retry."],
+                next_steps=[
+                    "Run npm.cmd run photoshop:node-proxy and connect the UXP plugin, then retry."
+                ],
             )
 
         return make_result(
@@ -1260,12 +1306,16 @@ class PhotoshopBridgeAdapter(BaseBridge):
                 # Try to find a preview png/jpg in sandbox
                 for pf in preview_files:
                     p = self.repo_root / pf
-                    if p.exists() and p.suffix in ('.png', '.jpg', '.jpeg'):
-                        with open(p, 'rb') as f:
-                            base64_data = f"data:image/{fmt};base64," + base64.b64encode(f.read()).decode()
+                    if p.exists() and p.suffix in (".png", ".jpg", ".jpeg"):
+                        with open(p, "rb") as f:
+                            base64_data = (
+                                f"data:image/{fmt};base64," + base64.b64encode(f.read()).decode()
+                            )
                         break
             except Exception:
-                base64_data = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..."  # fallback placeholder
+                base64_data = (
+                    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..."  # fallback placeholder
+                )
         details = {
             "job_id": ctx.job_id,
             "max_side": max_side,
@@ -1286,7 +1336,7 @@ class PhotoshopBridgeAdapter(BaseBridge):
             next_steps=[
                 "Feed base64 to vision LLM for analysis.",
                 "Follow with ps.get_state for full context.",
-                "Use in Action Plan for iterative edits."
+                "Use in Action Plan for iterative edits.",
             ],
         )
 
@@ -1301,7 +1351,9 @@ class PhotoshopBridgeAdapter(BaseBridge):
             "job_id": ctx.job_id,
             "document": info.get("details", {}).get("document", {}),
             "layer_count": layers.get("details", {}).get("count", 0) if include_layers else None,
-            "active_layer": layers.get("details", {}).get("active", None) if include_layers else None,
+            "active_layer": layers.get("details", {}).get("active", None)
+            if include_layers
+            else None,
             "lightweight": lightweight,
             "bridge_kind": info.get("details", {}).get("bridge_kind", "node_proxy_uxp"),
             "probe_status": "ok",
@@ -1317,6 +1369,6 @@ class PhotoshopBridgeAdapter(BaseBridge):
             next_steps=[
                 "Use before/after in recipes or Action Plan.",
                 "Combine with get_preview for vision context.",
-                "Ideal for state diff in optimization workflows."
+                "Ideal for state diff in optimization workflows.",
             ],
         )

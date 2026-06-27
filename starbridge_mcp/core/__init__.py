@@ -45,12 +45,12 @@ __all__ = [
     "BaseBridge",
 ]
 
+from starbridge_mcp.core.bridge_base import BaseBridge
 from starbridge_mcp.core.computer_use import (
     ActionPlan,
     CodexComputerUseAdapter,
     evaluate_safety,
 )
-from starbridge_mcp.core.bridge_base import BaseBridge
 from starbridge_mcp.core.config import StarBridgeConfig, env_summary
 from starbridge_mcp.core.evidence import (
     DEFAULT_EVIDENCE_ROOT,

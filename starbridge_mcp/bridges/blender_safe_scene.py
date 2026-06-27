@@ -5,7 +5,12 @@ from typing import Any
 from starbridge_mcp.core.security import sanitize
 
 
-def build_scene_plan(*, scene_name: str = "starbridge_public_scene", render_width: int = 1280, render_height: int = 720) -> dict[str, Any]:
+def build_scene_plan(
+    *,
+    scene_name: str = "starbridge_public_scene",
+    render_width: int = 1280,
+    render_height: int = 720,
+) -> dict[str, Any]:
     width = max(320, min(int(render_width), 4096))
     height = max(240, min(int(render_height), 4096))
     name = scene_name.strip() or "starbridge_public_scene"
@@ -49,7 +54,11 @@ def build_scene_plan(*, scene_name: str = "starbridge_public_scene", render_widt
             },
             "write_policy": {
                 "dry_run_default": True,
-                "real_render_requires": ["confirmed local Blender run", "ignored output directory", "reviewed manifest"],
+                "real_render_requires": [
+                    "confirmed local Blender run",
+                    "ignored output directory",
+                    "reviewed manifest",
+                ],
             },
             "next_steps": [
                 "Review this plan before adding any Blender CLI render path.",

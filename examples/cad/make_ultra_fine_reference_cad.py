@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import math
 import os
 import shutil
-import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,9 +12,10 @@ import ezdxf
 import numpy as np
 from ezdxf import units
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = REPO_ROOT / "examples" / "cad" / "output" / "wechat_design_traces" / "ultra_fine_reference_cad"
+OUTPUT_DIR = (
+    REPO_ROOT / "examples" / "cad" / "output" / "wechat_design_traces" / "ultra_fine_reference_cad"
+)
 DXF_PATH = OUTPUT_DIR / "ultra_fine_reference_cad.dxf"
 
 
@@ -31,10 +32,17 @@ SHEETS = [
     SheetSpec("a441dcce858e6e7a3518406ff89f2c73.png", "室内地面材料铺装图", 8400, "总宽8400mm"),
     SheetSpec("749be60e3981b184173004a2e1cd4b0b.png", "室内家具平面布置图", 8400, "总宽8400mm"),
     SheetSpec("0ec18e1868ae7ddba6378ff0319d39d6.png", "室内顶面布置图", 8400, "总宽8400mm"),
-    SheetSpec("29435ea16f086e5c558cde23d3519862.png", "图6-0-1 室内客厅B立面布置图", 7740, "立面总宽7740mm"),
+    SheetSpec(
+        "29435ea16f086e5c558cde23d3519862.png",
+        "图6-0-1 室内客厅B立面布置图",
+        7740,
+        "立面总宽7740mm",
+    ),
     SheetSpec("0de5ff1f03b585cab21b9a4ddf5795b2.png", "1-1剖面图", 2700, "总高2700mm近似校准"),
     SheetSpec("17b56cb369472c6640f03a6d3b54f7da.png", "节点2 施工节点图", 800, "节点宽800mm"),
-    SheetSpec("586031740ab444899a187feb7b2f3efa.png", "图9-0-1 施工节点图", 650, "底部宽650mm近似校准"),
+    SheetSpec(
+        "586031740ab444899a187feb7b2f3efa.png", "图9-0-1 施工节点图", 650, "底部宽650mm近似校准"
+    ),
 ]
 
 
@@ -61,13 +69,20 @@ def setup_doc() -> ezdxf.EzDxf:
 
 
 def add_text(msp, text: str, x: float, y: float, h: float, layer: str = "REFERENCE_TEXT") -> None:
-    msp.add_text(text, height=h, dxfattribs={"layer": layer, "style": "CHINESE"}).set_placement((x, y))
+    msp.add_text(text, height=h, dxfattribs={"layer": layer, "style": "CHINESE"}).set_placement(
+        (x, y)
+    )
 
 
 def add_frame(msp, x: float, y: float, w: float, h: float) -> None:
     pad = max(w, h) * 0.02
     msp.add_lwpolyline(
-        [(x - pad, y - pad), (x + w + pad, y - pad), (x + w + pad, y + h + pad), (x - pad, y + h + pad)],
+        [
+            (x - pad, y - pad),
+            (x + w + pad, y - pad),
+            (x + w + pad, y + h + pad),
+            (x - pad, y + h + pad),
+        ],
         close=True,
         dxfattribs={"layer": "REFERENCE_FRAME"},
     )
@@ -79,8 +94,14 @@ def add_dim(msp, x: float, y: float, w: float, label: str) -> None:
     msp.add_line((x, yy), (x + w, yy), dxfattribs={"layer": "CALIBRATION_DIM"})
     msp.add_line((x, y), (x, yy), dxfattribs={"layer": "CALIBRATION_DIM"})
     msp.add_line((x + w, y), (x + w, yy), dxfattribs={"layer": "CALIBRATION_DIM"})
-    msp.add_line((x - tick, yy - tick), (x + tick, yy + tick), dxfattribs={"layer": "CALIBRATION_DIM"})
-    msp.add_line((x + w - tick, yy - tick), (x + w + tick, yy + tick), dxfattribs={"layer": "CALIBRATION_DIM"})
+    msp.add_line(
+        (x - tick, yy - tick), (x + tick, yy + tick), dxfattribs={"layer": "CALIBRATION_DIM"}
+    )
+    msp.add_line(
+        (x + w - tick, yy - tick),
+        (x + w + tick, yy + tick),
+        dxfattribs={"layer": "CALIBRATION_DIM"},
+    )
     add_text(msp, label, x + w * 0.46, yy + tick * 1.4, max(65, w * 0.012), "CALIBRATION_DIM")
 
 
@@ -99,7 +120,9 @@ def image_masks(path: Path):
     )
     dark = cv2.threshold(denoised, 185, 255, cv2.THRESH_BINARY_INV)[1]
     combined = cv2.bitwise_or(adaptive, dark)
-    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)))
+    combined = cv2.morphologyEx(
+        combined, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    )
     edges = cv2.Canny(denoised, 40, 120, apertureSize=3)
     return gray, combined, edges
 
@@ -126,8 +149,14 @@ def add_contours(msp, mask, ox: float, oy: float, scale: float, image_h: int) ->
             continue
         if len(approx) > 420:
             approx = approx[:: math.ceil(len(approx) / 420)]
-        points = [transform_point(float(px), float(py), ox, oy, scale, image_h) for px, py in approx]
-        layer = "TRACE_CONTOUR_MAJOR" if area > min_area * 18 or perimeter > 220 else "TRACE_CONTOUR_FINE"
+        points = [
+            transform_point(float(px), float(py), ox, oy, scale, image_h) for px, py in approx
+        ]
+        layer = (
+            "TRACE_CONTOUR_MAJOR"
+            if area > min_area * 18 or perimeter > 220
+            else "TRACE_CONTOUR_FINE"
+        )
         msp.add_lwpolyline(points, close=True, dxfattribs={"layer": layer})
         count += 1
     return count
@@ -163,7 +192,9 @@ def add_dark_pixel_runs(msp, mask, ox: float, oy: float, scale: float, image_h: 
     step = 3
     min_run = 10
     count = 0
-    small = cv2.resize(mask, (mask.shape[1] // step, mask.shape[0] // step), interpolation=cv2.INTER_NEAREST)
+    small = cv2.resize(
+        mask, (mask.shape[1] // step, mask.shape[0] // step), interpolation=cv2.INTER_NEAREST
+    )
     for row_idx in range(small.shape[0]):
         cols = np.where(small[row_idx] > 0)[0]
         if len(cols) == 0:
@@ -181,7 +212,9 @@ def add_dark_pixel_runs(msp, mask, ox: float, oy: float, scale: float, image_h: 
     return count
 
 
-def add_sheet(doc: ezdxf.EzDxf, source_dir: Path, spec: SheetSpec, ox: float, oy: float) -> tuple[float, float, int]:
+def add_sheet(
+    doc: ezdxf.EzDxf, source_dir: Path, spec: SheetSpec, ox: float, oy: float
+) -> tuple[float, float, int]:
     src = source_dir / spec.file_name
     copied = OUTPUT_DIR / spec.file_name
     shutil.copy2(src, copied)
@@ -193,7 +226,12 @@ def add_sheet(doc: ezdxf.EzDxf, source_dir: Path, spec: SheetSpec, ox: float, oy
 
     msp = doc.modelspace()
     image_def = doc.add_image_def(copied.name, (image_w, image_h))
-    image = msp.add_image(image_def, insert=(ox, oy), size_in_units=(width_mm, height_mm), dxfattribs={"layer": "UNDERLAY_IMAGE"})
+    image = msp.add_image(
+        image_def,
+        insert=(ox, oy),
+        size_in_units=(width_mm, height_mm),
+        dxfattribs={"layer": "UNDERLAY_IMAGE"},
+    )
     image.dxf.clipping = 1
     add_frame(msp, ox, oy, width_mm, height_mm)
 
@@ -203,13 +241,21 @@ def add_sheet(doc: ezdxf.EzDxf, source_dir: Path, spec: SheetSpec, ox: float, oy
 
     title_h = max(90, width_mm * 0.017)
     add_text(msp, spec.title, ox, oy + height_mm + title_h * 1.55, title_h)
-    add_text(msp, f"精细版：{spec.calibration_note}；含底图、轮廓线、直线识别、灰色细节层。", ox, oy + height_mm + title_h * 0.38, title_h * 0.52)
+    add_text(
+        msp,
+        f"精细版：{spec.calibration_note}；含底图、轮廓线、直线识别、灰色细节层。",
+        ox,
+        oy + height_mm + title_h * 0.38,
+        title_h * 0.52,
+    )
     add_dim(msp, ox, oy, width_mm, str(int(spec.target_width_mm)))
     return width_mm, height_mm, contour_count + line_count + run_count
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate an ultra-fine CAD reference trace from supplied drawing PNGs.")
+    parser = argparse.ArgumentParser(
+        description="Generate an ultra-fine CAD reference trace from supplied drawing PNGs."
+    )
     parser.add_argument(
         "--source-dir",
         default=os.environ.get("STARBRIDGE_CAD_REFERENCE_IMAGE_DIR", ""),

@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-import unittest
 import json
 import shutil
 import subprocess
 import tempfile
+import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
 from examples.photoshop_bridge.scripts.camera_raw_tune import build_arguments
-from starbridge_mcp.adapters.photoshop.camera_raw_protocol import build_camera_raw_tune_protocol, camera_raw_xmp_document, load_verified_descriptor_fixture
+from starbridge_mcp.adapters.photoshop.camera_raw_protocol import (
+    build_camera_raw_tune_protocol,
+    camera_raw_xmp_document,
+    load_verified_descriptor_fixture,
+)
 from starbridge_mcp.mcp_server import handle_request
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,7 +57,9 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
         self.assertEqual(12, arguments["params"]["vibrance"])
 
     def test_xmp_document_contains_camera_raw_settings(self) -> None:
-        xmp = camera_raw_xmp_document({"Exposure2012": "0.5", "Contrast2012": "8", "Vibrance": "12"})
+        xmp = camera_raw_xmp_document(
+            {"Exposure2012": "0.5", "Contrast2012": "8", "Vibrance": "12"}
+        )
 
         self.assertIn('xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"', xmp)
         self.assertIn('crs:Exposure2012="0.5"', xmp)
@@ -97,7 +102,11 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
         plan, errors = build_camera_raw_tune_protocol(
             {
                 "source": {"mode": "explicit_path", "path": "<user-provided-raw-file>"},
-                "output": {"dir": "examples/output/photoshop", "basename": "raw_tune_review", "formats": ["jpg"]},
+                "output": {
+                    "dir": "examples/output/photoshop",
+                    "basename": "raw_tune_review",
+                    "formats": ["jpg"],
+                },
                 "params": {
                     "exposure": 0.5,
                     "contrast": 8,
@@ -122,7 +131,9 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
         self.assertEqual(0.5, plan["params"]["exposure"])
 
     def test_protocol_rejects_output_escape(self) -> None:
-        plan, errors = build_camera_raw_tune_protocol({"output": {"dir": "sandbox"}, "params": {}}, REPO_ROOT)
+        plan, errors = build_camera_raw_tune_protocol(
+            {"output": {"dir": "sandbox"}, "params": {}}, REPO_ROOT
+        )
 
         self.assertIsNone(plan)
         self.assertIn("examples/output/photoshop", " ".join(errors))
@@ -177,7 +188,9 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            fixture, fixture_errors = load_verified_descriptor_fixture({"descriptor_fixture_path": str(fixture_path)}, plan)
+            fixture, fixture_errors = load_verified_descriptor_fixture(
+                {"descriptor_fixture_path": str(fixture_path)}, plan
+            )
 
         self.assertIsNone(fixture)
         self.assertIn("verified=true", " ".join(fixture_errors))
@@ -196,12 +209,16 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
                         "descriptor_kind": "camera_raw_filter",
                         "verified": True,
                         "verified_by": "local_user",
-                        "descriptors": [{"_obj": "Adobe Camera Raw Filter", "exposure": "{{params.exposure}}"}],
+                        "descriptors": [
+                            {"_obj": "Adobe Camera Raw Filter", "exposure": "{{params.exposure}}"}
+                        ],
                     }
                 ),
                 encoding="utf-8",
             )
-            fixture, fixture_errors = load_verified_descriptor_fixture({"descriptor_fixture_path": str(fixture_path)}, plan)
+            fixture, fixture_errors = load_verified_descriptor_fixture(
+                {"descriptor_fixture_path": str(fixture_path)}, plan
+            )
 
         self.assertEqual([], fixture_errors)
         assert fixture is not None
@@ -219,7 +236,9 @@ class PhotoshopCameraRawProtocolTests(unittest.TestCase):
                         "descriptor_kind": "camera_raw_filter",
                         "verified": True,
                         "verified_by": "local_user",
-                        "descriptors": [{"_obj": "Adobe Camera Raw Filter", "exposure": "{{params.exposure}}"}],
+                        "descriptors": [
+                            {"_obj": "Adobe Camera Raw Filter", "exposure": "{{params.exposure}}"}
+                        ],
                     }
                 ),
                 encoding="utf-8",

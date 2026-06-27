@@ -6,7 +6,6 @@ from typing import Any
 
 from starbridge_mcp.core.security import sanitize
 
-
 SENSITIVE_DRAFT_FILES = {"draft_content.json", "draft_info.json"}
 
 
