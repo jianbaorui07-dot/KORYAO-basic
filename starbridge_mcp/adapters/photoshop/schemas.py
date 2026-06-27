@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 ADAPTER_NAME = "codex_photoshop_bridge_v1"
@@ -70,6 +70,11 @@ def probe_schema() -> dict[str, Any]:
                 default_output_dir="sandbox/evidence",
             ),
             "probe_com": {"type": "boolean", "default": True},
+            "strict": {
+                "type": "boolean",
+                "default": False,
+                "description": "Fail probe when the resolved bridge_kind is 'mock'; require a real node_proxy_uxp or com link.",
+            },
         }
     )
 
@@ -130,10 +135,15 @@ def preview_export_schema() -> dict[str, Any]:
                 requires_confirmation=True,
                 writes_files=True,
                 touches_user_psd=True,
-                default_output_dir="sandbox",
+                default_output_dir="examples/output/photoshop",
             ),
             "format": {"type": "string", "enum": ["png"], "default": "png"},
             "max_side": {"type": "integer", "minimum": 64, "maximum": 4096, "default": 1600},
+            "strict": {
+                "type": "boolean",
+                "default": False,
+                "description": "When true, fail instead of silently writing a placeholder PNG when the UXP bridge is unavailable.",
+            },
         }
     )
 
@@ -350,6 +360,7 @@ class EvidenceManifest:
     status: str
     warnings: list[str]
     errors: list[str]
+    output_artifacts: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -377,4 +388,5 @@ class EvidenceManifest:
             "status": self.status,
             "warnings": self.warnings,
             "errors": self.errors,
+            "output_artifacts": list(self.output_artifacts),
         }
