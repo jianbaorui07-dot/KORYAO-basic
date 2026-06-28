@@ -1,33 +1,51 @@
 {
-  "generated_at": "2026-06-28T21:11:41+08:00",
-  "workspace_root": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace",
+  "generated_at": "2026-06-28T21:12:48+08:00",
+  "workspace_root": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace",
   "jobs_root": "C:\\cad_jobs",
   "repo_root": "C:\\codex-cad-bridge-git",
   "latest_job": "C:\\cad_jobs\\final-production-smoke",
   "workspace_files": {
     "CODEX_CAD_WORKFLOW.md": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\CODEX_CAD_WORKFLOW.md"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\CODEX_CAD_WORKFLOW.md",
+      "size_bytes": 12624,
+      "modified_at": "2026-06-28T21:11:14+08:00",
+      "sha256": "f412d724294ec3c80500f0a8cbed64d2b612b7bd69283397d4759573d9742218"
     },
     "create_trace_job_from_images.py": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\create_trace_job_from_images.py"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\create_trace_job_from_images.py",
+      "size_bytes": 13047,
+      "modified_at": "2026-06-28T20:59:43+08:00",
+      "sha256": "88581e8f77fdf699d29f63ca2f0829cd3aa37c4f470fef748a78b8d97cf1dfb7"
     },
     "run_image_to_cad_job.ps1": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\run_image_to_cad_job.ps1"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\run_image_to_cad_job.ps1",
+      "size_bytes": 1365,
+      "modified_at": "2026-06-27T21:48:53+08:00",
+      "sha256": "7bd3cd597f2455e86e4825ecbb7235acbd4a8aa0a3808ca56bb4297f53f7321f"
     },
     "autocad_finalize_delivery.py": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\autocad_finalize_delivery.py"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\autocad_finalize_delivery.py",
+      "size_bytes": 1877,
+      "modified_at": "2026-06-28T20:59:43+08:00",
+      "sha256": "bd3b909f0a6f3862464d6f1c9100e99b869c9c3ad9bc4c2e21976036731a13ae"
     },
     "final_production_export.py": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\final_production_export.py"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\final_production_export.py",
+      "size_bytes": 2957,
+      "modified_at": "2026-06-28T20:59:43+08:00",
+      "sha256": "c0bbc704afaed080fa6d882571451ad8b6685036604fabb722651a14e62ff459"
     },
     "final_polish_export.py": {
-      "exists": false,
-      "path": "C:\\Users\\84391\\OneDrive\\閺傚洦銆俓\New project\\cad_exact_trace\\final_polish_export.py"
+      "exists": true,
+      "path": "C:\\Users\\84391\\OneDrive\\鏂囨。\\New project\\cad_exact_trace\\final_polish_export.py",
+      "size_bytes": 4542,
+      "modified_at": "2026-06-28T20:56:54+08:00",
+      "sha256": "74cca72ed311e7a4d8053f5e7558a4d568d868c68bb75d8e58a930153837495f"
     }
   },
   "latest_job_files": {
