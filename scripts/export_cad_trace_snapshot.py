@@ -80,11 +80,13 @@ def main() -> int:
     latest_job_files: list[Path] = []
     if latest_job is not None:
         latest_job_files = [
-            latest_job / "job_manifest.json",
+            latest_job / "reference_manifest.json",
             latest_job / "README.md",
             latest_job / "final_production" / "final_production_draft.json",
             latest_job / "final_production" / "final_production_draft.dxf",
             latest_job / "final_production" / "final_production_autocad_polished.dxf",
+            latest_job / "comparison" / "trace_fidelity_report.json",
+            latest_job / "comparison" / "trace_fidelity_report.md",
             latest_job / "delivery_draft" / "delivery_draft.dxf",
             latest_job / "final_polish" / "final_polish_draft.dxf",
             latest_job / "final_review" / "combined_final_review.dxf",
@@ -109,8 +111,10 @@ def main() -> int:
     copy_if_exists(workspace_root / "CODEX_CAD_WORKFLOW.md", exports_root / "CODEX_CAD_WORKFLOW.local.md")
     copy_if_exists(workspace_root / "create_trace_job_from_images.py", exports_root / "create_trace_job_from_images.py.txt")
     if latest_job is not None:
-        copy_if_exists(latest_job / "job_manifest.json", exports_root / "latest_job_manifest.json")
+        copy_if_exists(latest_job / "reference_manifest.json", exports_root / "latest_job_manifest.json")
         copy_if_exists(latest_job / "final_production" / "final_production_draft.json", exports_root / "final_production_draft.json")
+        copy_if_exists(latest_job / "comparison" / "trace_fidelity_report.json", exports_root / "trace_fidelity_report.json")
+        copy_if_exists(latest_job / "comparison" / "trace_fidelity_report.md", exports_root / "trace_fidelity_report.md")
         copy_if_exists(latest_job / "README.md", exports_root / "latest_job_README.md")
 
     lines = [
@@ -139,6 +143,8 @@ def main() -> int:
                 "- `exports/create_trace_job_from_images.py.txt`",
                 "- `exports/latest_job_manifest.json`",
                 "- `exports/final_production_draft.json`",
+                "- `exports/trace_fidelity_report.json`",
+                "- `exports/trace_fidelity_report.md`",
                 "- `exports/latest_job_README.md`",
             ]
         )
