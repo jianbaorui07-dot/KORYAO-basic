@@ -19,6 +19,7 @@ Run it two ways (same body):
 Outputs (into --out, default ./out): EiffelTower.blend, EiffelTower.glb,
 preview.png. No machine-specific paths are baked in.
 """
+
 from __future__ import annotations
 
 import math
@@ -35,7 +36,7 @@ def parse_out_dir() -> str:
     argv = sys.argv
     out = "./out"
     if "--" in argv:
-        extra = argv[argv.index("--") + 1:]
+        extra = argv[argv.index("--") + 1 :]
         if "--out" in extra:
             out = extra[extra.index("--out") + 1]
     out = os.path.abspath(out)
@@ -80,35 +81,49 @@ def build() -> dict:
         return len(verts) - 1
 
     def lvl(cx, cy, h, z):
-        c = [(cx + h, cy + h, z), (cx - h, cy + h, z),
-             (cx - h, cy - h, z), (cx + h, cy - h, z)]
+        c = [(cx + h, cy + h, z), (cx - h, cy + h, z), (cx - h, cy - h, z), (cx + h, cy - h, z)]
         ci = [add_v(p) for p in c]
-        mi = [add_v(((c[k][0] + c[(k + 1) % 4][0]) / 2,
-                     (c[k][1] + c[(k + 1) % 4][1]) / 2, z)) for k in range(4)]
+        mi = [
+            add_v(((c[k][0] + c[(k + 1) % 4][0]) / 2, (c[k][1] + c[(k + 1) % 4][1]) / 2, z))
+            for k in range(4)
+        ]
         return {"c": ci, "m": mi}
 
     def seg(t, b):
         cb, mb, ct, mt = b["c"], b["m"], t["c"], t["m"]
         for k in range(4):
             k1 = (k + 1) % 4
-            edges.extend([
-                (cb[k], mb[k]), (mb[k], cb[k1]),   # bottom ring, split at mid
-                (cb[k], ct[k]),                     # corner vertical
-                (mb[k], mt[k]),                     # mid post
-                (cb[k], mt[k]), (mb[k], ct[k]),     # left X
-                (mb[k], ct[k1]), (cb[k1], mt[k]),   # right X
-            ])
+            edges.extend(
+                [
+                    (cb[k], mb[k]),
+                    (mb[k], cb[k1]),  # bottom ring, split at mid
+                    (cb[k], ct[k]),  # corner vertical
+                    (mb[k], mt[k]),  # mid post
+                    (cb[k], mt[k]),
+                    (mb[k], ct[k]),  # left X
+                    (mb[k], ct[k1]),
+                    (cb[k1], mt[k]),  # right X
+                ]
+            )
 
     n1 = 12
     for sx, sy in [(1, 1), (-1, 1), (-1, -1), (1, -1)]:
-        levels = [lvl(sx * leg_R(Z2 * i / n1), sy * leg_R(Z2 * i / n1),
-                      leg_L(Z2 * i / n1) / 2, Z2 * i / n1) for i in range(n1 + 1)]
+        levels = [
+            lvl(
+                sx * leg_R(Z2 * i / n1),
+                sy * leg_R(Z2 * i / n1),
+                leg_L(Z2 * i / n1) / 2,
+                Z2 * i / n1,
+            )
+            for i in range(n1 + 1)
+        ]
         for i in range(n1):
             seg(levels[i + 1], levels[i])
 
     n2 = 18
-    up = [lvl(0, 0, tower_w(Z2 + (ZT - Z2) * i / n2), Z2 + (ZT - Z2) * i / n2)
-          for i in range(n2 + 1)]
+    up = [
+        lvl(0, 0, tower_w(Z2 + (ZT - Z2) * i / n2), Z2 + (ZT - Z2) * i / n2) for i in range(n2 + 1)
+    ]
     for i in range(n2):
         seg(up[i + 1], up[i])
 
@@ -158,9 +173,14 @@ def build() -> dict:
     def inner(z):
         return max(leg_R(z) - leg_L(z) / 2, 6.0)
 
-    arc = [(42 * math.cos(math.pi * i / 24),
+    arc = [
+        (
+            42 * math.cos(math.pi * i / 24),
             inner(2 + 38 * math.sin(math.pi * i / 24)),
-            2 + 38 * math.sin(math.pi * i / 24)) for i in range(25)]
+            2 + 38 * math.sin(math.pi * i / 24),
+        )
+        for i in range(25)
+    ]
     ac = bpy.data.curves.new("EiffelArchesMesh", "CURVE")
     ac.dimensions = "3D"
     ac.fill_mode = "FULL"
@@ -234,13 +254,13 @@ def build() -> dict:
     scene.collection.objects.link(cam)
     cam.data.lens = 40
     cam.data.clip_start = 1.0
-    cam.data.clip_end = 6000.0          # large model -> raise the far clip
+    cam.data.clip_end = 6000.0  # large model -> raise the far clip
     cam.location = (355, -395, 118)
     cam.rotation_euler = (Vector((0, 0, 158)) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
 
     try:
-        scene.render.engine = "BLENDER_EEVEE_NEXT"   # current EEVEE id; guarded
+        scene.render.engine = "BLENDER_EEVEE_NEXT"  # current EEVEE id; guarded
     except Exception:
         pass
     scene.render.resolution_x = 950
@@ -259,17 +279,20 @@ def export(out_dir: str, objs) -> None:
         o.select_set(False)
     for o in objs:
         o.select_set(True)
-    bpy.context.view_layer.objects.active = objs[0]   # active lives on view_layer
+    bpy.context.view_layer.objects.active = objs[0]  # active lives on view_layer
 
     # glTF evaluates the depsgraph: curve+bevel bakes to mesh with export_apply
-    bpy.ops.export_scene.gltf(filepath=glb, export_format="GLB",
-                              use_selection=True, export_apply=True, export_yup=True)
+    bpy.ops.export_scene.gltf(
+        filepath=glb, export_format="GLB", use_selection=True, export_apply=True, export_yup=True
+    )
     bpy.ops.wm.save_as_mainfile(filepath=blend, compress=True)
 
     scene.render.filepath = preview
     bpy.ops.render.render(write_still=True)
-    print(f"BUILT blend={os.path.exists(blend)} "
-          f"glb={os.path.exists(glb)} preview={os.path.exists(preview)}")
+    print(
+        f"BUILT blend={os.path.exists(blend)} "
+        f"glb={os.path.exists(glb)} preview={os.path.exists(preview)}"
+    )
 
 
 def main() -> None:
