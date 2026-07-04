@@ -12,6 +12,7 @@ EXPECTED_BRIDGES = {
     "blender_bridge": "blender",
     "illustrator_bridge": "illustrator",
     "capcut_jianying_bridge": "capcut_jianying",
+    "stable_fast_3d_bridge": "stable_fast_3d",
 }
 REQUIRED_FIELDS = {
     "bridge_id",
@@ -80,6 +81,7 @@ class BridgeStatusFilesTest(unittest.TestCase):
             "blender_bridge": "prototype",
             "illustrator_bridge": "prototype",
             "capcut_jianying_bridge": "prototype",
+            "stable_fast_3d_bridge": "prototype",
         }
         for directory, maturity in expected.items():
             status_path = REPO_ROOT / "examples" / directory / "bridge_status.json"
