@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from starbridge_mcp.core.evidence import (
+    ValidationResult,
     create_manifest,
     ensure_evidence_path,
     load_manifest,
@@ -23,6 +24,20 @@ class EvidenceManifestTests(unittest.TestCase):
         self.assertEqual("queued", payload["status"])
         self.assertTrue(payload["dry_run"])
         self.assertEqual("job_123", payload["job_id"])
+        self.assertIn("quality_gates", payload)
+        self.assertIn("asset_manifest", payload)
+        self.assertTrue(manifest_validation_result(payload).ok)
+
+    def test_manifest_carries_quality_gates_and_asset_manifest(self) -> None:
+        manifest = create_manifest(bridge="blender", action="recipe_evidence")
+        manifest.add_quality_gate(
+            ValidationResult(name="same_camera_compare", ok=True, message="declared gate")
+        )
+        manifest.add_asset("examples/output/evidence/render_compare.json", label="compare")
+        payload = manifest.to_dict()
+
+        self.assertEqual("same_camera_compare", payload["quality_gates"][0]["name"])
+        self.assertEqual("compare", payload["asset_manifest"][0]["label"])
         self.assertTrue(manifest_validation_result(payload).ok)
 
     def test_status_vocabulary_is_enforced(self) -> None:

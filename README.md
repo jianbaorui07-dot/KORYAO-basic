@@ -96,7 +96,7 @@ npm.cmd run starbridge:tools:safe
 | 软件桥 | Codex 负责 | 本地软件负责 | 当前状态 |
 | --- | --- | --- | --- |
 | ComfyUI 图像生成桥 | MCP 工具读取系统/节点信息、校验 API workflow、生成脱敏 lifecycle 摘要 | 文生图、图生图、修复、放大 | 已挂 `comfyui.system_probe` / `comfyui.workflow_validate` / `comfy.workflow_lifecycle_summary` |
-| Blender 三维场景桥 | MCP 工具检查可执行文件和环境线索 | 建模、材质、灯光、相机、渲染 | 已挂 `blender.environment_probe`，待补安全场景脚本 |
+| Blender 三维场景桥 | MCP 工具检查可执行文件和环境线索，并生成参考图重建 dry-run 计划 | 建模、材质、灯光、相机、渲染 | 已挂 `blender.environment_probe`、`blender.scene_plan`、`blender.reference_reconstruction_plan` |
 | CAD 工程制图桥 | MCP 工具检查 AutoCAD 环境；离线生成/校验 DXF plan | 精确线条、孔位、尺寸、图层、DWG | 已挂 `cad_autocad.environment_probe` 和 `autocad_dxf.*` |
 | Photoshop 修图桥 | MCP 工具检查 COM/session 线索；Node Proxy + UXP v2 读取文档和图层；脚本读取文档信息 | 主体选择、抠图、图层处理、PNG 导出、typed BatchPlay confirmed path | 已挂 `photoshop.session_info` 和 `ps.*` v2 工具，写入动作仍需确认 |
 | AI 矢量文件桥 | MCP 工具检查 Illustrator COM/session 线索 | Illustrator `.ai`、Image Trace、SVG/PDF/PNG 导出 | 已挂 `illustrator.document_info`，导出脚本未开放 |
@@ -118,7 +118,7 @@ npm.cmd run starbridge:tools:safe
 | 接入 CAD / AutoCAD | [docs/01-codex-cad.md](docs/01-codex-cad.md) | `python scripts\test_autocad_mcp.py` |
 | 接入 Photoshop | [docs/03-codex-photoshop.md](docs/03-codex-photoshop.md) | `powershell -ExecutionPolicy Bypass -File examples\photoshop_bridge\scripts\diagnose_local.ps1` |
 | 接入 Illustrator / AI 矢量文件桥 | [docs/05-codex-illustrator.md](docs/05-codex-illustrator.md) | `npm.cmd run illustrator:preflight:plan` |
-| 接入 Blender | [docs/04-codex-blender.md](docs/04-codex-blender.md) | `npm.cmd run blender:scene:plan` |
+| 接入 Blender | [docs/04-codex-blender.md](docs/04-codex-blender.md) | `npm.cmd run blender:scene:plan` / `npm.cmd run blender:reference:plan` |
 | 研究剪映 / CapCut | [docs/06-codex-jianying.md](docs/06-codex-jianying.md) | `npm.cmd run capcut:draft:structure` |
 
 ## 仓库区域标注
@@ -140,7 +140,7 @@ npm.cmd run starbridge:tools:safe
 | Bridge | Stable | Dry-run only | Experimental | Planned |
 | --- | --- | --- | --- | --- |
 | ComfyUI | Workflow JSON validation；offline-safe status shape | 无 | 本地 HTTP probe 和 `txt2img` submit 依赖运行中的 ComfyUI 和显式 checkpoint | 完整 job lifecycle、img2img、inpaint、upscale、asset manifest |
-| Blender | Environment probe；固定模板 `blender.scene_plan` dry-run | Scene plan，不启动 Blender | 公开 release 里不承诺真实 render/write loop | confirmed local render manifest |
+| Blender | Environment probe；固定模板 `blender.scene_plan` 和 reference reconstruction dry-run | Scene / reference plan，不启动 Blender | 公开 release 里不承诺真实 render/write loop | confirmed local render manifest 和同相机参考图误差报告 |
 | AutoCAD / DXF | CAD plan validation、plan summary、AutoCAD/DXF plan validate / dry-run / guarded write、sandbox output guard | DXF export 默认 dry-run | `confirm_write=true` 后写入 `examples/cad/output` | 更完整 CAD entity schema 和桌面 AutoCAD evidence |
 | Photoshop | Safe status/session metadata；Node Proxy + UXP v2 probe、document info、layers list、typed BatchPlay validation | Sandbox demo plan、preview export 和 confirmed BatchPlay 都需显式确认 | 真实 COM / UXP 依赖已授权 Photoshop、Node Proxy 和本地插件 | 更完整 UXP preview export evidence |
 | Illustrator | Safe status/document metadata；`illustrator.preflight` sanitized summary | Sandbox artboard/export plan 默认 dry-run | 真实 COM document info 和 sandbox export 依赖已授权 Illustrator | Image Trace workflows |
@@ -162,7 +162,9 @@ npm.cmd run starbridge:mcp
 
 MCP 客户端可发现首批安全工具：
 
-`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan`、`autocad_dxf.write_dxf`。
+`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`starbridge.recipe_list`、`starbridge.recipe_plan`、`starbridge.recipe_evidence`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`blender.reference_reconstruction_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan`、`autocad_dxf.write_dxf`。
+
+`starbridge.recipe_*` 是跨软件高层计划入口，只返回 dry-run action plan、quality gates 和标准 EvidenceManifest 预览；真实写入仍走各 bridge 自己的确认门和 sandbox 边界。
 
 ### MCP Resources（只读上下文）
 
@@ -296,7 +298,7 @@ python -m starbridge_mcp.server job-status --json
 | 高 | 为 ComfyUI template list/get/from-template 增加更短的本地验证入口。 |
 | 中 | 把 Photoshop 的 UXP / Node Proxy 读写动作继续收敛成 typed、confirmed、sandboxed MCP 工具。 |
 | 中 | 给 Illustrator 增加 `trace_image_to_vector` 参数化示例。 |
-| 中 | 给 Blender 增加确认后的本机 render manifest。 |
+| 中 | 给 Blender 增加确认后的本机 render manifest 和同相机参考图误差报告。 |
 | 中 | 给剪映 / CapCut 增加公开安全测试草稿 skeleton，不读取私有草稿内容。 |
 
 完整路线图见 [ROADMAP.md](ROADMAP.md)。

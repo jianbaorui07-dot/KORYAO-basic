@@ -10,20 +10,25 @@
     "Python 3.10+"
   ],
   "entrypoints": {
-    "probe": "python examples/blender_bridge/probe.py"
+    "probe": "python examples/blender_bridge/probe.py",
+    "scene_plan": "python examples/blender_bridge/scene_plan.py --json",
+    "reference_reconstruction_plan": "python examples/blender_bridge/reference_reconstruction_plan.py --json"
   },
   "supported_tasks": [
-    "environment probe"
+    "environment probe",
+    "safe scene dry-run plan",
+    "reference reconstruction dry-run plan"
   ],
   "unsupported_tasks": [
-    "public safe scene generation",
     "render pipeline",
     "Blender MCP integration",
+    "automatic verified model generation",
     "private .blend processing"
   ],
   "safety_notes": [
     "Do not commit private .blend files, textures, asset libraries, render caches, or purchased models.",
     "Public examples must use generated geometry and materials only.",
+    "Reference reconstruction plans must label hidden geometry, true thickness, and absolute scale as unknown unless measured or multi-view verified.",
     "Keep BLENDER_EXE and local asset paths outside the repository."
   ]
 }

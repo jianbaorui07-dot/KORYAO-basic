@@ -50,6 +50,7 @@ class PackageScriptsTest(unittest.TestCase):
                 "status:probe:json",
                 "cad:dxf:dry-run",
                 "blender:scene:plan",
+                "blender:reference:plan",
                 "comfy:probe",
                 "comfy:workflow:validate",
                 "comfy:templates:list",

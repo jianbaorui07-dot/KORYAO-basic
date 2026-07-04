@@ -73,6 +73,7 @@ class ToolRegistryTests(unittest.TestCase):
         self.assertIn("starbridge.evidence_init", names)
         self.assertIn("starbridge.evidence_validate", names)
         self.assertIn("starbridge.job_status", names)
+        self.assertIn("starbridge.recipe_evidence", names)
 
     def test_photoshop_recipe_capabilities_are_registered(self) -> None:
         capabilities = list_capabilities(bridge="photoshop")
@@ -104,6 +105,15 @@ class ToolRegistryTests(unittest.TestCase):
                 self.assertIn(expected, by_name)
                 self.assertTrue(by_name[expected]["safe_default"])
                 self.assertEqual("safe_read_only", by_name[expected]["risk_level"])
+
+        blender_capabilities = list_capabilities(bridge="blender", include_guarded=False)
+        blender_by_name = {item["name"]: item for item in blender_capabilities}
+        self.assertIn("blender.reference_reconstruction_plan", blender_by_name)
+        self.assertTrue(blender_by_name["blender.reference_reconstruction_plan"]["safe_default"])
+        self.assertEqual(
+            "safe_read_only",
+            blender_by_name["blender.reference_reconstruction_plan"]["risk_level"],
+        )
 
 
 if __name__ == "__main__":

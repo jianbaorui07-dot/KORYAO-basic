@@ -53,6 +53,7 @@ class McpToolSchemasTest(unittest.TestCase):
             "starbridge.evidence_init",
             "starbridge.evidence_validate",
             "starbridge.job_status",
+            "starbridge.recipe_evidence",
         ):
             with self.subTest(tool=name):
                 self.assertIn(name, by_name)

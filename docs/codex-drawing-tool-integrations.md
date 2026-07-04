@@ -9,7 +9,7 @@
 | 通道 | 当前入口 | 当前状态 | 下一步 |
 | --- | --- | --- | --- |
 | Codex x ComfyUI | `examples/comfy_bridge/`；`COMFY_LAUNCHER` | 已有 API 示例和启动脚本配置方式；不在仓库记录本机路径 | 启动 ComfyUI 后跑 `python examples\bridge_status.py --json` 和 `python examples\comfy_bridge\comfy_probe.py` |
-| Codex x Blender | `BLENDER_EXE`；`BLENDER_MCP_DIR` | 通过环境变量或常见安装路径识别 Blender 和 MCP 桥 | 用状态脚本固化检测路径，再补公开安全的 Blender 示例脚本 |
+| Codex x Blender | `BLENDER_EXE`；`BLENDER_MCP_DIR` | 通过环境变量或常见安装路径识别 Blender 和 MCP 桥；已有 `scene_plan` 和 `reference_reconstruction_plan` dry-run | 下一步做确认后的同相机渲染证据、误差报告和本地 evidence manifest |
 | Codex x CAD | `cad-mcp-autocad/`；`AUTOCAD_MCP_SETUP.md` | 状态检查已能找到 AutoCAD 2026 和 `pywin32/win32com` | 继续保留在 `cad-mcp-autocad/` 子项目内优化 |
 | Codex x Photoshop | `examples/photoshop_bridge/`；`docs/photoshop-codex-bridge.md` | 已验证 Windows COM + Photoshop JavaScript 能创建测试文档、导出 PNG，并能调用主体选择做抠图实验 | 继续优化 UXP 面板、本地桥状态接口和 MCP 封装；不记录个人路径和素材信息 |
 | Codex x Illustrator / AI 矢量文件 | `docs/05-codex-illustrator.md`；`ILLUSTRATOR_EXE` | 已补中文接入说明，状态检查支持环境变量和 COM 探测 | 先做只读文档信息和公开安全测试画板，再做 Image Trace / SVG 导出 |
@@ -25,6 +25,7 @@
 | `docs/02-codex-comfyui.md` | Codex 接入 ComfyUI 中文介绍 |
 | `docs/03-codex-photoshop.md` | Codex 接入 Photoshop 中文介绍 |
 | `docs/04-codex-blender.md` | Codex 接入 Blender 中文介绍 |
+| `docs/blender-reference-verified-reconstruction.md` | 参考图驱动 Blender 重建的防幻觉流程、GitHub 项目分组和误差验收门槛 |
 | `docs/05-codex-illustrator.md` | Codex 接入 Illustrator / AI 矢量文件中文介绍 |
 | `docs/06-codex-jianying.md` | Codex 接入剪映 / CapCut 调研和路线 |
 | `docs/photoshop-codex-bridge.md` | Photoshop 本地桥接入方案、实验结论和安全边界 |
@@ -44,6 +45,7 @@
 | ComfyUI MCP | `artokun/comfyui-mcp` | 提供 workflow 执行、可视化、模型管理、调试、ControlNet/IP-Adapter 等 MCP 工具思路 | Node.js 版本、自动下载模型、token 和外部 API 要谨慎隔离 |
 | ComfyUI MCP 轻量方案 | `alecc08/comfyui-mcp`、`joenorton/comfyui-mcp-server` | 可以对比轻量 MCP API 设计，避免一次引入过重依赖 | 需要先看维护状态和依赖边界 |
 | Blender MCP | `djeada/blender-mcp-server`、`loonghao/dcc-mcp-blender` | Blender add-on + MCP server 的结构可参考，用于场景、材质、渲染、导出 | 需要 Blender 打开或 headless 运行；私有 `.blend`、贴图和资产不上传 |
+| Blender 参考图验证重建 | `SAM2`、`GroundingDINO`、`DeepLSD`、`fSpy`、`VGGT`、`Depth Anything 3`、`MapAnything`、`COLMAP`、`PyTorch3D`、`BlenderProc` | 把参考图拆成 mask、边缘、相机、深度、点云和同相机渲染误差，不把单图不可见内容当事实 | 真实执行必须本地确认；用户图、渲染图、`.blend`、模型缓存和第三方资产不进 Git |
 | CAD MCP | `daobataotie/CAD-MCP` | 当前本地子项目来源，适合继续按 Windows COM/AutoCAD 路线优化 | 依赖 Windows、AutoCAD、pywin32；客户 DWG 不上传 |
 | 设计稿/矢量设计 | `penpot/penpot-mcp`、Figma 官方 MCP 文档 | 适合从设计稿读取上下文、创建或修改设计元素 | Penpot/Figma 可能涉及账号、浏览器授权或团队席位，需要人工处理登录 |
 | Illustrator / AI 矢量文件 | `docs/05-codex-illustrator.md`、Adobe Illustrator COM / JavaScript | 适合线稿矢量化、测试画板、SVG/PDF/PNG 导出和 `.ai` 本机工程整理 | 需要已授权 Illustrator；安装路径、AI 工程、商业字体、源图和导出结果不进 Git |
@@ -55,7 +57,7 @@
 1. 先把本机状态检测做准：ComfyUI 根目录、ComfyUI 启动脚本、Blender 可执行文件、Blender MCP 桥、AutoCAD 路径都要能被 `examples/bridge_status.py` 识别。
 2. 再增强 ComfyUI 示例：保留现有 `txt2img`，后续增加 `img2img`、upscale、inpaint、批量 prompt 和 workflow 校验。
 3. 再把 ComfyUI 调用封装成更稳定的本地工具层：先用现有 HTTP API 脚本跑通，不急着引入完整第三方 MCP 包。
-4. Blender 侧优先做公开安全示例：生成简单场景、材质、相机、渲染路径，不引用私有资产库。
+4. Blender 侧优先保持公开安全示例和参考图重建计划：先生成 scene plan、reference reconstruction plan、误差门槛和候选工具分组，不引用私有资产库。
 5. CAD 侧继续走子项目隔离：所有 AutoCAD MCP 修改留在 `cad-mcp-autocad/`，根目录只更新说明。
 6. Photoshop 侧先保留 COM 探针和主体抠图实验，继续评估 UXP 面板和本地 MCP 封装；所有输入图和输出图都由参数传入，不写入仓库。
 7. Illustrator / AI 矢量文件侧先做只读文档信息和公开安全测试画板，再做 Image Trace、SVG/PDF 导出和 MCP 封装；所有源图和导出路径都由参数传入。
@@ -91,6 +93,9 @@
 - ComfyUI MCP: https://github.com/artokun/comfyui-mcp
 - ComfyUI MCP examples: https://github.com/alecc08/comfyui-mcp, https://github.com/joenorton/comfyui-mcp-server
 - Blender MCP: https://github.com/djeada/blender-mcp-server, https://github.com/loonghao/dcc-mcp-blender
+- Blender reference verification map: `docs/blender-reference-verified-reconstruction.md`
+- Reference segmentation and geometry: https://github.com/facebookresearch/sam2, https://github.com/IDEA-Research/GroundingDINO, https://github.com/cvg/DeepLSD, https://github.com/stuffmatic/fSpy, https://github.com/facebookresearch/vggt, https://github.com/ByteDance-Seed/depth-anything-3, https://github.com/facebookresearch/map-anything
+- Reference fitting and evidence: https://github.com/colmap/colmap, https://github.com/facebookresearch/pytorch3d, https://github.com/NVlabs/nvdiffrast, https://github.com/DLR-RM/BlenderProc
 - CAD MCP: https://github.com/daobataotie/CAD-MCP
 - Penpot MCP: https://github.com/penpot/penpot-mcp
 - Figma MCP official guide: https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server

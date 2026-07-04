@@ -7,7 +7,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from starbridge_mcp.bridges.blender_safe_scene import build_scene_plan
+from starbridge_mcp.bridges.blender_safe_scene import (
+    build_reference_reconstruction_plan,
+    build_scene_plan,
+)
 from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summary
 from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
 
@@ -28,6 +31,27 @@ class DeepenedBridgeCapabilitiesTest(unittest.TestCase):
         self.assertEqual("disabled", plan["script_policy"]["arbitrary_python"])
         self.assertEqual("not_opened", plan["script_policy"]["private_blend"])
         self.assertGreaterEqual(len(plan["scene"]["objects"]), 3)
+        self.assert_no_private_paths(plan)
+
+    def test_blender_reference_reconstruction_plan_defines_verification_gate(self) -> None:
+        private_reference = "\\".join(["C:", "Users", "private", "Documents", "client_photo.png"])
+        plan = build_reference_reconstruction_plan(
+            reference_name=private_reference,
+            target_kind="building_facade",
+            reference_views=1,
+            known_scale="door height = 2.1m",
+            tolerance_pixels=3,
+        )
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual("dry_run", plan["mode"])
+        self.assertEqual("reference_reconstruction_plan", plan["action"])
+        self.assertEqual("not_read_by_this_plan", plan["script_policy"]["reference_pixels"])
+        self.assertEqual("disabled", plan["script_policy"]["arbitrary_python"])
+        self.assertIn("render_compare_iterate", {stage["stage"] for stage in plan["pipeline"]})
+        self.assertIn(
+            "hidden_back_side", plan["non_hallucination_contract"]["must_not_infer_as_fact"]
+        )
         self.assert_no_private_paths(plan)
 
     def test_illustrator_preflight_uses_sanitized_summary_only(self) -> None:
