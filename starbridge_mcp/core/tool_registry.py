@@ -1103,6 +1103,38 @@ def list_capabilities(*, bridge: str = "all", include_guarded: bool = True) -> l
     return sanitize(selected)
 
 
+def _bridge_overview(capabilities: list[dict[str, Any]], *, bridge: str) -> dict[str, Any]:
+    names = ["all"] if bridge == "all" else ["all", bridge]
+    if bridge == "all":
+        names.extend(BRIDGE_PROFILES)
+
+    overview: dict[str, Any] = {}
+    for name in dict.fromkeys(names):
+        items = [item for item in capabilities if item["bridge"] == name]
+        if name != "all" and not items and name not in BRIDGE_PROFILES:
+            continue
+        safe_tools = sorted(item["name"] for item in items if item["safe_default"])
+        guarded_tools = sorted(item["name"] for item in items if not item["safe_default"])
+        profile = BRIDGE_PROFILES.get(name, {})
+        overview[name] = {
+            "display_name": profile.get("display_name", "StarBridge global tools"),
+            "software": profile.get("software", "StarBridge"),
+            "tool_count": len(items),
+            "safe_default_tool_count": len(safe_tools),
+            "guarded_tool_count": len(guarded_tools),
+            "requires_local_software_tool_count": sum(
+                1 for item in items if item["requires_local_software"]
+            ),
+            "statuses": sorted({item["current_status"] for item in items}),
+            "risk_levels": sorted({item["risk_level"] for item in items}),
+            "safe_tools": safe_tools,
+            "guarded_tools": guarded_tools,
+            "readiness": profile.get("ready_when"),
+            "safety_boundary": profile.get("safety_boundary"),
+        }
+    return overview
+
+
 def capability_summary(*, bridge: str = "all", include_guarded: bool = True) -> dict[str, Any]:
     capabilities = list_capabilities(bridge=bridge, include_guarded=include_guarded)
     bridge_categories: dict[str, list[str]] = {}
@@ -1114,12 +1146,33 @@ def capability_summary(*, bridge: str = "all", include_guarded: bool = True) -> 
         {
             "ok": True,
             "framework": "StarBridge",
+            "manifest_version": "starbridge.capabilities.v2",
             "action": "tools",
             "bridge": bridge,
             "capability_count": len(capabilities),
             "capabilities": capabilities,
             "bridge_categories": {
                 name: sorted(values) for name, values in bridge_categories.items()
+            },
+            "bridge_overview": _bridge_overview(capabilities, bridge=bridge),
+            "planner_hints": {
+                "safe_discovery_sequence": [
+                    "starbridge.safe_roots",
+                    "starbridge.status",
+                    "starbridge.recipe_list",
+                    "starbridge.recipe_plan",
+                    "starbridge.recipe_evidence",
+                ],
+                "evidence_tools": [
+                    "starbridge.evidence_init",
+                    "starbridge.evidence_validate",
+                    "starbridge.recipe_evidence",
+                    "starbridge.job_status",
+                ],
+                "confirmed_action_rule": (
+                    "Call safe_default tools first; guarded tools require the matching "
+                    "confirm_write, confirm_export, or confirm_run flag and must stay inside safe roots."
+                ),
             },
             "adoption_policy": {
                 "third_party_source": "third_party_research is local-only and ignored by Git.",

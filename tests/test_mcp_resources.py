@@ -75,7 +75,11 @@ class McpResourcesTests(unittest.TestCase):
         response = request(4, "resources/read", {"uri": "starbridge://capabilities"})
         payload = json.loads(response["result"]["contents"][0]["text"])
         self.assertEqual("tools", payload["action"])
+        self.assertEqual("starbridge.capabilities.v2", payload["manifest_version"])
         self.assertGreater(payload["capability_count"], 0)
+        self.assertIn("bridge_overview", payload)
+        self.assertIn("planner_hints", payload)
+        self.assertIn("comfyui", payload["bridge_overview"])
         self.assertTrue(all("current_status" in item for item in payload["capabilities"]))
 
     def test_safe_roots_resource_matches_safe_roots_tool_shape(self) -> None:

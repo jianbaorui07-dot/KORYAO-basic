@@ -51,10 +51,26 @@ class ToolRegistryTests(unittest.TestCase):
         text = json.dumps(payload, ensure_ascii=False)
         self.assert_no_private_paths(text)
         self.assertEqual(payload["action"], "tools")
+        self.assertEqual("starbridge.capabilities.v2", payload["manifest_version"])
         self.assertGreater(payload["capability_count"], 0)
         self.assertIn("bridge_categories", payload)
+        self.assertIn("bridge_overview", payload)
+        self.assertIn("planner_hints", payload)
         self.assertIn("evidence_init", payload["bridge_categories"]["all"])
         self.assertIn("safe_roots", payload["bridge_categories"]["all"])
+        self.assertIn("starbridge.recipe_evidence", payload["planner_hints"]["evidence_tools"])
+
+    def test_capability_summary_includes_bridge_overview(self) -> None:
+        payload = capability_summary(bridge="photoshop")
+        overview = payload["bridge_overview"]
+
+        self.assertIn("all", overview)
+        self.assertIn("photoshop", overview)
+        self.assertGreater(overview["photoshop"]["tool_count"], 0)
+        self.assertGreater(overview["photoshop"]["safe_default_tool_count"], 0)
+        self.assertGreater(overview["photoshop"]["guarded_tool_count"], 0)
+        self.assertIn("photoshop.recipe_plan", overview["photoshop"]["safe_tools"])
+        self.assertIn("photoshop.recipe_run", overview["photoshop"]["guarded_tools"])
 
     def test_server_tools_action_outputs_json(self) -> None:
         completed = subprocess.run(
