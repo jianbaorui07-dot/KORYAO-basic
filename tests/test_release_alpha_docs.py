@@ -10,6 +10,7 @@ class ReleaseAlphaDocsTest(unittest.TestCase):
     def test_release_docs_exist(self) -> None:
         self.assertTrue((REPO_ROOT / "docs" / "CAPABILITY_MATRIX.md").exists())
         self.assertTrue((REPO_ROOT / "docs" / "RELEASE_V0_1_ALPHA.md").exists())
+        self.assertTrue((REPO_ROOT / "docs" / "starbridge-recipes-quickstart.md").exists())
 
     def test_capability_matrix_has_requested_columns_and_claims(self) -> None:
         matrix = (REPO_ROOT / "docs" / "CAPABILITY_MATRIX.md").read_text(encoding="utf-8")
@@ -38,6 +39,20 @@ class ReleaseAlphaDocsTest(unittest.TestCase):
             "## Safe demo commands",
         ):
             self.assertIn(heading, release)
+
+    def test_recipe_quickstart_documents_safe_order(self) -> None:
+        quickstart = (REPO_ROOT / "docs" / "starbridge-recipes-quickstart.md").read_text(
+            encoding="utf-8"
+        )
+        for phrase in (
+            "starbridge://capabilities",
+            "starbridge.recipe_list",
+            "starbridge.recipe_plan",
+            "starbridge.recipe_evidence",
+            "EvidenceManifest",
+            "starbridge://safe-roots",
+        ):
+            self.assertIn(phrase, quickstart)
 
 
 if __name__ == "__main__":

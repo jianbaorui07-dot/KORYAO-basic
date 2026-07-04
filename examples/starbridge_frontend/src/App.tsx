@@ -3,9 +3,6 @@ import {
   Activity,
   Boxes,
   CheckCircle2,
-  Code2,
-  Download,
-  Eye,
   FileJson,
   Gauge,
   GitBranch,
@@ -14,110 +11,97 @@ import {
   MonitorCog,
   Play,
   Radar,
+  RefreshCcw,
   ShieldCheck,
+  Sparkles,
   TerminalSquare,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import * as THREE from 'three';
 
-type Bridge = {
-  id: string;
+type Capability = {
   name: string;
-  label: string;
-  state: 'stable' | 'experimental' | 'planned' | 'research';
-  summary: string;
-  safeDefault: string;
-  command: string;
-  color: string;
+  bridge: string;
+  action: string;
+  safe_default: boolean;
+  requires_confirmation: boolean;
+  current_status: string;
+  risk_level: string;
 };
 
-const bridges: Bridge[] = [
-  {
-    id: '01',
-    name: 'ComfyUI',
-    label: 'workflow 验证',
-    state: 'stable',
-    summary: '校验 workflow JSON，离线时仍返回安全状态，不暴露本机模型和生成图。',
-    safeDefault: '只读 probe / workflow validate',
-    command: 'npm.cmd run comfy:probe',
-    color: '#00d7ff',
-  },
-  {
-    id: '02',
-    name: 'Blender',
-    label: '场景桥接',
-    state: 'planned',
-    summary: '先做环境探针和场景证据规划，公开仓库不读取私有 blend 和贴图资产。',
-    safeDefault: '环境摘要 / 未来 evidence',
-    command: 'python examples\\bridge_status.py --probe-executables',
-    color: '#f2c94c',
-  },
-  {
-    id: '03',
-    name: 'AutoCAD / DXF',
-    label: '工程图 dry-run',
-    state: 'stable',
-    summary: '把自然语言或 JSON plan 转成可审查 DXF 结构，写入必须显式确认。',
-    safeDefault: 'dry-run 默认开启',
-    command: 'python examples\\cad\\generate_dxf_plan.py',
-    color: '#7cf29a',
-  },
-  {
-    id: '04',
-    name: 'Photoshop',
-    label: '沙盒演示',
-    state: 'experimental',
-    summary: '仅做授权本机软件的 sandbox demo 和脱敏文档摘要，不默认打开 PSD。',
-    safeDefault: '参数化输入输出',
-    command: 'npm.cmd run photoshop:demo:plan',
-    color: '#3ea2ff',
-  },
-  {
-    id: '05',
-    name: 'Illustrator',
-    label: '矢量导出',
-    state: 'experimental',
-    summary: '面向 .ai / SVG / PDF / PNG 的可控导出研究，真实写入限制在示例输出。',
-    safeDefault: 'sandbox export plan',
-    command: 'npm.cmd run illustrator:demo:plan',
-    color: '#ff8a3d',
-  },
-  {
-    id: '06',
-    name: 'CapCut / 剪映',
-    label: '草稿探针',
-    state: 'research',
-    summary: '只检查可执行文件和配置可用性，不递归读取用户真实草稿内容。',
-    safeDefault: 'draft path probe only',
-    command: 'npm.cmd run bridge:status:safe',
-    color: '#d892ff',
-  },
-];
-
-const stateLabel: Record<Bridge['state'], string> = {
-  stable: 'Stable',
-  experimental: 'Experimental',
-  planned: 'Planned',
-  research: 'Research',
+type BridgeOverview = {
+  display_name: string;
+  software: string;
+  tool_count: number;
+  safe_default_tool_count: number;
+  guarded_tool_count: number;
+  statuses: string[];
+  risk_levels: string[];
+  safe_tools: string[];
+  guarded_tools: string[];
+  readiness?: string;
+  safety_boundary?: string;
 };
 
-const checks = [
-  ['redact-paths', '真实路径脱敏'],
-  ['dry-run', '写入默认只计划'],
-  ['safe-only', '工具列表可过滤'],
-  ['soft-exit', '离线不阻塞展示'],
-  ['sandbox', '输出限制在示例目录'],
-];
+type Recipe = {
+  recipe_id: string;
+  bridge: string;
+  goal: string;
+  safe_default: boolean;
+  writes: boolean;
+  quality_gates: string[];
+};
 
-const metrics: Array<{ value: string; label: string; Icon: LucideIcon }> = [
-  { value: 'v0.1-alpha', label: '当前阶段', Icon: Activity },
-  { value: '6 bridges', label: '软件桥数量', Icon: Layers3 },
-  { value: 'dry-run', label: '写入默认策略', Icon: Play },
-  { value: 'redacted', label: '路径输出策略', Icon: Eye },
-  { value: 'local only', label: '私有资产边界', Icon: Download },
-];
+type BackendPayload = {
+  capabilities: {
+    capability_count: number;
+    bridge_overview: Record<string, BridgeOverview>;
+    capabilities: Capability[];
+    planner_hints: {
+      safe_discovery_sequence: string[];
+      evidence_tools: string[];
+    };
+  };
+  recipes: {
+    recipes: Recipe[];
+  };
+  safe_roots: {
+    roots: Array<{ path: string; writable?: boolean; purpose?: string }>;
+  };
+  resources: {
+    resources: Array<{ uri: string; title: string; mimeType: string }>;
+  };
+};
 
-function Starfield({ activeBridge }: { activeBridge: Bridge }) {
+type ToolResult = Record<string, unknown> | null;
+
+const API_BASE = ((import.meta.env.VITE_STARBRIDGE_API_URL as string | undefined) ?? 'http://127.0.0.1:8765').replace(
+  /\/$/,
+  '',
+);
+
+const bridgeColors: Record<string, string> = {
+  all: '#f4d35e',
+  comfyui: '#24c6dc',
+  blender: '#f28d35',
+  autocad: '#6ee7a8',
+  autocad_dxf: '#8ee3ef',
+  photoshop: '#4ea4ff',
+  illustrator: '#ff9f43',
+  jianying_capcut: '#d892ff',
+};
+
+const bridgeLabels: Record<string, string> = {
+  all: '全局能力',
+  comfyui: '图像生成',
+  blender: '三维场景',
+  autocad: 'CAD 桌面',
+  autocad_dxf: 'DXF 离线',
+  photoshop: '图像编辑',
+  illustrator: '矢量设计',
+  jianying_capcut: '视频剪辑',
+};
+
+function ArtField({ activeColor }: { activeColor: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -125,33 +109,36 @@ function Starfield({ activeBridge }: { activeBridge: Bridge }) {
     if (!container) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 900);
-    camera.position.set(0, 8, 48);
+    const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 700);
+    camera.position.set(0, 7, 44);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+    });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const count = 9000;
+    const count = 6200;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    const bridgeColor = new THREE.Color(activeBridge.color);
-    const baseColor = new THREE.Color('#86f7ff');
+    const accent = new THREE.Color(activeColor);
+    const cyan = new THREE.Color('#87f7ff');
+    const gold = new THREE.Color('#f4d35e');
 
     for (let index = 0; index < count; index += 1) {
       const stride = index * 3;
-      const ring = index % bridges.length;
-      const radius = 5 + (index % 140) * 0.13;
-      const angle = index * 0.047 + ring * 0.8;
-      const layer = Math.floor(index / 140) % 18;
+      const spiral = index * 0.053;
+      const radius = 4 + (index % 180) * 0.105;
+      const layer = Math.floor(index / 180);
 
-      positions[stride] = Math.cos(angle) * radius;
-      positions[stride + 1] = Math.sin(layer * 0.7) * 5 + (Math.random() - 0.5) * 8;
-      positions[stride + 2] = Math.sin(angle) * radius + (layer - 9) * 1.8;
+      positions[stride] = Math.cos(spiral) * radius;
+      positions[stride + 1] = Math.sin(layer * 0.55) * 5.5 + Math.sin(spiral * 0.7) * 1.5;
+      positions[stride + 2] = Math.sin(spiral) * radius + (layer - 17) * 0.9;
 
-      const mix = ring === Number(activeBridge.id) - 1 ? 0.85 : 0.25;
-      const color = baseColor.clone().lerp(bridgeColor, mix);
+      const color = (index % 5 === 0 ? gold : cyan).clone().lerp(accent, (index % 13) / 16);
       colors[stride] = color.r;
       colors[stride + 1] = color.g;
       colors[stride + 2] = color.b;
@@ -162,10 +149,10 @@ function Starfield({ activeBridge }: { activeBridge: Bridge }) {
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-      size: 0.08,
+      size: 0.075,
       vertexColors: true,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.88,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -173,39 +160,38 @@ function Starfield({ activeBridge }: { activeBridge: Bridge }) {
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    const arcs = new THREE.Group();
-    bridges.forEach((bridge, index) => {
-      const curve = new THREE.EllipseCurve(0, 0, 10 + index * 3.2, 10 + index * 3.2, 0, Math.PI * 1.55);
-      const curvePoints = curve.getPoints(96).map((point) => new THREE.Vector3(point.x, (index - 2.5) * 2, point.y));
-      const lineGeometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+    const ribbon = new THREE.Group();
+    for (let ring = 0; ring < 7; ring += 1) {
+      const curve = new THREE.EllipseCurve(0, 0, 7 + ring * 3.4, 4.5 + ring * 1.2, 0, Math.PI * 1.72);
+      const curvePoints = curve.getPoints(120).map((point) => new THREE.Vector3(point.x, ring * 1.4 - 4, point.y));
       const line = new THREE.Line(
-        lineGeometry,
+        new THREE.BufferGeometry().setFromPoints(curvePoints),
         new THREE.LineBasicMaterial({
-          color: bridge.color,
+          color: ring % 2 ? activeColor : '#87f7ff',
           transparent: true,
-          opacity: bridge.id === activeBridge.id ? 0.75 : 0.18,
+          opacity: 0.16 + ring * 0.05,
         }),
       );
       line.rotation.x = Math.PI * 0.62;
-      arcs.add(line);
-    });
-    scene.add(arcs);
+      ribbon.add(line);
+    }
+    scene.add(ribbon);
 
-    let raf = 0;
     const resize = () => {
-      const width = container.clientWidth;
-      const height = container.clientHeight;
+      const width = Math.max(container.clientWidth, 1);
+      const height = Math.max(container.clientHeight, 1);
       renderer.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
 
+    let frame = 0;
     const animate = () => {
-      raf = requestAnimationFrame(animate);
-      const time = performance.now() * 0.00018;
+      frame = requestAnimationFrame(animate);
+      const time = performance.now() * 0.00016;
       points.rotation.y = time;
-      points.rotation.x = Math.sin(time * 1.7) * 0.08;
-      arcs.rotation.y = -time * 1.35;
+      points.rotation.x = Math.sin(time * 1.9) * 0.06;
+      ribbon.rotation.y = -time * 1.25;
       renderer.render(scene, camera);
     };
 
@@ -214,167 +200,241 @@ function Starfield({ activeBridge }: { activeBridge: Bridge }) {
     window.addEventListener('resize', resize);
 
     return () => {
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
       container.removeChild(renderer.domElement);
       geometry.dispose();
       material.dispose();
-      arcs.children.forEach((child) => {
+      ribbon.children.forEach((child) => {
         const line = child as THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>;
         line.geometry.dispose();
         line.material.dispose();
       });
       renderer.dispose();
     };
-  }, [activeBridge]);
+  }, [activeColor]);
 
-  return <div className="starfield" ref={mountRef} aria-hidden="true" />;
+  return <div className="art-field" ref={mountRef} aria-hidden="true" />;
 }
 
 function App() {
-  const [activeId, setActiveId] = useState('01');
-  const activeBridge = useMemo(() => bridges.find((bridge) => bridge.id === activeId) ?? bridges[0], [activeId]);
+  const [payload, setPayload] = useState<BackendPayload | null>(null);
+  const [activeBridge, setActiveBridge] = useState('all');
+  const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
+  const [toolResult, setToolResult] = useState<ToolResult>(null);
+  const [loading, setLoading] = useState(true);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadBootstrap = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/api/bootstrap`);
+      const json = await response.json();
+      if (!response.ok || !json.ok) throw new Error(json.error || 'Backend bootstrap failed');
+      setPayload(json.data);
+      const firstRecipe = json.data.recipes.recipes[0]?.recipe_id ?? null;
+      setSelectedRecipe((current) => current ?? firstRecipe);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to reach backend');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadBootstrap();
+  }, []);
+
+  const bridgeEntries = useMemo(() => {
+    if (!payload) return [];
+    return Object.entries(payload.capabilities.bridge_overview).filter(([, overview]) => overview.tool_count > 0);
+  }, [payload]);
+
+  const recipes = payload?.recipes.recipes ?? [];
+  const activeOverview = payload?.capabilities.bridge_overview[activeBridge];
+  const activeColor = bridgeColors[activeBridge] ?? '#87f7ff';
+
+  const runRecipeAction = async (action: 'plan' | 'evidence') => {
+    if (!selectedRecipe) return;
+    setBusyAction(action);
+    setToolResult(null);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE}/api/recipes/${selectedRecipe}/${action}`, { method: 'POST' });
+      const json = await response.json();
+      if (!response.ok || !json.ok) throw new Error(json.error || `${action} failed`);
+      setToolResult(json.data);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : `Unable to run ${action}`);
+    } finally {
+      setBusyAction(null);
+    }
+  };
 
   return (
     <main className="app-shell">
-      <Starfield activeBridge={activeBridge} />
-      <div className="mesh-overlay" />
+      <ArtField activeColor={activeColor} />
+      <div className="grid-veil" />
 
-      <aside className="side-rail" aria-label="StarBridge navigation">
-        <div className="rail-mark">
+      <aside className="side-rail" aria-label="StarBridge">
+        <div className="rail-mark" title="StarBridge">
           <GitBranch size={22} />
         </div>
-        {[MonitorCog, Boxes, ShieldCheck, FileJson, Gauge].map((Icon, index) => (
-          <button className="icon-button" key={index} type="button" aria-label={`导航 ${index + 1}`}>
+        {[Radar, Layers3, ShieldCheck, FileJson, Gauge].map((Icon, index) => (
+          <a className="icon-button" key={index} href={['#bridges', '#recipes', '#evidence', '#resources', '#result'][index]}>
             <Icon size={18} />
-          </button>
+          </a>
         ))}
       </aside>
 
-      <section className="hero-panel">
+      <section className="workbench-hero">
         <div className="hero-copy">
           <div className="status-pill">
-            <span />
-            Windows-first / Local-first / Safety Verification Layer
+            <span className={error ? 'is-offline' : ''} />
+            {error ? 'Backend offline' : `Backend connected: ${API_BASE}`}
           </div>
-          <h1>StarBridge Creative Console</h1>
+          <h1>StarBridge Creative Workbench</h1>
           <p>
-            面向 Codex 接入本地创作软件的公开前端：把 ComfyUI、Blender、AutoCAD、Photoshop、
-            Illustrator 和剪映能力拆成可验证的状态、dry-run 计划、脱敏证据与安全边界。
+            一个面向创意软件自动化的本地控制台：先读安全边界和能力清单，再规划 recipe、预览证据，最后才进入受确认的写入工具。
           </p>
-          <div className="hero-actions">
-            <a className="button primary" href="#matrix">
-              <Radar size={17} />
-              查看能力矩阵
-            </a>
-            <a className="button secondary" href="#commands">
-              <TerminalSquare size={17} />
-              本地验证命令
-            </a>
-          </div>
         </div>
 
-        <div className="command-panel" id="commands">
-          <div className="panel-head">
-            <span />
-            <span />
-            <span />
-            <strong>safe-preflight</strong>
+        <div className="backend-panel">
+          <div className="panel-title">
+            <Activity size={18} />
+            <strong>Backend</strong>
+            <button type="button" onClick={() => void loadBootstrap()} aria-label="Refresh backend">
+              <RefreshCcw size={16} />
+            </button>
           </div>
-          <pre>{`npm.cmd run bridge:status:safe
-npm.cmd run starbridge:tools:safe
-python scripts\\security_check.py
-python scripts\\starbridge_preflight.py --markdown`}</pre>
+          <dl>
+            <div>
+              <dt>Tools</dt>
+              <dd>{loading ? '...' : (payload?.capabilities.capability_count ?? 0)}</dd>
+            </div>
+            <div>
+              <dt>Recipes</dt>
+              <dd>{loading ? '...' : recipes.length}</dd>
+            </div>
+            <div>
+              <dt>Resources</dt>
+              <dd>{loading ? '...' : (payload?.resources.resources.length ?? 0)}</dd>
+            </div>
+          </dl>
+          {error ? <p className="error-text">{error}</p> : <p>HTTP API 已接入 MCP 安全工具层。</p>}
         </div>
       </section>
 
-      <section className="dashboard-grid" id="matrix">
-        <div className="matrix-panel">
+      <section className="workspace-grid">
+        <div className="panel bridge-panel" id="bridges">
           <div className="section-heading">
             <p>Capability Matrix</p>
-            <h2>六条软件桥，按真实能力分层展示</h2>
+            <h2>软件桥能力</h2>
           </div>
           <div className="bridge-list">
-            {bridges.map((bridge) => (
+            {bridgeEntries.map(([bridge, overview]) => (
               <button
-                className={`bridge-row ${bridge.id === activeId ? 'is-active' : ''}`}
-                key={bridge.id}
-                onClick={() => setActiveId(bridge.id)}
+                className={`bridge-row ${bridge === activeBridge ? 'is-active' : ''}`}
+                key={bridge}
+                onClick={() => setActiveBridge(bridge)}
+                style={{ '--accent': bridgeColors[bridge] ?? '#87f7ff' } as CSSProperties}
                 type="button"
-                style={{ '--accent': bridge.color } as CSSProperties}
               >
-                <span className="bridge-id">{bridge.id}</span>
-                <span>
-                  <strong>{bridge.name}</strong>
-                  <small>{bridge.label}</small>
-                </span>
-                <em>{stateLabel[bridge.state]}</em>
+                <span>{bridgeLabels[bridge] ?? bridge}</span>
+                <strong>{overview.software}</strong>
+                <em>{overview.safe_default_tool_count}/{overview.tool_count}</em>
               </button>
             ))}
           </div>
         </div>
 
-        <article className="detail-panel" style={{ '--accent': activeBridge.color } as CSSProperties}>
+        <article className="panel bridge-detail" style={{ '--accent': activeColor } as CSSProperties}>
           <div className="detail-top">
-            <span>{activeBridge.id}</span>
-            <em>{stateLabel[activeBridge.state]}</em>
+            <Sparkles size={22} />
+            <span>{activeOverview?.statuses.join(' / ') || 'loading'}</span>
           </div>
-          <h2>{activeBridge.name}</h2>
-          <p>{activeBridge.summary}</p>
-          <div className="detail-facts">
+          <h2>{activeOverview?.display_name ?? 'Loading bridge'}</h2>
+          <p>{activeOverview?.safety_boundary ?? '正在读取后端能力边界。'}</p>
+          <div className="fact-grid">
             <div>
               <LockKeyhole size={18} />
-              <span>安全默认</span>
-              <strong>{activeBridge.safeDefault}</strong>
+              <span>Safe tools</span>
+              <strong>{activeOverview?.safe_default_tool_count ?? 0}</strong>
             </div>
             <div>
-              <Code2 size={18} />
-              <span>验证入口</span>
-              <strong>{activeBridge.command}</strong>
+              <MonitorCog size={18} />
+              <span>Guarded tools</span>
+              <strong>{activeOverview?.guarded_tool_count ?? 0}</strong>
             </div>
           </div>
         </article>
 
-        <div className="evidence-panel">
+        <div className="panel recipe-panel" id="recipes">
           <div className="section-heading">
-            <p>Evidence</p>
-            <h2>发布前必须能说明风险边界</h2>
+            <p>Recipes</p>
+            <h2>受审查工作流</h2>
           </div>
-          <div className="check-grid">
-            {checks.map(([key, label]) => (
-              <div className="check-item" key={key}>
-                <CheckCircle2 size={18} />
-                <span>{key}</span>
-                <strong>{label}</strong>
-              </div>
+          <div className="recipe-list">
+            {recipes.map((recipe) => (
+              <button
+                className={`recipe-row ${recipe.recipe_id === selectedRecipe ? 'is-selected' : ''}`}
+                key={recipe.recipe_id}
+                onClick={() => setSelectedRecipe(recipe.recipe_id)}
+                type="button"
+              >
+                <strong>{recipe.recipe_id}</strong>
+                <span>{recipe.bridge}</span>
+              </button>
             ))}
           </div>
+          <div className="action-row">
+            <button disabled={!selectedRecipe || busyAction !== null} onClick={() => void runRecipeAction('plan')} type="button">
+              <Play size={16} />
+              Plan
+            </button>
+            <button disabled={!selectedRecipe || busyAction !== null} onClick={() => void runRecipeAction('evidence')} type="button">
+              <FileJson size={16} />
+              Evidence
+            </button>
+          </div>
         </div>
 
-        <div className="pipeline-panel">
+        <div className="panel safety-panel" id="evidence">
           <div className="section-heading">
-            <p>Workflow</p>
-            <h2>从请求到 PR 的公开安全链路</h2>
+            <p>Safety</p>
+            <h2>执行前检查</h2>
           </div>
-          {['确认属于公开接入范围', '过滤真实路径和私有资产', '默认 dry-run 或只读探针', '生成证据 manifest', '运行安全扫描和测试'].map(
-            (step, index) => (
-              <div className="pipeline-step" key={step}>
-                <span>{index + 1}</span>
-                <strong>{step}</strong>
-              </div>
-            ),
-          )}
+          {(payload?.capabilities.planner_hints.safe_discovery_sequence ?? []).map((step) => (
+            <div className="check-item" key={step}>
+              <CheckCircle2 size={17} />
+              <span>{step}</span>
+            </div>
+          ))}
         </div>
-      </section>
 
-      <section className="metrics-strip" aria-label="project metrics">
-        {metrics.map(({ value, label, Icon }) => (
-          <div className="metric" key={label}>
-            <Icon size={19} />
-            <strong>{value}</strong>
-            <span>{label}</span>
+        <div className="panel resources-panel" id="resources">
+          <div className="section-heading">
+            <p>Resources</p>
+            <h2>只读上下文</h2>
           </div>
-        ))}
+          {(payload?.resources.resources ?? []).map((resource) => (
+            <div className="resource-row" key={resource.uri}>
+              <Boxes size={16} />
+              <span>{resource.uri}</span>
+              <em>{resource.mimeType}</em>
+            </div>
+          ))}
+        </div>
+
+        <div className="panel result-panel" id="result">
+          <div className="section-heading">
+            <p>Result</p>
+            <h2>后端返回</h2>
+          </div>
+          <pre>{JSON.stringify(toolResult ?? { hint: '选择一个 recipe，然后点击 Plan 或 Evidence。' }, null, 2)}</pre>
+        </div>
       </section>
     </main>
   );

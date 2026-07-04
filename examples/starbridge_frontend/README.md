@@ -1,8 +1,24 @@
-# StarBridge Creative Console
+# StarBridge Creative Workbench
 
-这是一个公开安全的前端示例，用于展示 StarBridge / Codex 接入本地创作软件的能力矩阵、验证命令和安全边界。
+This is the local frontend for the StarBridge software prototype. It connects to
+the StarBridge backend, reads real capability and recipe data, and presents it as
+an artistic control surface with a Three.js generative background.
 
-## 本地运行
+## Run Locally
+
+Start the backend from the repository root:
+
+```powershell
+npm.cmd run app:dev
+```
+
+Or start the backend and frontend separately:
+
+```powershell
+npm.cmd run starbridge:backend
+```
+
+Start the frontend:
 
 ```powershell
 cd examples\starbridge_frontend
@@ -10,15 +26,32 @@ npm install --package-lock=false
 npm run dev
 ```
 
-## 构建
+Default URLs:
+
+- Backend: `http://127.0.0.1:8765`
+- Frontend: `http://127.0.0.1:5173`
+
+If the backend is running on another port:
+
+```powershell
+$env:VITE_STARBRIDGE_API_URL="http://127.0.0.1:52420"
+npm run dev
+```
+
+## Backend APIs Used
+
+- `GET /api/bootstrap`
+- `POST /api/recipes/{recipe_id}/plan`
+- `POST /api/recipes/{recipe_id}/evidence`
+
+## Build
 
 ```powershell
 npm run build
 ```
 
-## 发布边界
+## Safety Boundary
 
-- 不包含 PSD、AI、DWG、模型、生成图片或客户素材。
-- 不写入个人桌面路径、软件安装路径、账号信息或 token。
-- 页面里的命令以只读、dry-run 或脱敏检查为主。
-- 真正的软件写入能力仍以仓库脚本和 MCP tool 的显式确认策略为准。
+- The frontend does not add new write powers.
+- It calls the backend, and the backend reuses the existing MCP safety rules.
+- Real local writes still require bridge-specific confirmation flags and safe roots.

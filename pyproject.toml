@@ -51,6 +51,7 @@ adobe = [
 [project.scripts]
 starbridge = "starbridge_mcp.server:main"
 starbridge-mcp = "starbridge_mcp.mcp_server:main"
+starbridge-backend = "starbridge_mcp.backend:main"
 
 [tool.setuptools.packages.find]
 include = ["starbridge_mcp*"]

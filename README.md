@@ -284,6 +284,8 @@ python -m starbridge_mcp.server job-status --json
 - Local smoke test: [docs/adobe-demo-smoke-test.md](docs/adobe-demo-smoke-test.md)
 - Draft release notes: [RELEASE_NOTES_DRAFT.md](RELEASE_NOTES_DRAFT.md)
 - Capability matrix: [docs/CAPABILITY_MATRIX.md](docs/CAPABILITY_MATRIX.md)
+- Recipe quick start: [docs/starbridge-recipes-quickstart.md](docs/starbridge-recipes-quickstart.md)
+- Backend API: [docs/starbridge-backend.md](docs/starbridge-backend.md)
 - Client compatibility: [docs/client-compatibility.md](docs/client-compatibility.md)
 - Windows install notes: [docs/windows-install.md](docs/windows-install.md)
 - Adobe AI integration map: [docs/adobe-ai-agent-integration-map.md](docs/adobe-ai-agent-integration-map.md)
