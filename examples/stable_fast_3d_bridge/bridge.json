@@ -1,0 +1,35 @@
+{
+  "bridge_id": "stable_fast_3d",
+  "name": "Stable Fast 3D",
+  "status": "prototype",
+  "platform": [
+    "Windows"
+  ],
+  "requires": [
+    "Stability-AI/stable-fast-3d local checkout",
+    "Python 3.11 virtual environment",
+    "CUDA-capable PyTorch",
+    "Hugging Face access for stabilityai/stable-fast-3d"
+  ],
+  "entrypoints": {
+    "probe": "python examples/stable_fast_3d_bridge/probe.py --json",
+    "launch": "integrations/stable-fast-3d/start_sf3d_gradio.bat"
+  },
+  "supported_tasks": [
+    "local environment probe",
+    "Gradio launcher template",
+    "image-to-3D GLB export through local SF3D",
+    "texture_baker CPU fallback patch"
+  ],
+  "unsupported_tasks": [
+    "model weight vendoring",
+    "token management",
+    "automatic upload of generated 3D assets",
+    "production asset approval without Blender or DCC review"
+  ],
+  "safety_notes": [
+    "Do not commit Hugging Face tokens, model weights, ONNX caches, virtual environments, or browser sessions.",
+    "Do not commit private source images or generated GLB/OBJ/FBX/STL files.",
+    "Keep local cache and output directories outside the Git workspace."
+  ]
+}

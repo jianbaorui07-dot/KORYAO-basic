@@ -3,11 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
-
 
 DEFAULT_ROOT = Path(os.environ.get("SF3D_ROOT", r"D:\AIGC\stable-fast-3d"))
 DEFAULT_URL = os.environ.get("SF3D_URL", "http://127.0.0.1:7860")

@@ -78,6 +78,44 @@
       ]
     },
     {
+      "bridge_id": "stable_fast_3d",
+      "display_name": "Stable Fast 3D \u56fe\u7247\u8f6c\u4e09\u7ef4\u8d44\u4ea7\u6865",
+      "bridge_dir": "examples/stable_fast_3d_bridge",
+      "status_file": "examples/stable_fast_3d_bridge/bridge_status.json",
+      "primary_docs": [
+        "docs/08-codex-stable-fast-3d.md",
+        "integrations/stable-fast-3d/README.md"
+      ],
+      "safe_probe_commands": [
+        "python examples\\stable_fast_3d_bridge\\probe.py --json"
+      ],
+      "local_action_commands": [
+        "integrations\\stable-fast-3d\\start_sf3d_gradio.bat"
+      ],
+      "capability_categories": [
+        "discovery",
+        "execution",
+        "validation",
+        "evidence",
+        "cleanup"
+      ],
+      "current_capabilities": [
+        "\u63d0\u4f9b Windows \u672c\u673a Stable Fast 3D \u5b89\u88c5\u548c Gradio \u542f\u52a8\u5165\u53e3",
+        "\u68c0\u6d4b SF3D checkout\u3001Python \u865a\u62df\u73af\u5883\u3001Gradio \u5165\u53e3\u548c texture_baker \u8865\u4e01\u6587\u4ef6",
+        "\u8bb0\u5f55 Hugging Face \u7f13\u5b58\u3001U2Net \u7f13\u5b58\u548c\u751f\u6210 GLB \u8d44\u4ea7\u7684\u672c\u5730\u8fb9\u754c",
+        "\u4e3a texture_baker \u65e0 CUDA op \u7684 Windows \u73af\u5883\u63d0\u4f9b CPU fallback \u8865\u4e01"
+      ],
+      "planned_capabilities": [
+        "\u628a GLB \u5bfc\u51fa\u8def\u5f84\u3001SHA256\u3001\u5c3a\u5bf8\u548c\u6e05\u7406\u7b56\u7565\u5c01\u88c5\u6210\u53ef\u5ba1\u8ba1 MCP \u5de5\u5177",
+        "\u4e0e Blender \u6865\u4e32\u8054\uff0c\u5728\u7528\u6237\u786e\u8ba4\u540e\u6267\u884c\u964d\u9762\u3001\u6750\u8d28\u68c0\u67e5\u548c\u8d44\u4ea7\u6253\u5305"
+      ],
+      "public_safety_rules": [
+        "\u4e0d\u63d0\u4ea4 Hugging Face token\u3001\u6a21\u578b\u6743\u91cd\u3001ONNX \u7f13\u5b58\u3001.venv \u548c\u6d4f\u89c8\u5668 session",
+        "\u4e0d\u63d0\u4ea4\u7528\u6237\u6e90\u56fe\u3001\u751f\u6210\u7684 GLB/OBJ/FBX/STL \u548c\u672c\u673a\u8f93\u51fa\u76ee\u5f55",
+        "\u63d0\u4ea4\u5230 GitHub \u7684\u5185\u5bb9\u53ea\u5305\u542b\u5b89\u88c5\u811a\u672c\u3001\u542f\u52a8\u6a21\u677f\u3001\u8865\u4e01\u548c\u8bfb\u53d6\u578b probe"
+      ]
+    },
+    {
       "bridge_id": "cad_autocad",
       "display_name": "CAD / AutoCAD \u5de5\u7a0b\u5236\u56fe\u6865",
       "bridge_dir": "examples/cad_bridge",

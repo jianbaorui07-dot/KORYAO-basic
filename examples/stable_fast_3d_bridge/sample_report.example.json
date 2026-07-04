@@ -1,0 +1,21 @@
+{
+  "bridge_id": "stable_fast_3d",
+  "ok": false,
+  "detected": {
+    "root": "<LOCAL_SF3D_ROOT>",
+    "gradio_url": "http://127.0.0.1:7860",
+    "python": false,
+    "gradio_app": false,
+    "texture_baker_patch": false
+  },
+  "errors": [
+    {
+      "code": "local_sf3d_not_configured",
+      "message": "Stable Fast 3D is not configured at the local probe root."
+    }
+  ],
+  "warnings": [
+    "Generated meshes, source images, caches, and model weights must stay outside the repository."
+  ],
+  "safe_to_commit": true
+}

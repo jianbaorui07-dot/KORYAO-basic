@@ -28,6 +28,7 @@ EXPECTED_IDS = {
     "photoshop",
     "illustrator",
     "capcut_jianying",
+    "stable_fast_3d",
 }
 
 
@@ -51,7 +52,15 @@ class BridgeCapabilityMatrixTest(unittest.TestCase):
             check=True,
         )
 
-        for label in ("ComfyUI", "Blender", "CAD / AutoCAD", "Photoshop", "Illustrator", "CapCut"):
+        for label in (
+            "ComfyUI",
+            "Blender",
+            "Stable Fast 3D",
+            "CAD / AutoCAD",
+            "Photoshop",
+            "Illustrator",
+            "CapCut",
+        ):
             self.assertIn(label, completed.stdout)
 
     def test_check_command_passes(self) -> None:

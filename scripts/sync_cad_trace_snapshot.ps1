@@ -2,7 +2,7 @@ param(
     [string]$RepoRoot = "C:\codex-cad-bridge-sync",
     [string]$WorkspaceRoot = "",
     [string]$JobsRoot = "",
-    [string]$PythonExe = "C:\Users\84391\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+    [string]$PythonExe = (Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe")
 )
 
 $ErrorActionPreference = "Stop"

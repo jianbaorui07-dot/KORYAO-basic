@@ -5,8 +5,8 @@ import unittest
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
-from threading import Thread
 from tempfile import TemporaryDirectory
+from threading import Thread
 
 from starbridge_mcp.backend import StarBridgeBackend, make_handler
 

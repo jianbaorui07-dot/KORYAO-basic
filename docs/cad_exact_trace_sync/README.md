@@ -1,7 +1,7 @@
 # CAD Exact Trace Sync
 
 - Generated at: `2026-07-04T23:25:03+08:00`
-- Workspace root: `C:\Users\84391\OneDrive\文档\New project\cad_exact_trace`
+- Workspace root: `C:\Users\<USER_HOME>\OneDrive\Documents\New project\cad_exact_trace`
 - Jobs root: `C:\cad_jobs`
 - Latest job: `C:\cad_jobs\fidelity-smoke-3`
 
