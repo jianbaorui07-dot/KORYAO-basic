@@ -50,6 +50,8 @@ examples/output/**/*.ai
 examples/output/**/*.svg
 examples/output/**/*.pdf
 examples/output/**/*.json
+examples/output/**/*.blend
+examples/output/**/*.zip
 examples/output/**/*.xmp
 examples/output/**/*.CR2
 examples/output/**/*.cr2

@@ -105,6 +105,15 @@ class ToolRegistryTests(unittest.TestCase):
                 self.assertTrue(by_name[expected]["safe_default"])
                 self.assertEqual("safe_read_only", by_name[expected]["risk_level"])
 
+        blender_capabilities = list_capabilities(bridge="blender", include_guarded=False)
+        blender_by_name = {item["name"]: item for item in blender_capabilities}
+        self.assertIn("blender.reference_reconstruction_plan", blender_by_name)
+        self.assertTrue(blender_by_name["blender.reference_reconstruction_plan"]["safe_default"])
+        self.assertEqual(
+            "safe_read_only",
+            blender_by_name["blender.reference_reconstruction_plan"]["risk_level"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

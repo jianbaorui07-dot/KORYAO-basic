@@ -11,7 +11,10 @@ from typing import Any
 from starbridge_mcp.adapters.photoshop import TOOL_DEFINITIONS as PHOTOSHOP_V1_TOOL_DEFINITIONS
 from starbridge_mcp.adapters.photoshop import TOOL_HANDLERS as PHOTOSHOP_V1_TOOL_HANDLERS
 from starbridge_mcp.bridges import autocad_dxf
-from starbridge_mcp.bridges.blender_safe_scene import build_scene_plan
+from starbridge_mcp.bridges.blender_safe_scene import (
+    build_reference_reconstruction_plan,
+    build_scene_plan,
+)
 from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summary
 from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
 from starbridge_mcp.core.evidence import (
@@ -232,6 +235,30 @@ TOOL_DEFINITIONS: list[JsonObject] = [
                 "job_id": {"type": "string", "default": "job_preview"},
                 "bridge": {"type": "string", "default": "starbridge"},
                 "action_name": {"type": "string", "default": "evidence_review"},
+            }
+        ),
+        "annotations": _safe_read_annotations(),
+    },
+    {
+        "name": "starbridge.recipe_list",
+        "title": "StarBridge Recipe List",
+        "description": "List safe cross-bridge StarBridge recipes. This is plan-only and does not launch desktop software.",
+        "inputSchema": _object_schema(
+            {
+                "bridge": {"type": "string", "enum": BRIDGE_ENUM, "default": "all"},
+            }
+        ),
+        "annotations": _safe_read_annotations(),
+    },
+    {
+        "name": "starbridge.recipe_plan",
+        "title": "StarBridge Recipe Plan",
+        "description": "Return a dry-run action plan, quality gates, and evidence requirements for one cross-bridge recipe.",
+        "inputSchema": _object_schema(
+            {
+                "recipe_id": {"type": "string", "default": "photoshop_preview_export"},
+                "dry_run": {"type": "boolean", "default": True},
+                "action_plan": {"type": "boolean", "default": True},
             }
         ),
         "annotations": _safe_read_annotations(),
@@ -489,6 +516,24 @@ TOOL_DEFINITIONS: list[JsonObject] = [
                     "minimum": 240,
                     "maximum": 4096,
                 },
+            }
+        ),
+    ),
+    _standard_tool(
+        name="blender.reference_reconstruction_plan",
+        title="Blender Reference Reconstruction Plan",
+        description=(
+            "生成参考图驱动的 Blender 重建 dry-run 计划，包含分割、深度/点云初始化、"
+            "单视图量测、渲染反查和交付误差门槛；不读取图片、不启动 Blender。"
+        ),
+        input_schema=_object_schema(
+            {
+                "reference_name": {"type": "string", "default": "reference_image"},
+                "target_kind": {"type": "string", "default": "object_or_scene"},
+                "reference_views": {"type": "integer", "default": 1, "minimum": 1, "maximum": 64},
+                "known_scale": {"type": "string", "default": ""},
+                "tolerance_pixels": {"type": "integer", "default": 4, "minimum": 1, "maximum": 64},
+                "max_iterations": {"type": "integer", "default": 8, "minimum": 1, "maximum": 50},
             }
         ),
     ),
@@ -918,6 +963,147 @@ def _handle_job_status(arguments: JsonObject) -> JsonObject:
             "status": manifest.status,
         }
     return sanitize(payload)
+
+
+STARBRIDGE_RECIPES: dict[str, JsonObject] = {
+    "photoshop_preview_export": {
+        "bridge": "photoshop",
+        "goal": "Plan a sandbox Photoshop preview export with manifest evidence.",
+        "steps": [
+            {"tool": "photoshop.recipe_plan", "purpose": "build the sandbox action plan"},
+            {"tool": "photoshop.recipe_validate", "purpose": "check output and manifest gates"},
+            {"tool": "photoshop.recipe_run", "purpose": "dry-run first; confirmed write stays sandboxed"},
+        ],
+        "quality_gates": ["sandbox_output_dir", "manifest_schema", "no_private_path_leak"],
+        "evidence": ["examples/output/evidence/manifest.latest.json"],
+        "safety": "dry-run by default; confirmed writes remain under examples/output/photoshop.",
+    },
+    "comfyui_txt2img_lifecycle": {
+        "bridge": "comfyui",
+        "goal": "Validate a public txt2img template and return a redacted lifecycle summary.",
+        "steps": [
+            {"tool": "comfy.workflow_template_get", "purpose": "load a bundled public template"},
+            {"tool": "comfy.workflow_from_template", "purpose": "compose placeholder workflow JSON"},
+            {"tool": "comfy.workflow_lifecycle_summary", "purpose": "summarize job and asset lifecycle"},
+        ],
+        "quality_gates": ["workflow_schema", "prompt_redacted", "no_queue_submit"],
+        "evidence": ["workflow_hash", "asset_manifest_preview"],
+        "safety": "does not submit to /prompt or read local model/image folders.",
+    },
+    "cad_dxf_from_spec": {
+        "bridge": "autocad_dxf",
+        "goal": "Convert a public CAD spec into a validated DXF dry-run plan.",
+        "steps": [
+            {"tool": "autocad_dxf.create_dxf_plan", "purpose": "turn spec into CAD plan"},
+            {"tool": "autocad_dxf.validate_cad_plan", "purpose": "validate units, layers, and entities"},
+            {"tool": "autocad_dxf.summarize_plan", "purpose": "produce a reviewable summary"},
+            {"tool": "autocad_dxf.write_dxf", "purpose": "dry-run first; confirmed write stays sandboxed"},
+        ],
+        "quality_gates": ["cad_plan_schema", "sandbox_output_dir", "confirm_write_for_dxf"],
+        "evidence": ["plan_summary", "examples/output/evidence/manifest.latest.json"],
+        "safety": "headless DXF path only; does not open customer DWG or AutoCAD.",
+    },
+    "illustrator_trace_preflight": {
+        "bridge": "illustrator",
+        "goal": "Plan an Illustrator trace/preflight workflow from sanitized document metadata.",
+        "steps": [
+            {"tool": "illustrator.document_info", "purpose": "optional local session summary"},
+            {"tool": "illustrator.preflight", "purpose": "check links, colors, text, and export risk"},
+            {"tool": "starbridge.evidence_init", "purpose": "prepare redacted evidence fields"},
+        ],
+        "quality_gates": ["metadata_only", "no_private_ai_read", "sandbox_export_required"],
+        "evidence": ["document_summary", "preflight_report"],
+        "safety": "preflight is read-only; any export remains a separate confirmed sandbox action.",
+    },
+    "blender_scene_evidence": {
+        "bridge": "blender",
+        "goal": "Plan a Blender scene or reference reconstruction evidence pass.",
+        "steps": [
+            {"tool": "blender.environment_probe", "purpose": "check executable hints"},
+            {"tool": "blender.scene_plan", "purpose": "build a safe scene dry-run plan"},
+            {
+                "tool": "blender.reference_reconstruction_plan",
+                "purpose": "optional single-reference reconstruction plan",
+            },
+            {"tool": "starbridge.evidence_init", "purpose": "prepare manifest evidence"},
+        ],
+        "quality_gates": ["no_blend_open", "no_arbitrary_python", "render_manifest_required"],
+        "evidence": ["scene_plan", "camera_match_report", "manifest_preview"],
+        "safety": "does not start Blender, download assets, or run arbitrary Python.",
+    },
+}
+
+
+def _recipe_public_summary(recipe_id: str, recipe: JsonObject) -> JsonObject:
+    return {
+        "recipe_id": recipe_id,
+        "bridge": recipe["bridge"],
+        "goal": recipe["goal"],
+        "safe_default": True,
+        "writes": False,
+        "quality_gates": recipe["quality_gates"],
+    }
+
+
+def _handle_starbridge_recipe_list(arguments: JsonObject) -> JsonObject:
+    bridge = BRIDGE_ALIASES.get(
+        str(arguments.get("bridge") or "all"), str(arguments.get("bridge") or "all")
+    )
+    recipes = []
+    for recipe_id, recipe in STARBRIDGE_RECIPES.items():
+        if bridge != "all" and recipe["bridge"] != bridge:
+            continue
+        recipes.append(_recipe_public_summary(recipe_id, recipe))
+    return sanitize(
+        {
+            "ok": True,
+            "bridge": bridge,
+            "action": "recipe_list",
+            "recipes": recipes,
+        }
+    )
+
+
+def _handle_starbridge_recipe_plan(arguments: JsonObject) -> JsonObject:
+    recipe_id = str(arguments.get("recipe_id") or "photoshop_preview_export")
+    recipe = STARBRIDGE_RECIPES.get(recipe_id)
+    if recipe is None:
+        return sanitize(
+            {
+                "ok": False,
+                "bridge": "all",
+                "action": "recipe_plan",
+                "recipe_id": recipe_id,
+                "message": "unknown recipe_id",
+                "available_recipes": sorted(STARBRIDGE_RECIPES),
+            }
+        )
+    plan = {
+        **_recipe_public_summary(recipe_id, recipe),
+        "dry_run": bool(arguments.get("dry_run", True)),
+        "steps": recipe["steps"],
+        "evidence_requirements": recipe["evidence"],
+        "safety_boundary": recipe["safety"],
+        "next_steps": [
+            "Run listed tools in order only after reviewing their own safety annotations.",
+            "Use starbridge.evidence_validate after any confirmed sandbox write.",
+        ],
+    }
+    if arguments.get("action_plan", True):
+        plan["action_plan"] = {
+            "mode": "plan_then_execute",
+            "requires_user_confirmation_before_write": True,
+            "tool_sequence": [step["tool"] for step in recipe["steps"]],
+        }
+    return sanitize(
+        {
+            "ok": True,
+            "bridge": recipe["bridge"],
+            "action": "recipe_plan",
+            "recipe_id": recipe_id,
+            "plan": plan,
+        }
+    )
 
 
 def _report_to_result(
@@ -1732,6 +1918,8 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.evidence_init": _handle_evidence_init,
     "starbridge.evidence_validate": _handle_evidence_validate,
     "starbridge.job_status": _handle_job_status,
+    "starbridge.recipe_list": _handle_starbridge_recipe_list,
+    "starbridge.recipe_plan": _handle_starbridge_recipe_plan,
     "comfyui.system_probe": _handle_comfy_system_probe,
     "comfyui.workflow_validate": _handle_workflow_validate,
     "comfyui.workflow_build_plan": _handle_comfy_workflow_build_plan,
@@ -1754,6 +1942,14 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
         scene_name=str(arguments.get("scene_name") or "starbridge_public_scene"),
         render_width=int(arguments.get("render_width") or 1280),
         render_height=int(arguments.get("render_height") or 720),
+    ),
+    "blender.reference_reconstruction_plan": lambda arguments: build_reference_reconstruction_plan(
+        reference_name=str(arguments.get("reference_name") or "reference_image"),
+        target_kind=str(arguments.get("target_kind") or "object_or_scene"),
+        reference_views=int(arguments.get("reference_views") or 1),
+        known_scale=str(arguments.get("known_scale") or ""),
+        tolerance_pixels=int(arguments.get("tolerance_pixels") or 4),
+        max_iterations=int(arguments.get("max_iterations") or 8),
     ),
     "cad_autocad.environment_probe": lambda _arguments: _handle_python_probe(
         bridge="cad_autocad",

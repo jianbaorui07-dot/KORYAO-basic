@@ -35,6 +35,7 @@
     "status:probe:json": "python examples/bridge_status.py --probe-executables --json",
     "cad:dxf:dry-run": "python examples/cad/generate_dxf_plan.py",
     "blender:scene:plan": "python examples/blender_bridge/scene_plan.py --json",
+    "blender:reference:plan": "python examples/blender_bridge/reference_reconstruction_plan.py --json",
     "comfy:probe": "python examples/comfy_bridge/comfy_probe.py --soft-exit",
     "comfy:workflow:validate": "python examples/comfy_bridge/validate_workflow.py --json",
     "comfy:templates:list": "python examples/comfy_bridge/workflow_templates.py list --json",

@@ -54,6 +54,7 @@ class McpStdioServerTests(unittest.TestCase):
         self.assertIn("comfyui.system_probe", names)
         self.assertIn("blender.environment_probe", names)
         self.assertIn("blender.scene_plan", names)
+        self.assertIn("blender.reference_reconstruction_plan", names)
         self.assertIn("cad_autocad.environment_probe", names)
         self.assertIn("photoshop.session_info", names)
         self.assertIn("illustrator.document_info", names)
@@ -101,6 +102,7 @@ class McpStdioServerTests(unittest.TestCase):
         tool_calls = [
             ("blender.environment_probe", {}),
             ("blender.scene_plan", {}),
+            ("blender.reference_reconstruction_plan", {}),
             ("cad_autocad.environment_probe", {}),
             ("jianying_capcut.draft_probe", {}),
             ("jianying_capcut.draft_structure", {}),
