@@ -162,9 +162,9 @@ npm.cmd run starbridge:mcp
 
 MCP 客户端可发现首批安全工具：
 
-`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`starbridge.recipe_list`、`starbridge.recipe_plan`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`blender.reference_reconstruction_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan`、`autocad_dxf.write_dxf`。
+`starbridge.status`、`starbridge.probe`、`starbridge.tools`、`starbridge.evidence_init`、`starbridge.evidence_validate`、`starbridge.job_status`、`starbridge.recipe_list`、`starbridge.recipe_plan`、`starbridge.recipe_evidence`、`comfyui.system_probe`、`comfyui.workflow_validate`、`blender.environment_probe`、`blender.scene_plan`、`blender.reference_reconstruction_plan`、`cad_autocad.environment_probe`、`photoshop.session_info`、`ps.probe`、`ps.document.info`、`ps.layers.list`、`ps.batchplay.validate`、`illustrator.document_info`、`illustrator.preflight`、`jianying_capcut.draft_probe`、`jianying_capcut.draft_structure`、`autocad_dxf.status`、`autocad_dxf.validate_cad_plan`、`autocad_dxf.create_dxf_plan`、`autocad_dxf.summarize_plan`、`autocad_dxf.write_dxf`。
 
-`starbridge.recipe_*` 是跨软件高层计划入口，只返回 dry-run action plan、quality gates 和 evidence 要求；真实写入仍走各 bridge 自己的确认门和 sandbox 边界。
+`starbridge.recipe_*` 是跨软件高层计划入口，只返回 dry-run action plan、quality gates 和标准 EvidenceManifest 预览；真实写入仍走各 bridge 自己的确认门和 sandbox 边界。
 
 ### MCP Resources（只读上下文）
 

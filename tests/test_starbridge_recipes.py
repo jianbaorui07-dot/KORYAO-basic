@@ -29,12 +29,14 @@ class StarBridgeRecipeTests(unittest.TestCase):
         by_name = {tool["name"]: tool for tool in response["result"]["tools"]}
         self.assertIn("starbridge.recipe_list", by_name)
         self.assertIn("starbridge.recipe_plan", by_name)
+        self.assertIn("starbridge.recipe_evidence", by_name)
         self.assertTrue(by_name["starbridge.recipe_plan"]["annotations"]["safeDefault"])
         self.assertFalse(by_name["starbridge.recipe_plan"]["annotations"]["requiresConfirmation"])
 
         capabilities = {item["name"]: item for item in list_capabilities(include_guarded=False)}
         self.assertIn("starbridge.recipe_list", capabilities)
         self.assertIn("starbridge.recipe_plan", capabilities)
+        self.assertIn("starbridge.recipe_evidence", capabilities)
 
     def test_recipe_list_filters_by_bridge(self) -> None:
         response = request(
@@ -76,6 +78,26 @@ class StarBridgeRecipeTests(unittest.TestCase):
 
         self.assertFalse(structured["ok"])
         self.assertIn("available_recipes", structured)
+
+    def test_recipe_evidence_returns_standard_manifest_preview(self) -> None:
+        response = request(
+            5,
+            "tools/call",
+            {
+                "name": "starbridge.recipe_evidence",
+                "arguments": {"recipe_id": "comfyui_txt2img_lifecycle"},
+            },
+        )
+        structured = response["result"]["structuredContent"]
+        manifest = structured["manifest"]
+
+        self.assertTrue(structured["ok"])
+        self.assertEqual("comfyui", manifest["bridge"])
+        self.assertEqual("recipe_evidence", manifest["action"])
+        self.assertTrue(manifest["quality_gates"])
+        self.assertTrue(manifest["asset_manifest"])
+        self.assertIn("recipe_id", manifest["input_summary"])
+        self.assert_no_private_paths(structured)
 
 
 if __name__ == "__main__":

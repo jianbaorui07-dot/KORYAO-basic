@@ -128,7 +128,9 @@ class EvidenceManifest:
     input_summary: dict[str, Any] = field(default_factory=dict)
     output_files: list[EvidenceItem] = field(default_factory=list)
     screenshots: list[EvidenceItem] = field(default_factory=list)
+    asset_manifest: list[EvidenceItem] = field(default_factory=list)
     validation: list[ValidationResult] = field(default_factory=list)
+    quality_gates: list[ValidationResult] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     safety_decision: dict[str, Any] = field(default_factory=dict)
     redacted_paths: list[str] = field(default_factory=list)
@@ -166,6 +168,24 @@ class EvidenceManifest:
         self.validation.append(result)
         self.updated_at = utc_now_iso()
 
+    def add_quality_gate(self, result: ValidationResult) -> None:
+        self.quality_gates.append(result)
+        self.updated_at = utc_now_iso()
+
+    def add_asset(
+        self, path: str, *, label: str | None = None, details: dict[str, Any] | None = None
+    ) -> None:
+        self.asset_manifest.append(
+            EvidenceItem(
+                kind="asset",
+                path=sanitize_path_string(path),
+                label=label,
+                details=details or {},
+            )
+        )
+        self.redacted_paths.append(sanitize_path_string(path))
+        self.updated_at = utc_now_iso()
+
     def to_dict(self) -> dict[str, Any]:
         return sanitize(
             {
@@ -182,7 +202,9 @@ class EvidenceManifest:
                 "input_summary": self.input_summary,
                 "output_files": [item.to_dict() for item in self.output_files],
                 "screenshots": [item.to_dict() for item in self.screenshots],
+                "asset_manifest": [item.to_dict() for item in self.asset_manifest],
                 "validation": [item.to_dict() for item in self.validation],
+                "quality_gates": [item.to_dict() for item in self.quality_gates],
                 "warnings": self.warnings,
                 "safety_decision": self.safety_decision,
                 "redacted_paths": self.redacted_paths,
@@ -231,7 +253,9 @@ def validate_manifest_payload(payload: dict[str, Any]) -> list[str]:
         "input_summary",
         "output_files",
         "screenshots",
+        "asset_manifest",
         "validation",
+        "quality_gates",
         "warnings",
         "safety_decision",
         "redacted_paths",
@@ -251,7 +275,16 @@ def validate_manifest_payload(payload: dict[str, Any]) -> list[str]:
     for key in ("input_summary", "safety_decision"):
         if not isinstance(payload[key], dict):
             return [f"{key} must be dict"]
-    for key in ("output_files", "screenshots", "validation", "warnings", "redacted_paths", "notes"):
+    for key in (
+        "output_files",
+        "screenshots",
+        "asset_manifest",
+        "validation",
+        "quality_gates",
+        "warnings",
+        "redacted_paths",
+        "notes",
+    ):
         if not isinstance(payload[key], list):
             return [f"{key} must be list"]
     return []

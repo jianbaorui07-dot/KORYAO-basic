@@ -19,6 +19,8 @@ from starbridge_mcp.bridges.capcut_draft_structure import draft_structure_summar
 from starbridge_mcp.bridges.illustrator_preflight import preflight_summary
 from starbridge_mcp.core.evidence import (
     DEFAULT_MANIFEST_FILENAME,
+    ValidationResult,
+    create_manifest,
     ensure_evidence_path,
     load_manifest,
     manifest_validation_result,
@@ -259,6 +261,19 @@ TOOL_DEFINITIONS: list[JsonObject] = [
                 "recipe_id": {"type": "string", "default": "photoshop_preview_export"},
                 "dry_run": {"type": "boolean", "default": True},
                 "action_plan": {"type": "boolean", "default": True},
+            }
+        ),
+        "annotations": _safe_read_annotations(),
+    },
+    {
+        "name": "starbridge.recipe_evidence",
+        "title": "StarBridge Recipe Evidence",
+        "description": "Preview a standardized EvidenceManifest for one recipe, including quality gates and asset manifest entries.",
+        "inputSchema": _object_schema(
+            {
+                "recipe_id": {"type": "string", "default": "photoshop_preview_export"},
+                "dry_run": {"type": "boolean", "default": True},
+                "confirm_write": {"type": "boolean", "default": False},
             }
         ),
         "annotations": _safe_read_annotations(),
@@ -1106,6 +1121,72 @@ def _handle_starbridge_recipe_plan(arguments: JsonObject) -> JsonObject:
     )
 
 
+def _handle_starbridge_recipe_evidence(arguments: JsonObject) -> JsonObject:
+    recipe_id = str(arguments.get("recipe_id") or "photoshop_preview_export")
+    recipe = STARBRIDGE_RECIPES.get(recipe_id)
+    if recipe is None:
+        return sanitize(
+            {
+                "ok": False,
+                "bridge": "all",
+                "action": "recipe_evidence",
+                "recipe_id": recipe_id,
+                "message": "unknown recipe_id",
+                "available_recipes": sorted(STARBRIDGE_RECIPES),
+            }
+        )
+    manifest = create_manifest(
+        bridge=str(recipe["bridge"]),
+        action="recipe_evidence",
+        status="queued",
+        dry_run=bool(arguments.get("dry_run", True)),
+        confirm_write=bool(arguments.get("confirm_write", False)),
+        plan_id=f"recipe::{recipe_id}",
+        job_id=f"job::{recipe_id}::preview",
+        input_summary={
+            "recipe_id": recipe_id,
+            "goal": recipe["goal"],
+            "tools": [step["tool"] for step in recipe["steps"]],
+            "safety_boundary": recipe["safety"],
+        },
+        notes=[
+            "preview only; not saved to disk",
+            "quality gates must pass before any confirmed bridge write",
+        ],
+    )
+    for gate_name in recipe["quality_gates"]:
+        manifest.add_quality_gate(
+            ValidationResult(
+                name=str(gate_name),
+                ok=True,
+                message="declared gate for recipe preview",
+                details={"recipe_id": recipe_id, "preview": True},
+            )
+        )
+    for item in recipe["evidence"]:
+        manifest.add_asset(
+            str(item),
+            label="declared_evidence",
+            details={"recipe_id": recipe_id, "materialized": False},
+        )
+    manifest.safety_decision = {
+        "safe_default": True,
+        "dry_run": manifest.dry_run,
+        "confirm_write": manifest.confirm_write,
+        "requires_confirmation_before_write": True,
+        "sandbox_or_metadata_only": True,
+    }
+    return sanitize(
+        {
+            "ok": True,
+            "bridge": recipe["bridge"],
+            "action": "recipe_evidence",
+            "recipe_id": recipe_id,
+            "manifest": manifest.to_dict(),
+        }
+    )
+
+
 def _report_to_result(
     *, bridge: str, action: str, report: JsonObject, display_name: str
 ) -> JsonObject:
@@ -1920,6 +2001,7 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.job_status": _handle_job_status,
     "starbridge.recipe_list": _handle_starbridge_recipe_list,
     "starbridge.recipe_plan": _handle_starbridge_recipe_plan,
+    "starbridge.recipe_evidence": _handle_starbridge_recipe_evidence,
     "comfyui.system_probe": _handle_comfy_system_probe,
     "comfyui.workflow_validate": _handle_workflow_validate,
     "comfyui.workflow_build_plan": _handle_comfy_workflow_build_plan,

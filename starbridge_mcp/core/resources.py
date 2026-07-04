@@ -58,6 +58,8 @@ that writes or launches local software.
 
 ## Discovery
 - Call `starbridge.tools` to enumerate capabilities with risk levels.
+- Call `starbridge.recipe_evidence` to preview recipe quality gates and asset
+  manifest entries before any confirmed write.
 - Read `starbridge://capabilities` and `starbridge://bridges` for static context.
 - Call `starbridge.status` or `*.environment_probe` for live readiness.
 
