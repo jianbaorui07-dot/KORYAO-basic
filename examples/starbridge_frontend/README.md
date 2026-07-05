@@ -38,6 +38,9 @@ $env:VITE_STARBRIDGE_API_URL="http://127.0.0.1:52420"
 npm run dev
 ```
 
+When the production build is served by `starbridge_mcp.backend`, the frontend
+uses the current page origin automatically. No extra API URL setting is needed.
+
 ## Backend APIs Used
 
 - `GET /api/bootstrap`

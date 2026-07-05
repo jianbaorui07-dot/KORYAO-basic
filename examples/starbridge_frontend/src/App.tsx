@@ -74,10 +74,12 @@ type BackendPayload = {
 
 type ToolResult = Record<string, unknown> | null;
 
-const API_BASE = ((import.meta.env.VITE_STARBRIDGE_API_URL as string | undefined) ?? 'http://127.0.0.1:8765').replace(
-  /\/$/,
-  '',
-);
+function defaultApiBase() {
+  if (import.meta.env.DEV) return 'http://127.0.0.1:8765';
+  return window.location.origin;
+}
+
+const API_BASE = ((import.meta.env.VITE_STARBRIDGE_API_URL as string | undefined) ?? defaultApiBase()).replace(/\/$/, '');
 
 const bridgeColors: Record<string, string> = {
   all: '#f4d35e',
@@ -100,6 +102,12 @@ const bridgeLabels: Record<string, string> = {
   illustrator: '矢量设计',
   jianying_capcut: '视频剪辑',
 };
+
+function recipeMatchesBridge(recipe: Recipe, bridge: string) {
+  if (bridge === 'all') return true;
+  if (bridge === 'autocad') return recipe.bridge === 'autocad' || recipe.bridge === 'autocad_dxf';
+  return recipe.bridge === bridge;
+}
 
 function ArtField({ activeColor }: { activeColor: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -255,6 +263,20 @@ function App() {
   const recipes = payload?.recipes.recipes ?? [];
   const activeOverview = payload?.capabilities.bridge_overview[activeBridge];
   const activeColor = bridgeColors[activeBridge] ?? '#87f7ff';
+  const visibleRecipes = useMemo(
+    () => recipes.filter((recipe) => recipeMatchesBridge(recipe, activeBridge)),
+    [activeBridge, recipes],
+  );
+
+  useEffect(() => {
+    if (!visibleRecipes.length) {
+      setSelectedRecipe(null);
+      return;
+    }
+    if (!visibleRecipes.some((recipe) => recipe.recipe_id === selectedRecipe)) {
+      setSelectedRecipe(visibleRecipes[0].recipe_id);
+    }
+  }, [selectedRecipe, visibleRecipes]);
 
   const runRecipeAction = async (action: 'plan' | 'evidence') => {
     if (!selectedRecipe) return;
@@ -377,7 +399,7 @@ function App() {
             <h2>受审查工作流</h2>
           </div>
           <div className="recipe-list">
-            {recipes.map((recipe) => (
+            {visibleRecipes.map((recipe) => (
               <button
                 className={`recipe-row ${recipe.recipe_id === selectedRecipe ? 'is-selected' : ''}`}
                 key={recipe.recipe_id}
@@ -388,6 +410,12 @@ function App() {
                 <span>{recipe.bridge}</span>
               </button>
             ))}
+            {!visibleRecipes.length && (
+              <div className="empty-state">
+                <strong>No reviewed recipe yet</strong>
+                <span>Select another bridge or add a safe recipe in the backend registry.</span>
+              </div>
+            )}
           </div>
           <div className="action-row">
             <button disabled={!selectedRecipe || busyAction !== null} onClick={() => void runRecipeAction('plan')} type="button">
