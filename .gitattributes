@@ -5,6 +5,8 @@
 *.jpeg binary
 *.gif binary
 *.webp binary
+*.uasset binary
+*.umap binary
 *.dwg binary
 *.blend binary
 *.zip binary
