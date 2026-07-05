@@ -9,15 +9,15 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
-## Unreal Amara Agent
+## 造境WorldForge：虚幻引擎 3D 世界开发 Agent
 
-New example package: [examples/unreal_amara_agent](examples/unreal_amara_agent)
+New example package: [examples/unreal_worldforge_agent](examples/unreal_worldforge_agent)
 
-This preserves the local `codex接入UE` evidence bundle for the Amara UE Agent Framework: Unreal Engine 5.2.1 Amara assets, offline task runner scripts, checkpoints, safety reports, performance evidence, screenshots, and the stopped Remote Control/MCP handoff plan.
+This preserves the local `codex接入UE` evidence bundle for the 造境WorldForge：虚幻引擎 3D 世界开发 Agent: Unreal Engine 5.2.1 WorldForge assets, offline task runner scripts, checkpoints, safety reports, performance evidence, screenshots, and the stopped Remote Control/MCP handoff plan.
 
 The product direction is a 3D-aware local agent for Unreal Engine: describe a world, then let the agent build editable terrain, buildings, spaces, interactive objects, scripts, physics, gameplay logic, and eventually characters, NPC behavior, quests, weather, and playable game loops. Current repository evidence is documented honestly as a prototype seed rather than a completed remote-control plugin.
 
-Read the overview: [docs/unreal-amara-agent-framework.md](docs/unreal-amara-agent-framework.md)
+Read the overview: [docs/unreal-worldforge-agent-framework.md](docs/unreal-worldforge-agent-framework.md)
 
 ## 仓库总定位
 

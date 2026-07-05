@@ -65,7 +65,7 @@ python_files = ["test_*.py"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-exclude = ["examples/unreal_amara_agent/**/*.py"]
+extend-exclude = ["examples/unreal_worldforge_agent/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
