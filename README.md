@@ -13,7 +13,7 @@
 
 New example package: [examples/unreal_worldforge_agent](examples/unreal_worldforge_agent)
 
-This preserves the local `codex接入UE` evidence bundle for the 造境WorldForge：虚幻引擎 3D 世界开发 Agent: Unreal Engine 5.2.1 WorldForge assets, offline task runner scripts, checkpoints, safety reports, performance evidence, screenshots, and the stopped Remote Control/MCP handoff plan.
+This preserves the local `codex接入UE` evidence bundle for the 造境WorldForge：虚幻引擎 3D 世界开发 Agent: Unreal Engine 5.2.1 WorldForge assets, scene-specific WF0009/WF0010 result assets, v1.1 UE Python workflow scripts, recipes, checkpoints, sanitized receipts, safety reports, performance evidence, screenshots, and the stopped Remote Control/MCP handoff plan.
 
 The product direction is a 3D-aware local agent for Unreal Engine: describe a world, then let the agent build editable terrain, buildings, spaces, interactive objects, scripts, physics, gameplay logic, and eventually characters, NPC behavior, quests, weather, and playable game loops. Current repository evidence is documented honestly as a prototype seed rather than a completed remote-control plugin.
 

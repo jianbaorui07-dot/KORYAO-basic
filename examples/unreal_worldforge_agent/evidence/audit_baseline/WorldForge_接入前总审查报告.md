@@ -14,9 +14,9 @@
 
 ## 2. 当前 UE 版本与 exe
 
-- UE Build.version：D:\UE_5.2\Engine\Build\Build.version
+- UE Build.version：<UE_5_2_ROOT>\Engine\Build\Build.version
 - 当前 UE 真实版本：5.2.1 (++UE5+Release-5.2)
-- UE 5.2.1 exe 路径：D:\UE_5.2\Engine\Binaries\Win64\UnrealEditor.exe
+- UE 5.2.1 exe 路径：<UE_5_2_ROOT>\Engine\Binaries\Win64\UnrealEditor.exe
 - UE exe 存在：True
 - 本阶段未启动 UE。
 

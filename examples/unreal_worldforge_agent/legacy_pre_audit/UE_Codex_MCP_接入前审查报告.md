@@ -5,7 +5,7 @@
 ## 1. 审查范围
 
 - UE 项目：`<ORIGINAL_PROJECT8>\我的项目8.uproject`
-- UE 实际运行程序：`D:\UE_5.2\Engine\Binaries\Win64\UnrealEditor.exe`
+- UE 实际运行程序：`<UE_5_2_ROOT>\Engine\Binaries\Win64\UnrealEditor.exe`
 - 目标接入方式：Codex Native MCP，仅限本机 `localhost` / `127.0.0.1`
 - 本阶段执行方式：只读检查；未安装、未克隆、未写配置、未启动服务、未编译。
 
@@ -78,10 +78,10 @@ Windows SDK：
 
 UnrealBuildTool：
 
-- `D:\UE_5.2\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll`：存在
-- `D:\UE_5.2\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe`：存在
-- `D:\UE_5.2\Engine\Binaries\ThirdParty\DotNet\6.0.302\windows\dotnet.exe`：存在
-- `D:\UE_5.2\Engine\Build\BatchFiles\Build.bat`：存在
+- `<UE_5_2_ROOT>\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll`：存在
+- `<UE_5_2_ROOT>\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.exe`：存在
+- `<UE_5_2_ROOT>\Engine\Binaries\ThirdParty\DotNet\6.0.302\windows\dotnet.exe`：存在
+- `<UE_5_2_ROOT>\Engine\Build\BatchFiles\Build.bat`：存在
 
 系统 DotNet：
 

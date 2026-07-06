@@ -1,0 +1,1 @@
+"""WorldForge PythonAutomationTest-discoverable tests."""

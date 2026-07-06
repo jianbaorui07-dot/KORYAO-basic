@@ -9,7 +9,7 @@
 
 ## 2. UE exe 路径
 
-D:\UE_5.2\Engine\Binaries\Win64\UnrealEditor.exe
+<UE_5_2_ROOT>\Engine\Binaries\Win64\UnrealEditor.exe
 
 ## 3. 原项目8真实路径
 

@@ -10,7 +10,7 @@
 - 原项目8是否修改：否。最终复核原项目与只读备份文件数 75 / 75，哈希差异数 0。
 - 全局 Codex 配置是否修改：否。<CODEX_HOME>\config.toml SHA256 为 B2638BC00D387E95D9BC97AD4ED038FB3AB5A5B4B1692F03224A4A9E31DD5970，最后写入时间 2026-07-02T13:52:40。
 - 是否安装软件：否。
-- 是否升级 UE：否，仍使用 D:\UE_5.2\Engine\Binaries\Win64\UnrealEditor.exe。
+- 是否升级 UE：否，仍使用 <UE_5_2_ROOT>\Engine\Binaries\Win64\UnrealEditor.exe。
 - 是否下载外部资产或插件：否。
 - 是否启用 UDP Messaging：否；本轮每次 UE 启动均使用一次性 -UDPMESSAGING_TRANSPORT_ENABLE=False，未发现 UDP 6666、0.0.0.0、230.0.0.1 或 192.168.x.x Messaging 绑定。
 - 是否启用 Remote Control：否。
