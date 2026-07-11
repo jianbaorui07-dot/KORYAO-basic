@@ -22,6 +22,10 @@ __all__ = [
     "CreativeTransaction",
     "ModelPolicy",
     "create_recipe_transaction",
+    "VectorDimensionResult",
+    "VectorQualityFinding",
+    "evaluate_reference_vector_quality",
+    "validate_reference_vector_quality_report",
     # Security & safety
     "sanitize",
     "sanitize_path",
@@ -73,6 +77,12 @@ from starbridge_mcp.core.transaction import (
     CreativeTransaction,
     ModelPolicy,
     create_recipe_transaction,
+)
+from starbridge_mcp.core.vector_quality import (
+    VectorDimensionResult,
+    VectorQualityFinding,
+    evaluate_reference_vector_quality,
+    validate_reference_vector_quality_report,
 )
 from starbridge_mcp.core.result_schema import make_result, validate_result
 from starbridge_mcp.core.safe_roots import safe_roots_summary

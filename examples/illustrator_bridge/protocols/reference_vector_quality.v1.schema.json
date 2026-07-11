@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starbridge.local/schemas/reference_vector_quality.v1.schema.json",
+  "title": "Reference Vector Quality Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reference_id",
+    "candidate_id",
+    "dimensions",
+    "hard_gates",
+    "findings",
+    "overall_score",
+    "minimum_dimension_score",
+    "verdict"
+  ],
+  "properties": {
+    "schema_version": { "const": "starbridge.reference-vector-quality.v1" },
+    "reference_id": { "type": "string", "minLength": 1 },
+    "candidate_id": { "type": "string", "minLength": 1 },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["geometry", "topology", "editability", "visual", "production"],
+      "properties": {
+        "geometry": { "$ref": "#/$defs/dimension" },
+        "topology": { "$ref": "#/$defs/dimension" },
+        "editability": { "$ref": "#/$defs/dimension" },
+        "visual": { "$ref": "#/$defs/dimension" },
+        "production": { "$ref": "#/$defs/dimension" }
+      }
+    },
+    "hard_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_authorized",
+        "primary_silhouette_present",
+        "topology_valid",
+        "editable_vector_present",
+        "safe_output_scope"
+      ],
+      "properties": {
+        "reference_authorized": { "type": "boolean" },
+        "primary_silhouette_present": { "type": "boolean" },
+        "topology_valid": { "type": "boolean" },
+        "editable_vector_present": { "type": "boolean" },
+        "safe_output_scope": { "type": "boolean" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "overall_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "minimum_dimension_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "verdict": { "enum": ["pass", "repair_needed", "blocked"] }
+  },
+  "$defs": {
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "checks"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "checks": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "dimension", "severity", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "dimension": {
+          "enum": ["geometry", "topology", "editability", "visual", "production"]
+        },
+        "severity": { "enum": ["info", "warn", "critical"] },
+        "message": { "type": "string", "minLength": 1 },
+        "object_id": { "type": ["string", "null"] },
+        "suggested_patch": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
