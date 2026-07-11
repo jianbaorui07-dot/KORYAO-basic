@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starbridge.local/schemas/vector_scene.v1.schema.json",
+  "title": "StarBridge Vector Scene Graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scene_id", "document", "palette", "layers", "objects"],
+  "properties": {
+    "schema_version": { "const": "starbridge.vector-scene.v1" },
+    "scene_id": { "$ref": "#/$defs/id" },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "units", "color_mode", "background"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 },
+        "units": { "enum": ["px", "pt", "mm"] },
+        "color_mode": { "enum": ["RGB", "CMYK"] },
+        "background": { "oneOf": [{ "$ref": "#/$defs/color" }, { "type": "null" }] }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$" },
+      "additionalProperties": { "$ref": "#/$defs/color" },
+      "maxProperties": 64
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "visible", "locked"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "visible": { "type": "boolean" },
+          "locked": { "type": "boolean" }
+        }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/object" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,127}$" },
+    "number": { "type": "number", "minimum": -100000, "maximum": 100000 },
+    "positive": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000 },
+    "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$" },
+    "paint": { "oneOf": [{ "$ref": "#/$defs/color" }, { "type": "string", "pattern": "^@[A-Za-z][A-Za-z0-9_-]{0,63}$" }, { "type": "null" }] },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fill", "stroke", "stroke_width", "opacity"],
+      "properties": {
+        "fill": { "$ref": "#/$defs/paint" },
+        "stroke": { "$ref": "#/$defs/paint" },
+        "stroke_width": { "type": "number", "minimum": 0, "maximum": 1000 },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "line_cap": { "enum": ["butt", "round", "square"] },
+        "line_join": { "enum": ["miter", "round", "bevel"] }
+      }
+    },
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/number" }, { "$ref": "#/$defs/number" }],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "path_command": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["op", "x", "y"], "properties": { "op": { "enum": ["M", "L"] }, "x": { "$ref": "#/$defs/number" }, "y": { "$ref": "#/$defs/number" } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "x1", "y1", "x2", "y2", "x", "y"], "properties": { "op": { "const": "C" }, "x1": { "$ref": "#/$defs/number" }, "y1": { "$ref": "#/$defs/number" }, "x2": { "$ref": "#/$defs/number" }, "y2": { "$ref": "#/$defs/number" }, "x": { "$ref": "#/$defs/number" }, "y": { "$ref": "#/$defs/number" } } },
+        { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "Z" } } }
+      ]
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "layer_id", "type", "style"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "layer_id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "maxLength": 128 },
+        "type": { "enum": ["rect", "circle", "ellipse", "line", "polygon", "path", "text"] },
+        "style": { "$ref": "#/$defs/style" },
+        "x": { "$ref": "#/$defs/number" },
+        "y": { "$ref": "#/$defs/number" },
+        "width": { "$ref": "#/$defs/positive" },
+        "height": { "$ref": "#/$defs/positive" },
+        "rx": { "type": "number", "minimum": 0, "maximum": 100000 },
+        "cx": { "$ref": "#/$defs/number" },
+        "cy": { "$ref": "#/$defs/number" },
+        "r": { "$ref": "#/$defs/positive" },
+        "rx_radius": { "$ref": "#/$defs/positive" },
+        "ry_radius": { "$ref": "#/$defs/positive" },
+        "x1": { "$ref": "#/$defs/number" },
+        "y1": { "$ref": "#/$defs/number" },
+        "x2": { "$ref": "#/$defs/number" },
+        "y2": { "$ref": "#/$defs/number" },
+        "points": { "type": "array", "minItems": 2, "maxItems": 4096, "items": { "$ref": "#/$defs/point" } },
+        "commands": { "type": "array", "minItems": 1, "maxItems": 4096, "items": { "$ref": "#/$defs/path_command" } },
+        "text": { "type": "string", "maxLength": 4096 },
+        "font_family": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "font_size": { "$ref": "#/$defs/positive" },
+        "text_anchor": { "enum": ["start", "middle", "end"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starbridge.local/schemas/vector_task.v1.schema.json",
+  "title": "StarBridge Vector Task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task", "strategy", "structure", "style", "quality", "review", "exports", "dry_run", "confirm_write", "unrecognized_terms"],
+  "properties": {
+    "schema_version": { "const": "starbridge.vector-task.v1" },
+    "task": { "enum": ["reference_vector_rebuild", "icon_rebuild", "line_art_vectorization", "silhouette_rebuild"] },
+    "strategy": { "enum": ["semantic_reconstruction", "contour_reconstruction", "geometric_reconstruction"] },
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_layers", "anchor_policy", "live_text", "reuse_symbols", "image_trace"],
+      "properties": {
+        "semantic_layers": { "type": "boolean" },
+        "anchor_policy": { "enum": ["minimal", "balanced", "preserve_detail"] },
+        "live_text": { "type": "boolean" },
+        "reuse_symbols": { "type": "boolean" },
+        "image_trace": { "type": "boolean" }
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_colors", "gradient_allowed", "color_policy"],
+      "properties": {
+        "max_colors": { "type": ["integer", "null"], "minimum": 1, "maximum": 32 },
+        "gradient_allowed": { "type": "boolean" },
+        "color_policy": { "enum": ["reference_match", "brand_tokens", "unconstrained"] }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall_min", "dimension_min", "priority", "negative_space_hard_gate", "topology_hard_gate"],
+      "properties": {
+        "overall_min": { "type": "number", "minimum": 0, "maximum": 100 },
+        "dimension_min": { "type": "number", "minimum": 0, "maximum": 100 },
+        "priority": { "type": "array", "items": { "enum": ["silhouette", "proportion", "negative_space", "topology", "visual_detail"] }, "uniqueItems": true },
+        "negative_space_hard_gate": { "type": "boolean" },
+        "topology_hard_gate": { "type": "boolean" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preview_required", "max_repair_rounds", "patch_mode"],
+      "properties": {
+        "preview_required": { "type": "boolean" },
+        "max_repair_rounds": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "patch_mode": { "enum": ["diff_only", "full_rebuild"] }
+      }
+    },
+    "exports": { "type": "array", "items": { "enum": ["svg", "pdf", "png"] }, "minItems": 1, "uniqueItems": true },
+    "dry_run": { "const": true },
+    "confirm_write": { "const": false },
+    "unrecognized_terms": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  }
+}
