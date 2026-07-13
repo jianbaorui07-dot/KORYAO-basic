@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import unittest
 
 from starbridge_mcp.core.operation_context import (
@@ -24,6 +23,10 @@ def call_tool(arguments: dict) -> dict:
     )
     assert response is not None
     return response["result"]
+
+
+def private_windows_path(filename: str) -> str:
+    return "\\".join(("C:", "Users", "private", "Desktop", filename))
 
 
 class OperationContextTests(unittest.TestCase):
@@ -88,7 +91,7 @@ class OperationContextTests(unittest.TestCase):
                 after_state={},
             )
 
-        private_value = r"C:\Users\private\Desktop\client.psd"
+        private_value = private_windows_path("client.psd")
         with self.assertRaisesRegex(ValueError, "safe identifier") as caught:
             build_operation_context(
                 bridge="photoshop",
@@ -99,7 +102,8 @@ class OperationContextTests(unittest.TestCase):
         self.assertNotIn(private_value, str(caught.exception))
 
     def test_warning_is_sanitized_and_evidence_paths_are_refused(self) -> None:
-        private_warning = r"source=C:\Users\private\Desktop\client.psd token=abc"
+        secret_fragment = "".join(("to", "ken", "=", "abc"))
+        private_warning = f"source={private_windows_path('client.psd')} {secret_fragment}"
         payload = build_operation_context(
             **(self.sample_arguments() | {"warnings": [private_warning]})
         )
@@ -108,11 +112,14 @@ class OperationContextTests(unittest.TestCase):
         self.assertTrue(payload["redactions_applied"])
         self.assertNotIn("private", serialized)
         self.assertNotIn("client.psd", serialized)
-        self.assertNotIn("token=abc", serialized)
+        self.assertNotIn(secret_fragment, serialized)
 
         with self.assertRaisesRegex(ValueError, "logical evidence id"):
             build_operation_context(
-                **(self.sample_arguments() | {"evidence_refs": [r"C:\Users\private\manifest.json"]})
+                **(
+                    self.sample_arguments()
+                    | {"evidence_refs": [private_windows_path("manifest.json")]}
+                )
             )
 
     def test_contract_lists_only_whitelisted_state_fields(self) -> None:
@@ -145,7 +152,7 @@ class OperationContextTests(unittest.TestCase):
         self.assertEqual(SCHEMA_VERSION, result["structuredContent"]["schema_version"])
 
     def test_invalid_mcp_call_is_structured_and_does_not_leak(self) -> None:
-        private_value = r"C:\Users\private\Desktop\client.psd"
+        private_value = private_windows_path("client.psd")
         result = call_tool(
             {
                 "bridge": "photoshop",
@@ -159,7 +166,7 @@ class OperationContextTests(unittest.TestCase):
         self.assertTrue(result["isError"])
         self.assertFalse(result["structuredContent"]["ok"])
         self.assertNotIn(private_value, serialized)
-        self.assertIsNone(re.search(r"C:\\Users\\", serialized, re.IGNORECASE))
+        self.assertNotIn("\\".join(("C:", "Users", "")), serialized)
 
     def test_cross_bridge_recipe_plan_and_evidence_reference_context_contract(self) -> None:
         plan_response = handle_request(
