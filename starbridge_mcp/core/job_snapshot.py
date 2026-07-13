@@ -186,11 +186,17 @@ def job_snapshot_contract() -> dict[str, Any]:
 
 def _next_steps(status: str) -> list[str]:
     return {
-        "pending": ["Wait for queue capacity; do not submit another job from this read-only result."],
-        "in_progress": ["Continue bounded progress monitoring or request another job snapshot later."],
+        "pending": [
+            "Wait for queue capacity; do not submit another job from this read-only result."
+        ],
+        "in_progress": [
+            "Continue bounded progress monitoring or request another job snapshot later."
+        ],
         "completed": ["Record completion without reading private outputs or workflow content."],
         "failed": ["Inspect ComfyUI manually; this safe summary omits error and traceback text."],
-        "cancelled": ["Confirm the cancellation was expected before any separately confirmed retry."],
+        "cancelled": [
+            "Confirm the cancellation was expected before any separately confirmed retry."
+        ],
     }[status]
 
 

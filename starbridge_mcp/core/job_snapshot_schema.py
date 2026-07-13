@@ -5,9 +5,7 @@ from typing import Any
 SCHEMA_VERSION = "starbridge.job-snapshot.v1"
 SNAPSHOT_ID_PATTERN = r"^jobstatus_[0-9a-f]{12}$"
 LOGICAL_JOB_ID_PATTERN = r"^job_[0-9a-f]{12}$"
-JOB_ID_PATTERN = (
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-)
+JOB_ID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 MAX_OUTPUTS_COUNT = 1_000_000
 JOB_STATUSES = ("pending", "in_progress", "completed", "failed", "cancelled")
 DECISIONS = ("planned", "unavailable", "not_found", *JOB_STATUSES)

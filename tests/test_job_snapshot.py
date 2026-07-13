@@ -94,8 +94,8 @@ class JobSnapshotTests(unittest.TestCase):
                 result = build_job_snapshot(
                     job_id=JOB_ID,
                     probe=True,
-                    fetcher=lambda _base_url, _job_id, _timeout, value=status: (
-                        sample_job_payload(value)
+                    fetcher=lambda _base_url, _job_id, _timeout, value=status: sample_job_payload(
+                        value
                     ),
                 )
                 self.assertEqual(status, result["decision"])
