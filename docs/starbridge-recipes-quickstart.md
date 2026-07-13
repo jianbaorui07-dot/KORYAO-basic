@@ -14,11 +14,13 @@ mode until a bridge-specific tool receives explicit confirmation.
    before considering a confirmed submit.
 6. Keep `comfyui.progress_monitor` in plan mode until a bounded live observation is needed;
    live mode returns only hashed IDs, numeric progress and safe status.
-7. Call `starbridge.operation_context` with a caller-supplied safe `before_state`.
-8. Call `starbridge.recipe_evidence` to preview the standard `EvidenceManifest`.
-9. Only then call a bridge-specific write/export/run tool, and only with the required
+7. Keep `comfyui.job_snapshot` in plan mode until a submitted job ID must be checked after
+   a disconnect; live mode discards workflow, output, preview, and error details.
+8. Call `starbridge.operation_context` with a caller-supplied safe `before_state`.
+9. Call `starbridge.recipe_evidence` to preview the standard `EvidenceManifest`.
+10. Only then call a bridge-specific write/export/run tool, and only with the required
    confirmation flag and sandbox output root.
-10. After each major action or failure, call `starbridge.operation_context` again with
+11. After each major action or failure, call `starbridge.operation_context` again with
    the safe `after_state` and chain the returned `context_id`.
 
 ## MCP Calls
@@ -96,6 +98,8 @@ Preview its evidence contract:
   backpressure gate; it never replaces explicit submission confirmation.
 - `progress_monitor` is also plan-only by default. A live `stalled` result is evidence for
   manual review, not permission to cancel or restart ComfyUI.
+- `job_snapshot` is plan-only by default and requires the raw job UUID from the current
+  controlled session. Its live result is a redacted terminal-status summary, not output access.
 - `asset_manifest` must contain only sanitized, repo-relative, or generated asset
   summaries. Do not include customer paths, model paths, account data, or private
   source files.

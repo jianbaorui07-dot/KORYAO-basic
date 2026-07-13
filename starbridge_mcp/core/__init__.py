@@ -24,6 +24,8 @@ __all__ = [
     "create_recipe_transaction",
     "build_operation_context",
     "operation_context_contract",
+    "build_job_snapshot",
+    "job_snapshot_contract",
     "build_queue_snapshot",
     "normalize_queue_payload",
     "queue_snapshot_contract",
@@ -85,6 +87,7 @@ from starbridge_mcp.core.evidence import (
     repo_relative,
     save_manifest,
 )
+from starbridge_mcp.core.job_snapshot import build_job_snapshot, job_snapshot_contract
 from starbridge_mcp.core.job_status import JobStatus
 from starbridge_mcp.core.operation_context import (
     build_operation_context,

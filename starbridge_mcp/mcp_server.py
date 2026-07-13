@@ -27,6 +27,11 @@ from starbridge_mcp.core.evidence import (
     manifest_validation_result,
     repo_relative,
 )
+from starbridge_mcp.core.job_snapshot import build_job_snapshot, job_snapshot_contract
+from starbridge_mcp.core.job_snapshot_schema import (
+    JOB_SNAPSHOT_INPUT_SCHEMA,
+    JOB_SNAPSHOT_OUTPUT_SCHEMA,
+)
 from starbridge_mcp.core.job_status import JobStatus
 from starbridge_mcp.core.operation_context import (
     build_operation_context,
@@ -390,6 +395,18 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         ),
         "inputSchema": QUEUE_SNAPSHOT_INPUT_SCHEMA,
         "outputSchema": QUEUE_SNAPSHOT_OUTPUT_SCHEMA,
+        "annotations": _safe_read_annotations(requires_local_software=True),
+    },
+    {
+        "name": "comfyui.job_snapshot",
+        "title": "ComfyUI Job Snapshot",
+        "description": (
+            "默认只返回计划；probe=true 时按显式 job ID 只读访问 loopback "
+            "ComfyUI /api/jobs/{job_id}。只返回哈希 ID、状态、终态和输出数量，"
+            "丢弃 workflow、output、preview、异常正文和 traceback。"
+        ),
+        "inputSchema": JOB_SNAPSHOT_INPUT_SCHEMA,
+        "outputSchema": JOB_SNAPSHOT_OUTPUT_SCHEMA,
         "annotations": _safe_read_annotations(requires_local_software=True),
     },
     {
@@ -1186,10 +1203,15 @@ STARBRIDGE_RECIPES: dict[str, JsonObject] = {
                 "tool": "comfyui.progress_monitor",
                 "purpose": "plan a bounded live progress observation for separately confirmed runs",
             },
+            {
+                "tool": "comfyui.job_snapshot",
+                "purpose": "plan a redacted single-job status read after a disconnect or later resume",
+            },
         ],
         "quality_gates": [
             "queue_backpressure_reviewed",
             "live_progress_reviewed",
+            "terminal_status_reviewed",
             "workflow_schema",
             "prompt_redacted",
             "no_queue_submit",
@@ -1198,6 +1220,7 @@ STARBRIDGE_RECIPES: dict[str, JsonObject] = {
         "safety": (
             "queue snapshot is plan-only by default and live mode is loopback read-only; "
             "progress monitoring is also plan-only by default and omits raw events; "
+            "job snapshot is plan-only by default and discards workflow, output, and error fields; "
             "the recipe does not submit to /prompt or read local model/image folders."
         ),
     },
@@ -1324,6 +1347,7 @@ def _handle_starbridge_recipe_plan(arguments: JsonObject) -> JsonObject:
     if recipe["bridge"] == "comfyui":
         plan["queue_snapshot"] = queue_snapshot_contract()
         plan["progress_monitor"] = progress_monitor_contract()
+        plan["job_snapshot"] = job_snapshot_contract()
     if arguments.get("action_plan", True):
         plan["action_plan"] = {
             "mode": "plan_then_execute",
@@ -1367,6 +1391,7 @@ def _handle_starbridge_recipe_evidence(arguments: JsonObject) -> JsonObject:
     if recipe["bridge"] == "comfyui":
         input_summary["queue_snapshot_schema"] = queue_snapshot_contract()["schema_version"]
         input_summary["progress_monitor_schema"] = progress_monitor_contract()["schema_version"]
+        input_summary["job_snapshot_schema"] = job_snapshot_contract()["schema_version"]
     manifest = create_manifest(
         bridge=str(recipe["bridge"]),
         action="recipe_evidence",
@@ -1382,6 +1407,7 @@ def _handle_starbridge_recipe_evidence(arguments: JsonObject) -> JsonObject:
             "capture a sanitized operation context after every major action or failure",
             "review queue backpressure before any confirmed ComfyUI submit",
             "review bounded live progress without returning raw WebSocket events",
+            "review terminal status through a redacted single-job snapshot after disconnects",
         ],
     )
     for gate_name in recipe["quality_gates"]:
@@ -1408,6 +1434,7 @@ def _handle_starbridge_recipe_evidence(arguments: JsonObject) -> JsonObject:
         "operation_context_required_after_major_action": True,
         "queue_backpressure_review_required": recipe["bridge"] == "comfyui",
         "live_progress_review_required": recipe["bridge"] == "comfyui",
+        "terminal_status_review_required": recipe["bridge"] == "comfyui",
     }
     return sanitize(
         {
@@ -1470,6 +1497,15 @@ def _handle_comfy_queue_snapshot(arguments: JsonObject) -> JsonObject:
         timeout=arguments.get("timeout", 5),
         max_items=arguments.get("max_items", 25),
         progress=arguments.get("progress"),
+    )
+
+
+def _handle_comfy_job_snapshot(arguments: JsonObject) -> JsonObject:
+    return build_job_snapshot(
+        job_id=arguments.get("job_id"),
+        probe=arguments.get("probe", False),
+        comfy_url=arguments.get("comfy_url", DEFAULT_COMFY_URL),
+        timeout=arguments.get("timeout", 5),
     )
 
 
@@ -2273,6 +2309,7 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.recipe_evidence": _handle_starbridge_recipe_evidence,
     "comfyui.system_probe": _handle_comfy_system_probe,
     "comfyui.queue_snapshot": _handle_comfy_queue_snapshot,
+    "comfyui.job_snapshot": _handle_comfy_job_snapshot,
     "comfyui.progress_monitor": _handle_comfy_progress_monitor,
     "comfyui.workflow_validate": _handle_workflow_validate,
     "comfyui.workflow_build_plan": _handle_comfy_workflow_build_plan,

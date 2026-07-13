@@ -343,6 +343,30 @@ CAPABILITIES: tuple[ToolCapability, ...] = (
         invocation="python -m starbridge_mcp.mcp_server",
     ),
     ToolCapability(
+        name="comfyui.job_snapshot",
+        bridge="comfyui",
+        action="job_snapshot",
+        maturity="implemented",
+        risk_level="safe_read_only",
+        description=(
+            "默认只返回计划；显式 probe 时按 canonical job ID 读取 loopback 单任务状态，"
+            "只输出哈希 ID、终态和有界输出数量。"
+        ),
+        side_effects=(
+            "不提交或取消任务；不返回 workflow、output、preview、异常正文或 traceback；"
+            "live 模式只发送一次直接 loopback GET。"
+        ),
+        safe_default=True,
+        requires_confirmation=False,
+        requires_local_software=True,
+        source_projects=(
+            "Comfy-Org/ComfyUI",
+            "comfy-addons/comfyui-sdk",
+            "artokun/comfyui-mcp",
+        ),
+        invocation="python -m starbridge_mcp.mcp_server",
+    ),
+    ToolCapability(
         name="comfyui.workflow_validate",
         bridge="comfyui",
         action="workflow_validate",

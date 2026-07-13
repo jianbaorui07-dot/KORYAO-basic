@@ -92,7 +92,9 @@ class ControlPlannerTests(unittest.TestCase):
                 observe = next(phase for phase in result["phases"] if phase["phase"] == "observe")
                 expected_tools = ["starbridge.operation_context"]
                 if bridge == "comfyui":
-                    expected_tools.append("comfyui.progress_monitor")
+                    expected_tools.extend(
+                        ["comfyui.progress_monitor", "comfyui.job_snapshot"]
+                    )
                 self.assertEqual(expected_tools, observe["tools"])
                 self.assertEqual(
                     ["before_state", "after_state"],

@@ -36,7 +36,7 @@
 
 | 区域 | 目录或文件 | 当前能力 |
 | --- | --- | --- |
-| 图像生成桥 | `examples/comfy_bridge/` | MCP `comfyui.system_probe`、`comfyui.queue_snapshot`、`comfyui.progress_monitor`、`comfyui.workflow_validate`，以及文生图 workflow |
+| 图像生成桥 | `examples/comfy_bridge/` | MCP `comfyui.system_probe`、`comfyui.queue_snapshot`、`comfyui.progress_monitor`、`comfyui.job_snapshot`、`comfyui.workflow_validate`，以及文生图 workflow |
 | 三维场景桥 | `docs/04-codex-blender.md`、`examples/blender_bridge/` | MCP `blender.environment_probe` 和后续安全脚本方向 |
 | 工程制图桥 | `cad-mcp-autocad/`、`examples/cad/`、`scripts/` | MCP `cad_autocad.environment_probe`、`autocad_dxf.*`、AutoCAD MCP 子项目 |
 | Photoshop 修图桥 | `examples/photoshop_bridge/` | MCP `photoshop.session_info`、COM 探针、测试文档导出、主体抠图 |
