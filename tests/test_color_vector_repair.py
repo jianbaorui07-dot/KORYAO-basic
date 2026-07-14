@@ -112,13 +112,24 @@ class ColorVectorRepairTests(unittest.TestCase):
         self.assertTrue(safety["bounded_repair"]["const"])
         required = set(schema["required"])
         self.assertTrue(
-            {"next_execute_template", "runtime_requirements", "iteration_control"} <= required
+            {
+                "next_execute_template",
+                "runtime_requirements",
+                "iteration_control",
+                "post_execute_compare",
+            }
+            <= required
         )
         template = schema["$defs"]["execute_template"]
         self.assertFalse(template["additionalProperties"])
         self.assertTrue(template["properties"]["dry_run"]["const"])
         self.assertFalse(template["properties"]["confirm_write"]["const"])
         self.assertFalse(template["properties"]["confirm_export"]["const"])
+        compare = schema["$defs"]["post_execute_compare"]
+        self.assertFalse(compare["additionalProperties"])
+        compare_template = schema["$defs"]["compare_argument_template"]
+        self.assertFalse(compare_template["additionalProperties"])
+        self.assertTrue(compare_template["properties"]["soft_exit"]["const"])
         self.assert_no_path_or_script(schema)
 
     def test_fidelity_and_color_findings_get_bounded_deterministic_changes(self) -> None:
@@ -167,6 +178,28 @@ class ColorVectorRepairTests(unittest.TestCase):
             },
             first["iteration_control"],
         )
+        self.assertEqual(
+            {
+                "tool": "illustrator.color_vectorize_compare",
+                "argument_template": {
+                    "reference_id": "public-repair-01",
+                    "reference_authorized": True,
+                    "max_dimension": 512,
+                    "background_threshold": 24,
+                    "soft_exit": True,
+                },
+                "runtime_requirements": [
+                    "authorized_reference_file",
+                    "sandbox_preview_file",
+                    "trace_evidence",
+                ],
+                "on_pass": "complete",
+                "on_repair_needed": "plan_next_repair",
+                "on_blocked": "stop_for_user",
+                "next_repair_round": 2,
+            },
+            first["post_execute_compare"],
+        )
         self.assert_no_path_or_script(first)
 
     def test_execute_template_is_directly_callable_as_dry_run(self) -> None:
@@ -191,6 +224,22 @@ class ColorVectorRepairTests(unittest.TestCase):
             structured["preprocess"]["median_radius"],
         )
         self.assert_no_path_or_script(structured)
+
+    def test_compare_template_uses_only_compare_schema_fields(self) -> None:
+        repair = build_color_vector_repair_plan(base_arguments())
+        response = handle_request({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
+        assert response is not None
+        tools = {tool["name"]: tool for tool in response["result"]["tools"]}
+        compare_properties = set(
+            tools["illustrator.color_vectorize_compare"]["inputSchema"]["properties"]
+        )
+        template = repair["post_execute_compare"]["argument_template"]
+
+        self.assertLessEqual(set(template), compare_properties)
+        self.assertNotIn("reference_path", template)
+        self.assertNotIn("candidate_preview_path", template)
+        self.assertNotIn("trace_evidence", template)
+        self.assert_no_path_or_script(repair["post_execute_compare"])
 
     def test_anchor_only_repair_reduces_complexity_without_more_colors(self) -> None:
         arguments = base_arguments()
@@ -242,6 +291,7 @@ class ColorVectorRepairTests(unittest.TestCase):
         self.assertIsNone(structured["next_execute_template"])
         self.assertEqual([], structured["runtime_requirements"])
         self.assertFalse(structured["iteration_control"]["compare_after_execute"])
+        self.assertIsNone(structured["post_execute_compare"])
 
     def test_failed_hard_gate_never_relaxes_quality_or_suggests_execution(self) -> None:
         arguments = base_arguments()
@@ -259,6 +309,7 @@ class ColorVectorRepairTests(unittest.TestCase):
         self.assertIsNone(plan["suggested_next_tool"])
         self.assertIsNone(plan["next_execute_template"])
         self.assertEqual([], plan["runtime_requirements"])
+        self.assertIsNone(plan["post_execute_compare"])
         self.assertFalse(plan["safety"]["quality_gates_relaxed"])
 
     def test_last_planned_round_requires_stop_after_failed_compare(self) -> None:
@@ -271,6 +322,11 @@ class ColorVectorRepairTests(unittest.TestCase):
         self.assertEqual(0, plan["iteration_control"]["remaining_rounds_after_execute"])
         self.assertIsNone(plan["iteration_control"]["next_repair_round"])
         self.assertTrue(plan["iteration_control"]["stop_after_compare_if_failed"])
+        self.assertEqual(
+            "stop_for_user",
+            plan["post_execute_compare"]["on_repair_needed"],
+        )
+        self.assertIsNone(plan["post_execute_compare"]["next_repair_round"])
 
     def test_exhausted_budget_stops_without_repair(self) -> None:
         arguments = base_arguments()

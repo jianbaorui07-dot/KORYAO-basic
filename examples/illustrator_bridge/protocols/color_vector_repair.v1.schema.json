@@ -25,6 +25,7 @@
     "next_execute_template",
     "runtime_requirements",
     "iteration_control",
+    "post_execute_compare",
     "warnings",
     "safety",
     "dry_run",
@@ -138,6 +139,12 @@
         "stop_after_compare_if_failed": { "type": "boolean" }
       }
     },
+    "post_execute_compare": {
+      "oneOf": [
+        { "$ref": "#/$defs/post_execute_compare" },
+        { "type": "null" }
+      ]
+    },
     "warnings": {
       "type": "array",
       "items": { "type": "string", "minLength": 1, "maxLength": 512 }
@@ -217,6 +224,67 @@
         "dry_run": { "const": true },
         "confirm_write": { "const": false },
         "confirm_export": { "const": false }
+      }
+    },
+    "compare_argument_template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "reference_authorized",
+        "max_dimension",
+        "background_threshold",
+        "soft_exit"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "reference_authorized": { "const": true },
+        "max_dimension": { "const": 512 },
+        "background_threshold": { "const": 24 },
+        "soft_exit": { "const": true }
+      }
+    },
+    "post_execute_compare": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "argument_template",
+        "runtime_requirements",
+        "on_pass",
+        "on_repair_needed",
+        "on_blocked",
+        "next_repair_round"
+      ],
+      "properties": {
+        "tool": { "const": "illustrator.color_vectorize_compare" },
+        "argument_template": { "$ref": "#/$defs/compare_argument_template" },
+        "runtime_requirements": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "authorized_reference_file",
+              "sandbox_preview_file",
+              "trace_evidence"
+            ]
+          }
+        },
+        "on_pass": { "const": "complete" },
+        "on_repair_needed": {
+          "enum": ["plan_next_repair", "stop_for_user"]
+        },
+        "on_blocked": { "const": "stop_for_user" },
+        "next_repair_round": {
+          "type": ["integer", "null"],
+          "minimum": 2,
+          "maximum": 3
+        }
       }
     },
     "settings": {

@@ -203,6 +203,29 @@ def _result(
         ]
     remaining_rounds = max(0, max_repair_rounds - repair_round) if planned else 0
     next_repair_round = repair_round + 1 if planned and repair_round < max_repair_rounds else None
+    post_execute_compare = None
+    if planned:
+        post_execute_compare = {
+            "tool": "illustrator.color_vectorize_compare",
+            "argument_template": {
+                "reference_id": reference_id,
+                "reference_authorized": True,
+                "max_dimension": 512,
+                "background_threshold": 24,
+                "soft_exit": True,
+            },
+            "runtime_requirements": [
+                "authorized_reference_file",
+                "sandbox_preview_file",
+                "trace_evidence",
+            ],
+            "on_pass": "complete",
+            "on_repair_needed": (
+                "plan_next_repair" if next_repair_round is not None else "stop_for_user"
+            ),
+            "on_blocked": "stop_for_user",
+            "next_repair_round": next_repair_round,
+        }
     return sanitize(
         {
             "ok": planned or pass_through,
@@ -233,6 +256,7 @@ def _result(
                 "next_repair_round": next_repair_round,
                 "stop_after_compare_if_failed": planned and repair_round >= max_repair_rounds,
             },
+            "post_execute_compare": post_execute_compare,
             "warnings": warnings,
             "safety": {
                 "inputs_sanitized": True,
