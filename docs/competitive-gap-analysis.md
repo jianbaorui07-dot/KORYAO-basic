@@ -14,7 +14,7 @@
 | [IO-AtelierTech/comfyui-mcp](https://github.com/IO-AtelierTech/comfyui-mcp) | queue/history/interrupt/object_info 等完整作业控制面 | 已实现只读 loopback queue snapshot；受控 cancel 与 history 摘要仍未开放 |
 | [alisaitteke/photoshop-mcp](https://github.com/alisaitteke/photoshop-mcp) | 操作后返回 document/layer context，降低模型丢失软件状态的概率 | 已有 `ps.get_state` / `ps.get_preview`；缺少所有 recipe 共用的 before/after state delta |
 | [alisaitteke/photoshop-mcp Action Plan](https://github.com/alisaitteke/photoshop-mcp/blob/master/src/ui/agent/action-plan.ts) | 失败后只重规划剩余步骤，最多三次，并执行 tool 建议的有界 follow-up | 彩色矢量 compare 已能给 findings；本轮补确定性 repair plan，真实 Adobe execute → compare 重试编排仍待显式确认设计 |
-| [Adobe Photoshop `executeAsModal`](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/executeasmodal) | modal 排队 timeout、用户取消、history commit/rollback 与自动关闭临时文档 | 固定 COM/JSX 原型已有 sandbox copy；UXP command router 仍缺统一 timeout/cancel/rollback envelope |
+| [Adobe Photoshop `executeAsModal`](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/executeasmodal) | modal 排队 timeout、用户取消、history commit/rollback 与自动关闭临时文档 | 本轮补 `starbridge.photoshop-modal.v1`、1–30 秒 timeout、取消终态和 history commit/rollback；仍需本机 Photoshop UXP 实测 |
 | [MCP 官方 TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/server.md) | `outputSchema`、structured result、sampling、elicitation 与实验性 Tasks | 当前 stdio server 支持同步 `tools/call` 和 `structuredContent`；Tasks、进度通知尚未实现 |
 | [MCP 官方规范仓库](https://github.com/modelcontextprotocol/modelcontextprotocol) | 协议 schema、能力协商与持续演进的扩展机制 | 已声明 tools/resources/prompts；尚未实现任务、进度和 UI extension 能力协商 |
 

@@ -3,26 +3,197 @@ import { validateDescriptor } from "./batchplay-schema.js";
 const photoshop = require("photoshop");
 const { action, app, core } = photoshop;
 
+const MODAL_SCHEMA_VERSION = "starbridge.photoshop-modal.v1";
+const HISTORY_TARGETS = new Set(["active_document", "handler_document", "none"]);
+
+function boundedTimeout(value) {
+  const number = Number(value ?? 5);
+  if (!Number.isFinite(number)) return 5;
+  return Math.min(30, Math.max(1, number));
+}
+
+function redactErrorMessage(error) {
+  return String(error?.message || error || "Modal execution failed.")
+    .replace(/[A-Za-z]:[\\/][^\s"'<>]*/g, "<redacted-path>")
+    .replace(/\/(?:Users|home)\/[^\s"'<>]*/gi, "<redacted-path>")
+    .replace(/(bearer\s+)[A-Za-z0-9._-]+/gi, "$1<redacted>")
+    .replace(/([?&](?:token|key|secret)=)[^&\s]+/gi, "$1<redacted>")
+    .slice(0, 512);
+}
+
+function errorCode(error, cancelled = false) {
+  if (cancelled || String(error?.message || error) === "user_cancelled") return "user_cancelled";
+  if (Number(error?.number) === 9) return "modal_busy";
+  if (String(error?.message || error).includes("history")) return "history_control_failed";
+  return "modal_job_failed";
+}
+
+function normalizeWarnings(values) {
+  if (!Array.isArray(values)) return [];
+  return values.slice(0, 16).map((value) => redactErrorMessage(value));
+}
+
+function normalizeErrors(values) {
+  if (!Array.isArray(values)) return [];
+  return values.slice(0, 16).map((value) => {
+    const rawCode = String(value?.code || "modal_reported_error").toLowerCase();
+    const code = /^[a-z][a-z0-9_]{0,63}$/.test(rawCode) ? rawCode : "modal_reported_error";
+    return { code, message: redactErrorMessage(value?.message || value) };
+  });
+}
+
+function createHistoryController(executionContext, target) {
+  const hostControl = executionContext?.hostControl;
+  const supported = Boolean(
+    typeof hostControl?.suspendHistory === "function" &&
+      typeof hostControl?.resumeHistory === "function",
+  );
+  const state = {
+    target,
+    supported,
+    suspended: false,
+    committed: false,
+    rolled_back: false,
+  };
+  let suspension = null;
+
+  return {
+    state,
+    async suspendHistory(documentID, name) {
+      if (target === "none" || suspension || !supported || documentID === undefined || documentID === null) return;
+      suspension = await hostControl.suspendHistory({ documentID, name });
+      state.suspended = true;
+    },
+    async commitHistory() {
+      if (!suspension) return;
+      await hostControl.resumeHistory(suspension, true);
+      state.committed = true;
+      suspension = null;
+    },
+    async rollbackHistory() {
+      if (!suspension) return null;
+      try {
+        await hostControl.resumeHistory(suspension, false);
+        state.rolled_back = true;
+        suspension = null;
+        return null;
+      } catch (error) {
+        return error;
+      }
+    },
+  };
+}
+
+function modalEnvelope({ method, commandName, timeoutSeconds, status, history, errors = [], warnings = [] }) {
+  return {
+    schema_version: MODAL_SCHEMA_VERSION,
+    method,
+    command_name: commandName,
+    status,
+    success: status === "completed",
+    cancelled: status === "cancelled",
+    timeout_seconds: timeoutSeconds,
+    history,
+    warnings: warnings.slice(0, 16),
+    errors: errors.slice(0, 16),
+  };
+}
+
 export async function runModalJob(method, params, handler) {
-  const commandName = params?.commandName || method;
+  const commandName = String(params?.commandName || method).slice(0, 96);
+  const timeoutSeconds = boundedTimeout(params?.timeoutSeconds);
+  const requestedHistoryTarget = String(params?.historyTarget || "active_document");
+  const historyTarget = HISTORY_TARGETS.has(requestedHistoryTarget)
+    ? requestedHistoryTarget
+    : "active_document";
   try {
     const result = await core.executeAsModal(async (executionContext) => {
-      const payload = await handler(executionContext);
-      return {
-        success: true,
-        history_state: executionContext?.historyStateInfo?.name || commandName,
-        warnings: payload?.warnings || [],
-        errors: payload?.errors || [],
-        ...(payload || {}),
+      const historyController = createHistoryController(executionContext, historyTarget);
+      const checkpoint = () => {
+        if (executionContext?.isCancelled) throw new Error("user_cancelled");
       };
-    }, { commandName });
+      try {
+        checkpoint();
+        if (historyTarget === "active_document") {
+          const activeDocument = app?.activeDocument;
+          const documentID = activeDocument?.id ?? activeDocument?._id;
+          await historyController.suspendHistory(documentID, commandName);
+        }
+        const payload = await handler(executionContext, {
+          checkpoint,
+          suspendHistory: historyController.suspendHistory,
+        });
+        checkpoint();
+        await historyController.commitHistory();
+        const warnings = normalizeWarnings(payload?.warnings);
+        const errors = normalizeErrors(payload?.errors);
+        const modal = modalEnvelope({
+          method,
+          commandName,
+          timeoutSeconds,
+          status: "completed",
+          history: historyController.state,
+          warnings,
+          errors,
+        });
+        return {
+          ...(payload || {}),
+          success: true,
+          history_state: historyController.state.committed ? commandName : null,
+          warnings,
+          errors,
+          modal,
+        };
+      } catch (error) {
+        const cancelled = Boolean(executionContext?.isCancelled) || errorCode(error) === "user_cancelled";
+        const rollbackError = await historyController.rollbackHistory();
+        const errors = [
+          { code: errorCode(error, cancelled), message: redactErrorMessage(error) },
+        ];
+        if (rollbackError) {
+          errors.push({ code: "history_rollback_failed", message: redactErrorMessage(rollbackError) });
+        }
+        const status = cancelled ? "cancelled" : "failed";
+        return {
+          success: false,
+          history_state: null,
+          warnings: [],
+          errors,
+          modal: modalEnvelope({
+            method,
+            commandName,
+            timeoutSeconds,
+            status,
+            history: historyController.state,
+            errors,
+          }),
+        };
+      }
+    }, { commandName, timeOut: timeoutSeconds });
     return result;
   } catch (error) {
+    const errors = [{ code: errorCode(error), message: redactErrorMessage(error) }];
+    const status = errorCode(error) === "user_cancelled" ? "cancelled" : "failed";
+    const history = {
+      target: historyTarget,
+      supported: false,
+      suspended: false,
+      committed: false,
+      rolled_back: false,
+    };
     return {
       success: false,
       history_state: null,
       warnings: [],
-      errors: [{ message: String(error?.message || error), name: String(error?.name || "Error") }],
+      errors,
+      modal: modalEnvelope({
+        method,
+        commandName,
+        timeoutSeconds,
+        status,
+        history,
+        errors,
+      }),
     };
   }
 }
@@ -68,7 +239,7 @@ export async function executeTypedBatchPlay({ descriptors, requireConfirmation =
       errors: [{ message: "sandboxOnly=true is required." }],
     };
   }
-  return runModalJob("ps.batchplay.execute_confirmed", { commandName, sandboxOnly }, async (executionContext) => {
+  return runModalJob("ps.batchplay.execute_confirmed", { commandName, sandboxOnly, historyTarget: "handler_document" }, async (executionContext, modalControl) => {
     const document = app?.activeDocument;
     if (!document || typeof document.duplicate !== "function") {
       throw new Error("active_document_with_duplicate_support_required");
@@ -83,9 +254,10 @@ export async function executeTypedBatchPlay({ descriptors, requireConfirmation =
     const sandboxDocumentId = String(sandboxDocument?._id || sandboxDocument?.id || "");
     if (!sandboxDocumentId) throw new Error("sandbox_document_id_unavailable");
     await hostControl.registerAutoCloseDocument(sandboxDocument.id || sandboxDocument._id);
-    if (executionContext?.isCancelled) throw new Error("user_cancelled");
+    await modalControl.suspendHistory(sandboxDocument.id || sandboxDocument._id, commandName);
+    modalControl.checkpoint();
     const result = await action.batchPlay(descriptors, {});
-    if (executionContext?.isCancelled) throw new Error("user_cancelled");
+    modalControl.checkpoint();
     await hostControl.unregisterAutoCloseDocument(sandboxDocument.id || sandboxDocument._id);
     return {
       executed: true,

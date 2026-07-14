@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starbridge.local/schemas/photoshop_modal_execution.v1.schema.json",
+  "title": "StarBridge Photoshop UXP Modal Execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "method",
+    "command_name",
+    "status",
+    "success",
+    "cancelled",
+    "timeout_seconds",
+    "history",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "schema_version": { "const": "starbridge.photoshop-modal.v1" },
+    "method": {
+      "type": "string",
+      "pattern": "^ps\\.[a-z0-9_.]{1,95}$"
+    },
+    "command_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "status": { "enum": ["completed", "cancelled", "failed"] },
+    "success": { "type": "boolean" },
+    "cancelled": { "type": "boolean" },
+    "timeout_seconds": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 30
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "supported", "suspended", "committed", "rolled_back"],
+      "properties": {
+        "target": { "enum": ["active_document", "handler_document", "none"] },
+        "supported": { "type": "boolean" },
+        "suspended": { "type": "boolean" },
+        "committed": { "type": "boolean" },
+        "rolled_back": { "type": "boolean" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    },
+    "errors": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "message": { "type": "string", "minLength": 1, "maxLength": 512 }
+        }
+      }
+    }
+  }
+}
