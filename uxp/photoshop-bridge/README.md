@@ -7,10 +7,13 @@ This is the local UXP plugin side of the StarBridge Photoshop bridge.
 - `src/index.js` exposes JSON-RPC handlers for `starbridge.ping`, `ps.document.info`, `ps.layers.list`, `ps.preview.export`, `ps.camera_raw.tune`, `ps.batchplay.validate.local`, and `ps.batchplay.execute_confirmed`.
 - `src/bridge-client.js` connects to the local Node Proxy WebSocket client endpoint.
 - `src/batchplay-schema.js` and `src/batchplay-runner.js` enforce a typed allowlist and wrap write-like execution in `executeAsModal`.
+- `runModalJob` uses a bounded modal queue timeout, cancellation checkpoints, and explicit history commit/rollback metadata defined by `starbridge.photoshop-modal.v1`.
 - Confirmed BatchPlay duplicates the active document first and registers the copy for automatic close on cancellation or failure.
 - Preview export requires a Node Proxy verified repository sandbox path; UXP repeats the extension and scope check before writing.
 - Real writes still require explicit confirmation and must stay on sandbox copies.
 - Camera Raw tuning is experimental. V1 supports parameter planning and safe validation. Real Photoshop apply requires a verified local BatchPlay descriptor and explicit confirmation.
+
+Protocol and safety details: [`docs/photoshop-uxp-modal-envelope.md`](../../docs/photoshop-uxp-modal-envelope.md).
 
 ## Intended Chain
 
