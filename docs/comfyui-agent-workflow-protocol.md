@@ -17,7 +17,10 @@ flowchart TD
     N -->|confirm_run=true| J["Submit /prompt to local ComfyUI"]
     J --> K["Return prompt_id"]
     K --> L["Poll /history/{prompt_id}"]
-    L --> M["Return job_status and output_manifest"]
+    L -->|completed within wait window| M["Return job_status and output_manifest"]
+    L -->|still running| O["comfyui.generation_result"]
+    O --> P["Resume bounded history polling"]
+    P --> M
 ```
 
 ## Tools
@@ -29,6 +32,7 @@ flowchart TD
 | `comfyui.workflow_repair` | dry-run | Repairs missing nodes, bad numeric parameters, invalid dimensions, and core links. | None |
 | `comfy.workflow_lifecycle_summary` | safe read-only | Returns redacted job / asset lifecycle, submit gate, and evidence preview for a reviewed workflow. | None |
 | `comfyui.agent_run` | dry-run by default; confirmed run with `confirm_run=true` | Runs build, validate, repair, submit, status, manifest. | Contacts local ComfyUI and may cause ComfyUI to write images to its own output folder |
+| `comfyui.generation_result` | live read-only | Resumes bounded polling for one explicit prompt ID and returns terminal state plus a basename-only output manifest. | Sends loopback-only `GET /history/{prompt_id}` requests; never submits or reads image bytes |
 
 ## Build Plan Contract
 
@@ -143,6 +147,15 @@ history 中出现任务记录本身不能作为成功证据；只有规范化终
 
 - [ComfyUI `execution.py` 终态事件](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/execution.py#L674-L820)
 - [ComfyUI `comfy_execution/jobs.py` 状态归一化](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/comfy_execution/jobs.py#L191-L243)
+
+If the confirmed run returns `queued_or_running`, call `comfyui.generation_result` with the returned `prompt_id`. The result tool:
+
+- accepts only a bounded URL-safe prompt ID;
+- accepts only a plain loopback HTTP ComfyUI URL;
+- polls for at most 60 seconds and follows no redirects;
+- hashes the prompt ID in its response;
+- reduces every output filename to a basename and never returns workflow, prompt, model, image bytes, traceback, or absolute paths;
+- distinguishes `queued_or_running`, `completed`, `completed_no_outputs`, `failed`, `cancelled`, and `status_unavailable`.
 
 ## Safety Rules
 

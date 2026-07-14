@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import time
 import urllib.error
 import urllib.request
@@ -12,6 +13,7 @@ from typing import Any
 
 from examples.comfy_bridge.validate_workflow import validate_workflow_payload
 from starbridge_mcp.core.job_status import JobStatus
+from starbridge_mcp.core.queue_snapshot import _NoRedirectHandler, _validate_loopback_url
 from starbridge_mcp.core.security import sanitize
 
 BRIDGE_ID = "comfyui"
@@ -26,6 +28,8 @@ PLACEHOLDER_MASK_IMAGE = "__mask_image_placeholder__"
 DEFAULT_NEGATIVE_PROMPT = "low quality, blurry, distorted, bad anatomy, watermark, text"
 SUPPORTED_WORKFLOW_TYPES = {"txt2img", "img2img", "inpaint", "upscale"}
 BUILDABLE_WORKFLOW_TYPES = {"txt2img"}
+MAX_COMFY_RESPONSE_BYTES = 1_048_576
+PROMPT_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 RECOGNIZED_COMPOSER_MODULES = {
     "checkpoint_loader_placeholder",
     "positive_prompt_encode",
@@ -1294,8 +1298,20 @@ def _url(base_url: str, path: str) -> str:
 
 
 def get_json(base_url: str, path: str, timeout: int) -> dict[str, Any]:
-    with urllib.request.urlopen(_url(base_url, path), timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    request = urllib.request.Request(
+        _url(base_url, path),
+        headers={"Accept": "application/json"},
+        method="GET",
+    )
+    opener = urllib.request.build_opener(_NoRedirectHandler())
+    with opener.open(request, timeout=timeout) as response:
+        raw = response.read(MAX_COMFY_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_COMFY_RESPONSE_BYTES:
+        raise ValueError("ComfyUI response exceeds the safe limit")
+    payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("ComfyUI response must be a JSON object")
+    return payload
 
 
 def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: int) -> dict[str, Any]:
@@ -1305,8 +1321,20 @@ def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: int) -
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    opener = urllib.request.build_opener(_NoRedirectHandler())
+    with opener.open(request, timeout=timeout) as response:
+        raw = response.read(MAX_COMFY_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_COMFY_RESPONSE_BYTES:
+        raise ValueError("ComfyUI response exceeds the safe limit")
+    response_payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(response_payload, dict):
+        raise ValueError("ComfyUI response must be a JSON object")
+    return response_payload
+
+
+def _output_basename(value: Any) -> str:
+    normalized = str(value or "").replace("\\", "/")
+    return normalized.rsplit("/", 1)[-1]
 
 
 def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dict[str, Any]:
@@ -1329,8 +1357,8 @@ def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dic
             outputs.append(
                 {
                     "node_id": str(node_id),
-                    "filename": str(image.get("filename") or ""),
-                    "subfolder": str(image.get("subfolder") or ""),
+                    "filename": _output_basename(image.get("filename")),
+                    "subfolder": _output_basename(image.get("subfolder")),
                     "type": str(image.get("type") or "output"),
                 }
             )
@@ -1412,6 +1440,101 @@ def query_job_status(base_url: str, prompt_id: str, timeout: int) -> dict[str, A
         "history_available": False,
         "output_manifest": {"prompt_id": prompt_id, "image_count": 0, "images": []},
     }
+
+
+def _validate_prompt_id(value: Any) -> str:
+    if not isinstance(value, str) or PROMPT_ID_PATTERN.fullmatch(value) is None:
+        raise ValueError("prompt_id must be a bounded URL-safe identifier")
+    return value
+
+
+def _logical_generation_id(prompt_id: str) -> str:
+    return f"generation_{hashlib.sha256(prompt_id.encode('utf-8')).hexdigest()[:12]}"
+
+
+def generation_result(arguments: dict[str, Any]) -> dict[str, Any]:
+    prompt_id = _validate_prompt_id(arguments.get("prompt_id"))
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
+    timeout = _as_int(arguments.get("timeout"), 8, minimum=1, maximum=15)
+    wait_seconds = _as_int(arguments.get("wait_seconds"), 0, minimum=0, maximum=60)
+    poll_interval = _as_float(
+        arguments.get("poll_interval"), 1.0, minimum=0.2, maximum=5.0
+    )
+    logical_job_id = _logical_generation_id(prompt_id)
+    history: dict[str, Any] = {}
+    deadline = time.monotonic() + wait_seconds
+
+    try:
+        while True:
+            history = get_json(base_url, f"/history/{prompt_id}", timeout)
+            if prompt_id in history or time.monotonic() >= deadline:
+                break
+            time.sleep(min(poll_interval, max(0.0, deadline - time.monotonic())))
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return sanitize(
+            {
+                "ok": False,
+                "bridge": BRIDGE_ID,
+                "action": "generation_result",
+                "mode": "live_read_only",
+                "logical_job_id": logical_job_id,
+                "state": "unavailable",
+                "terminal": False,
+                "result_ready": False,
+                "output_manifest": {"image_count": 0, "images": []},
+                "retryable": True,
+                "warnings": ["comfyui_generation_history_unavailable"],
+                "next_steps": ["Confirm local ComfyUI is running, then retry this result read."],
+            }
+        )
+
+    prompt_history = history.get(prompt_id)
+    if not isinstance(prompt_history, dict):
+        state = "queued_or_running"
+        manifest = {"image_count": 0, "images": []}
+    else:
+        state, _terminal_event = _history_terminal_state(prompt_history)
+        raw_manifest = output_manifest_from_history(prompt_id, history)
+        manifest = {
+            "image_count": raw_manifest["image_count"],
+            "images": raw_manifest["images"],
+        }
+        if state == "completed" and manifest["image_count"] == 0:
+            state = "completed_no_outputs"
+
+    terminal = state in {"completed", "completed_no_outputs", "failed", "cancelled"}
+    result_ready = state == "completed" and manifest["image_count"] > 0
+    next_steps = {
+        "queued_or_running": ["Call comfyui.generation_result again after a short delay."],
+        "completed": ["Review the generated images locally; keep image bytes outside Git."],
+        "completed_no_outputs": ["Inspect the reviewed workflow output nodes before regenerating."],
+        "failed": ["Inspect ComfyUI locally, adjust reviewed inputs, then explicitly regenerate."],
+        "cancelled": ["Confirm the interruption was expected before explicitly regenerating."],
+        "status_unavailable": [
+            "Retry this history read with the same prompt_id before deciding whether to regenerate."
+        ],
+    }[state]
+    return sanitize(
+        {
+            "ok": state not in {"failed", "cancelled", "status_unavailable"},
+            "bridge": BRIDGE_ID,
+            "action": "generation_result",
+            "mode": "live_read_only",
+            "logical_job_id": logical_job_id,
+            "state": state,
+            "terminal": terminal,
+            "result_ready": result_ready,
+            "output_manifest": manifest,
+            "retryable": state
+            in {"queued_or_running", "failed", "cancelled", "status_unavailable"},
+            "warnings": (
+                []
+                if state not in {"failed", "cancelled", "status_unavailable"}
+                else [f"generation_{state}"]
+            ),
+            "next_steps": next_steps,
+        }
+    )
 
 
 def submit_workflow(
@@ -1571,7 +1694,7 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    base_url = str(arguments.get("comfy_url") or DEFAULT_BASE_URL)
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
     timeout = _as_int(arguments.get("timeout"), 30, minimum=1, maximum=300)
     wait_seconds = _as_int(
         arguments.get("wait_seconds", arguments.get("timeout_seconds")), 10, minimum=0, maximum=600

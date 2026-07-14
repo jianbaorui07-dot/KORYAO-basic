@@ -441,6 +441,22 @@ CAPABILITIES: tuple[ToolCapability, ...] = (
         ),
     ),
     ToolCapability(
+        name="comfyui.generation_result",
+        bridge="comfyui",
+        action="generation_result",
+        maturity="implemented",
+        risk_level="safe_read_only",
+        description="按显式 prompt ID 续查异步生成终态，并返回脱敏的输出文件清单。",
+        side_effects="仅向 loopback ComfyUI 发送有界 history GET；不提交任务，不读取图片字节。",
+        safe_default=True,
+        requires_confirmation=False,
+        requires_local_software=True,
+        source_projects=(
+            "joenorton/comfyui-mcp-server",
+            "artokun/comfyui-mcp",
+        ),
+    ),
+    ToolCapability(
         name="comfy.workflow_draft",
         bridge="comfyui",
         action="workflow_draft",
