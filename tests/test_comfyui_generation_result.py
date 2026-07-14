@@ -42,12 +42,47 @@ class ComfyGenerationResultTests(unittest.TestCase):
         self.assertEqual("completed", result["state"])
         self.assertTrue(result["terminal"])
         self.assertTrue(result["result_ready"])
-        self.assertEqual("result.png", result["output_manifest"]["images"][0]["filename"])
-        self.assertEqual("batch", result["output_manifest"]["images"][0]["subfolder"])
+        image = result["output_manifest"]["images"][0]
+        self.assertRegex(image["asset_id"], r"^asset_[0-9a-f]{16}$")
+        self.assertEqual("result.png", image["filename"])
+        self.assertEqual("batch", image["subfolder"])
         serialized = json.dumps(result, ensure_ascii=False)
         self.assertNotIn(PROMPT_ID, serialized)
         self.assertNotIn("C:\\Users\\", serialized)
         self.assertNotIn("Desktop", serialized)
+
+    def test_asset_ids_are_stable_and_distinguish_output_identity(self) -> None:
+        base_history = {
+            PROMPT_ID: {
+                "status": {"status_str": "success", "completed": True},
+                "outputs": {
+                    "9": {
+                        "images": [
+                            {
+                                "filename": "result.png",
+                                "subfolder": "batch-a",
+                                "type": "output",
+                            },
+                            {
+                                "filename": "result.png",
+                                "subfolder": "batch-b",
+                                "type": "output",
+                            },
+                        ]
+                    }
+                },
+            }
+        }
+        with patch(
+            "examples.comfy_bridge.workflow_agent.get_json", return_value=base_history
+        ):
+            first = generation_result({"prompt_id": PROMPT_ID})
+            second = generation_result({"prompt_id": PROMPT_ID})
+
+        first_ids = [item["asset_id"] for item in first["output_manifest"]["images"]]
+        second_ids = [item["asset_id"] for item in second["output_manifest"]["images"]]
+        self.assertEqual(first_ids, second_ids)
+        self.assertEqual(2, len(set(first_ids)))
 
     def test_pending_failed_and_cancelled_states_are_structured(self) -> None:
         cases = (

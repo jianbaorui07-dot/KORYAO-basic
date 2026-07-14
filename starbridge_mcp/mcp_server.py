@@ -553,7 +553,7 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         "title": "ComfyUI Generation Result",
         "description": (
             "Resume bounded polling for one explicit ComfyUI prompt ID. Reads only loopback "
-            "/history/{prompt_id} and returns terminal state plus basename-only output metadata; "
+            "/history/{prompt_id} and returns terminal state plus stable asset IDs and basename-only output metadata; "
             "never submits, returns image bytes, workflow, prompt, model, or traceback data."
         ),
         "inputSchema": _object_schema(

@@ -1337,6 +1337,31 @@ def _output_basename(value: Any) -> str:
     return normalized.rsplit("/", 1)[-1]
 
 
+def _logical_asset_id(
+    *,
+    prompt_id: str,
+    node_id: str,
+    filename: Any,
+    subfolder: Any,
+    output_type: Any,
+    position: int,
+) -> str:
+    canonical = json.dumps(
+        {
+            "prompt_id": prompt_id,
+            "node_id": node_id,
+            "filename": str(filename or ""),
+            "subfolder": str(subfolder or ""),
+            "type": str(output_type or "output"),
+            "position": position,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return f"asset_{hashlib.sha256(canonical.encode('utf-8')).hexdigest()[:16]}"
+
+
 def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dict[str, Any]:
     prompt_history = history.get(prompt_id, {}) if isinstance(history, dict) else {}
     if not isinstance(prompt_history, dict):
@@ -1351,15 +1376,26 @@ def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dic
         images = node_output.get("images", [])
         if not isinstance(images, list):
             continue
-        for image in images:
+        for position, image in enumerate(images):
             if not isinstance(image, dict):
                 continue
+            raw_filename = image.get("filename")
+            raw_subfolder = image.get("subfolder")
+            output_type = image.get("type") or "output"
             outputs.append(
                 {
+                    "asset_id": _logical_asset_id(
+                        prompt_id=prompt_id,
+                        node_id=str(node_id),
+                        filename=raw_filename,
+                        subfolder=raw_subfolder,
+                        output_type=output_type,
+                        position=position,
+                    ),
                     "node_id": str(node_id),
-                    "filename": _output_basename(image.get("filename")),
-                    "subfolder": _output_basename(image.get("subfolder")),
-                    "type": str(image.get("type") or "output"),
+                    "filename": _output_basename(raw_filename),
+                    "subfolder": _output_basename(raw_subfolder),
+                    "type": str(output_type),
                 }
             )
     return sanitize({"prompt_id": prompt_id, "image_count": len(outputs), "images": outputs})

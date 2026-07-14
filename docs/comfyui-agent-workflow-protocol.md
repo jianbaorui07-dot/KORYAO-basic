@@ -32,7 +32,7 @@ flowchart TD
 | `comfyui.workflow_repair` | dry-run | Repairs missing nodes, bad numeric parameters, invalid dimensions, and core links. | None |
 | `comfy.workflow_lifecycle_summary` | safe read-only | Returns redacted job / asset lifecycle, submit gate, and evidence preview for a reviewed workflow. | None |
 | `comfyui.agent_run` | dry-run by default; confirmed run with `confirm_run=true` | Runs build, validate, repair, submit, status, manifest. | Contacts local ComfyUI and may cause ComfyUI to write images to its own output folder |
-| `comfyui.generation_result` | live read-only | Resumes bounded polling for one explicit prompt ID and returns terminal state plus a basename-only output manifest. | Sends loopback-only `GET /history/{prompt_id}` requests; never submits or reads image bytes |
+| `comfyui.generation_result` | live read-only | Resumes bounded polling for one explicit prompt ID and returns terminal state plus a stable-ID, basename-only output manifest. | Sends loopback-only `GET /history/{prompt_id}` requests; never submits or reads image bytes |
 
 ## Build Plan Contract
 
@@ -154,8 +154,11 @@ If the confirmed run returns `queued_or_running`, call `comfyui.generation_resul
 - accepts only a plain loopback HTTP ComfyUI URL;
 - polls for at most 60 seconds and follows no redirects;
 - hashes the prompt ID in its response;
-- reduces every output filename to a basename and never returns workflow, prompt, model, image bytes, traceback, or absolute paths;
+- gives every output a deterministic `asset_id` derived from its job/output identity, so a caller can refer to the same result without retaining a private path;
+- reduces every output filename and subfolder to a basename and never returns workflow, prompt, model, image bytes, traceback, or absolute paths;
 - distinguishes `queued_or_running`, `completed`, `completed_no_outputs`, `failed`, `cancelled`, and `status_unavailable`.
+
+`asset_id` is a logical identity, not a filesystem path or download URL. It is stable for the same prompt/output tuple and changes when the prompt ID, output node, filename, subfolder, type, or output position changes. A future guarded regenerate tool may use this identity with an in-memory provenance record; this protocol does not persist private workflow data to Git.
 
 ## Safety Rules
 
