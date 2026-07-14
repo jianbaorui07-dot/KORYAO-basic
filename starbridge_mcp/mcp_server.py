@@ -548,6 +548,79 @@ TOOL_DEFINITIONS: list[JsonObject] = [
         ),
         read_only=False,
     ),
+    {
+        "name": "comfyui.generation_result",
+        "title": "ComfyUI Generation Result",
+        "description": (
+            "Resume bounded polling for one explicit ComfyUI prompt ID. Reads only loopback "
+            "/history/{prompt_id} and returns terminal state plus stable asset IDs and basename-only output metadata; "
+            "never submits, returns image bytes, workflow, prompt, model, or traceback data."
+        ),
+        "inputSchema": _object_schema(
+            {
+                "prompt_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9_-]+$",
+                },
+                "comfy_url": {"type": "string", "default": "http://127.0.0.1:8188"},
+                "timeout": {"type": "integer", "default": 8, "minimum": 1, "maximum": 15},
+                "wait_seconds": {
+                    "type": "integer",
+                    "default": 0,
+                    "minimum": 0,
+                    "maximum": 60,
+                },
+                "poll_interval": {
+                    "type": "number",
+                    "default": 1.0,
+                    "minimum": 0.2,
+                    "maximum": 5.0,
+                },
+            },
+            required=["prompt_id"],
+        ),
+        "outputSchema": STARBRIDGE_OUTPUT_SCHEMA,
+        "annotations": _safe_read_annotations(requires_local_software=True),
+    },
+    _standard_tool(
+        name="comfyui.regenerate",
+        title="ComfyUI Regenerate",
+        description=(
+            "Replay current-session in-memory provenance for one StarBridge asset ID with bounded "
+            "txt2img overrides. Defaults to dry-run; confirm_run=true is required to submit a new "
+            "loopback ComfyUI job. Stored workflow and prompt data are never returned or persisted."
+        ),
+        input_schema=_object_schema(
+            {
+                "asset_id": {
+                    "type": "string",
+                    "pattern": "^asset_[0-9a-f]{16}$",
+                },
+                "prompt": {"type": "string"},
+                "negative_prompt": {"type": "string"},
+                "width": {"type": "integer", "minimum": 64, "maximum": 4096},
+                "height": {"type": "integer", "minimum": 64, "maximum": 4096},
+                "seed": {"type": "integer", "minimum": 0},
+                "steps": {"type": "integer", "minimum": 1, "maximum": 150},
+                "cfg": {"type": "number", "minimum": 0.1, "maximum": 30.0},
+                "sampler": {"type": "string"},
+                "scheduler": {"type": "string"},
+                "comfy_url": {"type": "string", "default": "http://127.0.0.1:8188"},
+                "timeout": {"type": "integer", "default": 30, "minimum": 1, "maximum": 300},
+                "wait_seconds": {
+                    "type": "integer",
+                    "default": 10,
+                    "minimum": 0,
+                    "maximum": 600,
+                },
+                "confirm_run": {"type": "boolean", "default": False},
+            },
+            required=["asset_id"],
+        ),
+        read_only=False,
+    ),
     _standard_tool(
         name="comfy.workflow_draft",
         title="Comfy Workflow Draft",
@@ -2036,6 +2109,18 @@ def _handle_comfy_agent_run(arguments: JsonObject) -> JsonObject:
     return agent_run(arguments)
 
 
+def _handle_comfy_generation_result(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import generation_result
+
+    return generation_result(arguments)
+
+
+def _handle_comfy_regenerate(arguments: JsonObject) -> JsonObject:
+    from examples.comfy_bridge.workflow_agent import regenerate
+
+    return regenerate(arguments)
+
+
 def _handle_comfy_workflow_draft(arguments: JsonObject) -> JsonObject:
     from examples.comfy_bridge.workflow_agent import workflow_draft
 
@@ -3164,6 +3249,8 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "comfyui.workflow_build": _handle_comfy_workflow_build,
     "comfyui.workflow_repair": _handle_comfy_workflow_repair,
     "comfyui.agent_run": _handle_comfy_agent_run,
+    "comfyui.generation_result": _handle_comfy_generation_result,
+    "comfyui.regenerate": _handle_comfy_regenerate,
     "comfy.workflow_draft": _handle_comfy_workflow_draft,
     "comfy.workflow_compose": _handle_comfy_workflow_compose,
     "comfy.workflow_template_list": _handle_comfy_workflow_template_list,

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import time
 import urllib.error
 import urllib.request
@@ -12,6 +13,7 @@ from typing import Any
 
 from examples.comfy_bridge.validate_workflow import validate_workflow_payload
 from starbridge_mcp.core.job_status import JobStatus
+from starbridge_mcp.core.queue_snapshot import _NoRedirectHandler, _validate_loopback_url
 from starbridge_mcp.core.security import sanitize
 
 BRIDGE_ID = "comfyui"
@@ -26,6 +28,13 @@ PLACEHOLDER_MASK_IMAGE = "__mask_image_placeholder__"
 DEFAULT_NEGATIVE_PROMPT = "low quality, blurry, distorted, bad anatomy, watermark, text"
 SUPPORTED_WORKFLOW_TYPES = {"txt2img", "img2img", "inpaint", "upscale"}
 BUILDABLE_WORKFLOW_TYPES = {"txt2img"}
+MAX_COMFY_RESPONSE_BYTES = 1_048_576
+PROMPT_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
+ASSET_ID_PATTERN = re.compile(r"asset_[0-9a-f]{16}\Z")
+PROVENANCE_TTL_SECONDS = 24 * 60 * 60
+MAX_PROVENANCE_RECORDS = 128
+_GENERATION_RECORDS: dict[str, dict[str, Any]] = {}
+_ASSET_RECORDS: dict[str, dict[str, Any]] = {}
 RECOGNIZED_COMPOSER_MODULES = {
     "checkpoint_loader_placeholder",
     "positive_prompt_encode",
@@ -1294,8 +1303,20 @@ def _url(base_url: str, path: str) -> str:
 
 
 def get_json(base_url: str, path: str, timeout: int) -> dict[str, Any]:
-    with urllib.request.urlopen(_url(base_url, path), timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    request = urllib.request.Request(
+        _url(base_url, path),
+        headers={"Accept": "application/json"},
+        method="GET",
+    )
+    opener = urllib.request.build_opener(_NoRedirectHandler())
+    with opener.open(request, timeout=timeout) as response:
+        raw = response.read(MAX_COMFY_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_COMFY_RESPONSE_BYTES:
+        raise ValueError("ComfyUI response exceeds the safe limit")
+    payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("ComfyUI response must be a JSON object")
+    return payload
 
 
 def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: int) -> dict[str, Any]:
@@ -1305,8 +1326,97 @@ def post_json(base_url: str, path: str, payload: dict[str, Any], timeout: int) -
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
+    opener = urllib.request.build_opener(_NoRedirectHandler())
+    with opener.open(request, timeout=timeout) as response:
+        raw = response.read(MAX_COMFY_RESPONSE_BYTES + 1)
+    if len(raw) > MAX_COMFY_RESPONSE_BYTES:
+        raise ValueError("ComfyUI response exceeds the safe limit")
+    response_payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(response_payload, dict):
+        raise ValueError("ComfyUI response must be a JSON object")
+    return response_payload
+
+
+def _output_basename(value: Any) -> str:
+    normalized = str(value or "").replace("\\", "/")
+    return normalized.rsplit("/", 1)[-1]
+
+
+def _logical_asset_id(
+    *,
+    prompt_id: str,
+    node_id: str,
+    filename: Any,
+    subfolder: Any,
+    output_type: Any,
+    position: int,
+) -> str:
+    canonical = json.dumps(
+        {
+            "prompt_id": prompt_id,
+            "node_id": node_id,
+            "filename": str(filename or ""),
+            "subfolder": str(subfolder or ""),
+            "type": str(output_type or "output"),
+            "position": position,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return f"asset_{hashlib.sha256(canonical.encode('utf-8')).hexdigest()[:16]}"
+
+
+def _prune_provenance(*, now: float | None = None) -> None:
+    current = time.monotonic() if now is None else now
+    for records in (_GENERATION_RECORDS, _ASSET_RECORDS):
+        expired = [
+            key
+            for key, record in records.items()
+            if current - float(record.get("created_at", 0.0)) > PROVENANCE_TTL_SECONDS
+        ]
+        for key in expired:
+            records.pop(key, None)
+        while len(records) > MAX_PROVENANCE_RECORDS:
+            oldest = min(records, key=lambda key: float(records[key].get("created_at", 0.0)))
+            records.pop(oldest, None)
+
+
+def _remember_generation(prompt_id: str, workflow: dict[str, Any]) -> None:
+    _prune_provenance()
+    _GENERATION_RECORDS[prompt_id] = {
+        "created_at": time.monotonic(),
+        "workflow": copy.deepcopy(workflow),
+    }
+    _prune_provenance()
+
+
+def _remember_manifest_assets(prompt_id: str, manifest: dict[str, Any]) -> None:
+    _prune_provenance()
+    generation = _GENERATION_RECORDS.get(prompt_id)
+    if not isinstance(generation, dict) or not isinstance(generation.get("workflow"), dict):
+        return
+    images = manifest.get("images")
+    if not isinstance(images, list):
+        return
+    for image in images:
+        if not isinstance(image, dict):
+            continue
+        asset_id = image.get("asset_id")
+        if not isinstance(asset_id, str) or ASSET_ID_PATTERN.fullmatch(asset_id) is None:
+            continue
+        _ASSET_RECORDS[asset_id] = {
+            "created_at": time.monotonic(),
+            "workflow": copy.deepcopy(generation["workflow"]),
+        }
+    _prune_provenance()
+
+
+def _asset_workflow(asset_id: str) -> dict[str, Any] | None:
+    _prune_provenance()
+    record = _ASSET_RECORDS.get(asset_id)
+    workflow = record.get("workflow") if isinstance(record, dict) else None
+    return copy.deepcopy(workflow) if isinstance(workflow, dict) else None
 
 
 def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dict[str, Any]:
@@ -1323,15 +1433,26 @@ def output_manifest_from_history(prompt_id: str, history: dict[str, Any]) -> dic
         images = node_output.get("images", [])
         if not isinstance(images, list):
             continue
-        for image in images:
+        for position, image in enumerate(images):
             if not isinstance(image, dict):
                 continue
+            raw_filename = image.get("filename")
+            raw_subfolder = image.get("subfolder")
+            output_type = image.get("type") or "output"
             outputs.append(
                 {
+                    "asset_id": _logical_asset_id(
+                        prompt_id=prompt_id,
+                        node_id=str(node_id),
+                        filename=raw_filename,
+                        subfolder=raw_subfolder,
+                        output_type=output_type,
+                        position=position,
+                    ),
                     "node_id": str(node_id),
-                    "filename": str(image.get("filename") or ""),
-                    "subfolder": str(image.get("subfolder") or ""),
-                    "type": str(image.get("type") or "output"),
+                    "filename": _output_basename(raw_filename),
+                    "subfolder": _output_basename(raw_subfolder),
+                    "type": str(output_type),
                 }
             )
     return sanitize({"prompt_id": prompt_id, "image_count": len(outputs), "images": outputs})
@@ -1414,6 +1535,310 @@ def query_job_status(base_url: str, prompt_id: str, timeout: int) -> dict[str, A
     }
 
 
+def _validate_prompt_id(value: Any) -> str:
+    if not isinstance(value, str) or PROMPT_ID_PATTERN.fullmatch(value) is None:
+        raise ValueError("prompt_id must be a bounded URL-safe identifier")
+    return value
+
+
+def _validate_asset_id(value: Any) -> str:
+    if not isinstance(value, str) or ASSET_ID_PATTERN.fullmatch(value) is None:
+        raise ValueError("asset_id must be a canonical StarBridge asset identifier")
+    return value
+
+
+def _logical_generation_id(prompt_id: str) -> str:
+    return f"generation_{hashlib.sha256(prompt_id.encode('utf-8')).hexdigest()[:12]}"
+
+
+def generation_result(arguments: dict[str, Any]) -> dict[str, Any]:
+    prompt_id = _validate_prompt_id(arguments.get("prompt_id"))
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
+    timeout = _as_int(arguments.get("timeout"), 8, minimum=1, maximum=15)
+    wait_seconds = _as_int(arguments.get("wait_seconds"), 0, minimum=0, maximum=60)
+    poll_interval = _as_float(arguments.get("poll_interval"), 1.0, minimum=0.2, maximum=5.0)
+    logical_job_id = _logical_generation_id(prompt_id)
+    history: dict[str, Any] = {}
+    deadline = time.monotonic() + wait_seconds
+
+    try:
+        while True:
+            history = get_json(base_url, f"/history/{prompt_id}", timeout)
+            if prompt_id in history or time.monotonic() >= deadline:
+                break
+            time.sleep(min(poll_interval, max(0.0, deadline - time.monotonic())))
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return sanitize(
+            {
+                "ok": False,
+                "bridge": BRIDGE_ID,
+                "action": "generation_result",
+                "mode": "live_read_only",
+                "logical_job_id": logical_job_id,
+                "state": "unavailable",
+                "terminal": False,
+                "result_ready": False,
+                "output_manifest": {"image_count": 0, "images": []},
+                "retryable": True,
+                "warnings": ["comfyui_generation_history_unavailable"],
+                "next_steps": ["Confirm local ComfyUI is running, then retry this result read."],
+            }
+        )
+
+    prompt_history = history.get(prompt_id)
+    if not isinstance(prompt_history, dict):
+        state = "queued_or_running"
+        manifest = {"image_count": 0, "images": []}
+    else:
+        state, _terminal_event = _history_terminal_state(prompt_history)
+        raw_manifest = output_manifest_from_history(prompt_id, history)
+        manifest = {
+            "image_count": raw_manifest["image_count"],
+            "images": raw_manifest["images"],
+        }
+        if state == "completed" and manifest["image_count"] == 0:
+            state = "completed_no_outputs"
+        _remember_manifest_assets(prompt_id, manifest)
+
+    terminal = state in {"completed", "completed_no_outputs", "failed", "cancelled"}
+    result_ready = state == "completed" and manifest["image_count"] > 0
+    next_steps = {
+        "queued_or_running": ["Call comfyui.generation_result again after a short delay."],
+        "completed": ["Review the generated images locally; keep image bytes outside Git."],
+        "completed_no_outputs": ["Inspect the reviewed workflow output nodes before regenerating."],
+        "failed": ["Inspect ComfyUI locally, adjust reviewed inputs, then explicitly regenerate."],
+        "cancelled": ["Confirm the interruption was expected before explicitly regenerating."],
+        "status_unavailable": [
+            "Retry this history read with the same prompt_id before deciding whether to regenerate."
+        ],
+    }[state]
+    return sanitize(
+        {
+            "ok": state not in {"failed", "cancelled", "status_unavailable"},
+            "bridge": BRIDGE_ID,
+            "action": "generation_result",
+            "mode": "live_read_only",
+            "logical_job_id": logical_job_id,
+            "state": state,
+            "terminal": terminal,
+            "result_ready": result_ready,
+            "output_manifest": manifest,
+            "retryable": state
+            in {"queued_or_running", "failed", "cancelled", "status_unavailable"},
+            "warnings": (
+                []
+                if state not in {"failed", "cancelled", "status_unavailable"}
+                else [f"generation_{state}"]
+            ),
+            "next_steps": next_steps,
+        }
+    )
+
+
+def _regeneration_workflow(
+    workflow: dict[str, Any], arguments: dict[str, Any], *, randomize_seed: bool
+) -> tuple[dict[str, Any], list[str]]:
+    candidate = copy.deepcopy(workflow)
+    applied: list[str] = []
+    sampler = candidate.get("3")
+    latent = candidate.get("5")
+    positive = candidate.get("6")
+    negative = candidate.get("7")
+    sampler_inputs = sampler.get("inputs") if isinstance(sampler, dict) else None
+    latent_inputs = latent.get("inputs") if isinstance(latent, dict) else None
+    positive_inputs = positive.get("inputs") if isinstance(positive, dict) else None
+    negative_inputs = negative.get("inputs") if isinstance(negative, dict) else None
+
+    if not all(
+        isinstance(item, dict)
+        for item in (sampler_inputs, latent_inputs, positive_inputs, negative_inputs)
+    ):
+        return candidate, applied
+
+    if "prompt" in arguments:
+        positive_inputs["text"] = str(arguments.get("prompt") or "")
+        applied.append("prompt")
+    if "negative_prompt" in arguments:
+        negative_inputs["text"] = str(arguments.get("negative_prompt") or "")
+        applied.append("negative_prompt")
+
+    numeric_sampler_fields = {
+        "steps": (20, 1, 150),
+        "seed": (0, 0, 2**63 - 1),
+    }
+    for field, (default, minimum, maximum) in numeric_sampler_fields.items():
+        if field in arguments and arguments.get(field) is not None:
+            sampler_inputs[field] = _as_int(
+                arguments.get(field), default, minimum=minimum, maximum=maximum
+            )
+            applied.append(field)
+    if randomize_seed and "seed" not in applied:
+        sampler_inputs["seed"] = random.randint(1, 2**48)
+        applied.append("seed")
+    if "cfg" in arguments and arguments.get("cfg") is not None:
+        sampler_inputs["cfg"] = _as_float(arguments.get("cfg"), 7.0, minimum=0.1, maximum=30.0)
+        applied.append("cfg")
+    for field, input_name in (("sampler", "sampler_name"), ("scheduler", "scheduler")):
+        if field in arguments:
+            sampler_inputs[input_name] = str(arguments.get(field) or "")
+            applied.append(field)
+    for field in ("width", "height"):
+        if field in arguments and arguments.get(field) is not None:
+            latent_inputs[field] = _as_int(arguments.get(field), 1024, minimum=64, maximum=4096)
+            applied.append(field)
+    return candidate, applied
+
+
+def regenerate(arguments: dict[str, Any]) -> dict[str, Any]:
+    asset_id = _validate_asset_id(arguments.get("asset_id"))
+    source_workflow = _asset_workflow(asset_id)
+    if source_workflow is None:
+        return sanitize(
+            {
+                "ok": False,
+                "bridge": BRIDGE_ID,
+                "action": "regenerate",
+                "mode": "dry_run",
+                "asset_id": asset_id,
+                "submitted": False,
+                "prompt_id": None,
+                "error_code": "asset_provenance_unavailable",
+                "warnings": ["asset_provenance_unavailable"],
+                "next_steps": [
+                    "Generate and resolve the asset in the current MCP server session before retrying."
+                ],
+            }
+        )
+
+    confirm_run = bool(arguments.get("confirm_run", False))
+    workflow, applied = _regeneration_workflow(
+        source_workflow, arguments, randomize_seed=confirm_run
+    )
+    validation = validate_workflow_payload(workflow, workflow_name="agent_regenerated_txt2img")
+    validation_details = _validation_details(validation)
+    base_result = {
+        "bridge": BRIDGE_ID,
+        "action": "regenerate",
+        "asset_id": asset_id,
+        "workflow_hash": workflow_hash(workflow),
+        "overrides_applied": sorted(set(applied)),
+        "validation_summary": {
+            "ok": bool(validation.get("ok")),
+            "warning_count": len(validation.get("warnings") or []),
+            "error_count": len(validation_details.get("errors") or []),
+        },
+        "provenance": {
+            "storage": "memory_only",
+            "ttl_seconds": PROVENANCE_TTL_SECONDS,
+            "persisted": False,
+        },
+    }
+    if not validation.get("ok"):
+        return sanitize(
+            {
+                **base_result,
+                "ok": False,
+                "mode": "confirmed" if confirm_run else "dry_run",
+                "submitted": False,
+                "prompt_id": None,
+                "error_code": "regenerated_workflow_invalid",
+                "warnings": ["regenerated_workflow_invalid"],
+                "next_steps": ["Start a new reviewed generation instead of replaying this asset."],
+            }
+        )
+    if not confirm_run:
+        return sanitize(
+            {
+                **base_result,
+                "ok": True,
+                "mode": "dry_run",
+                "submitted": False,
+                "prompt_id": None,
+                "job_status": {"state": "not_submitted"},
+                "output_manifest": {"image_count": 0, "images": []},
+                "warnings": ["Refusing to regenerate without confirm_run=true."],
+                "next_steps": ["Review overrides, then call again with confirm_run=true."],
+            }
+        )
+
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
+    timeout = _as_int(arguments.get("timeout"), 30, minimum=1, maximum=300)
+    wait_seconds = _as_int(arguments.get("wait_seconds"), 10, minimum=0, maximum=600)
+    try:
+        submission = submit_workflow(
+            workflow, base_url=base_url, timeout=timeout, wait_seconds=wait_seconds
+        )
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return sanitize(
+            {
+                **base_result,
+                "ok": False,
+                "mode": "confirmed",
+                "submitted": False,
+                "prompt_id": None,
+                "error_code": "comfyui_unavailable",
+                "job_status": {"state": "comfyui_unavailable"},
+                "output_manifest": {"image_count": 0, "images": []},
+                "warnings": ["comfyui_regeneration_submit_unavailable"],
+                "next_steps": ["Start local ComfyUI and explicitly retry the regeneration."],
+            }
+        )
+
+    prompt_id = str(submission.get("prompt_id") or "")
+    job_status = submission.get("job_status")
+    safe_job_status = job_status if isinstance(job_status, dict) else {}
+    manifest = safe_job_status.get("output_manifest")
+    output_manifest = manifest if isinstance(manifest, dict) else {"image_count": 0, "images": []}
+    submission_ok = bool(submission.get("ok"))
+    submitted = bool(submission.get("submitted", submission.get("prompt_id")))
+    if submitted and prompt_id:
+        _remember_generation(prompt_id, workflow)
+        _remember_manifest_assets(prompt_id, output_manifest)
+    state = str(safe_job_status.get("state") or "submitted")
+    if state == "failed":
+        warnings = ["comfyui_regeneration_execution_failed"]
+        next_steps = [
+            "Inspect the failing node locally, then review a new dry-run before explicitly retrying."
+        ]
+    elif state == "cancelled":
+        warnings = ["comfyui_regeneration_execution_cancelled"]
+        next_steps = [
+            "Confirm the interruption was expected, then review a new dry-run before explicitly retrying."
+        ]
+    elif state == "status_unavailable":
+        warnings = ["comfyui_regeneration_status_unavailable"]
+        next_steps = [
+            "Recover the same prompt_id with comfyui.generation_result before deciding whether to retry."
+        ]
+    elif submitted and state in {"submitted", "queued_or_running"}:
+        warnings = ["comfyui_regeneration_pending"]
+        next_steps = [
+            "Call comfyui.generation_result with the same prompt_id; do not resubmit automatically."
+        ]
+    elif submission_ok:
+        warnings = []
+        next_steps = ["Review the regenerated output locally."]
+    else:
+        warnings = ["comfyui_regeneration_submit_failed"]
+        next_steps = ["Inspect the local ComfyUI response before explicitly retrying."]
+    return sanitize(
+        {
+            **base_result,
+            "ok": submission_ok,
+            "mode": "confirmed",
+            "submitted": submitted,
+            "prompt_id": prompt_id or None,
+            "error_code": None if submission_ok else submission.get("error"),
+            "job_status": {
+                key: value for key, value in safe_job_status.items() if key != "output_manifest"
+            },
+            "output_manifest": output_manifest,
+            "warnings": warnings,
+            "next_steps": next_steps,
+        }
+    )
+
+
 def submit_workflow(
     workflow: dict[str, Any],
     *,
@@ -1447,6 +1872,7 @@ def submit_workflow(
             OSError,
             json.JSONDecodeError,
             UnicodeDecodeError,
+            ValueError,
         ):
             return {
                 "ok": False,
@@ -1571,7 +1997,7 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    base_url = str(arguments.get("comfy_url") or DEFAULT_BASE_URL)
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
     timeout = _as_int(arguments.get("timeout"), 30, minimum=1, maximum=300)
     wait_seconds = _as_int(
         arguments.get("wait_seconds", arguments.get("timeout_seconds")), 10, minimum=0, maximum=600
@@ -1580,7 +2006,13 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
         submission = submit_workflow(
             workflow, base_url=base_url, timeout=timeout, wait_seconds=wait_seconds
         )
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError) as exc:
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        TimeoutError,
+        OSError,
+        ValueError,
+    ):
         return sanitize(
             {
                 "ok": False,
@@ -1593,7 +2025,7 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
                 "workflow_hash": workflow_hash(workflow),
                 "job_status": {"state": "comfyui_unavailable"},
                 "output_manifest": {"image_count": 0, "images": []},
-                "warnings": [f"Unable to submit to ComfyUI: {exc}"],
+                "warnings": ["Unable to submit to local ComfyUI."],
                 "next_steps": [
                     "Start local ComfyUI, confirm the checkpoint placeholder is valid, then retry."
                 ],
@@ -1603,6 +2035,12 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
     job_status = submission.get("job_status", {})
     submission_ok = bool(submission.get("ok"))
     submitted = bool(submission.get("submitted", submission.get("prompt_id")))
+    prompt_id = str(submission.get("prompt_id") or "")
+    output_manifest = job_status.get("output_manifest", {"image_count": 0, "images": []})
+    if submitted and prompt_id:
+        _remember_generation(prompt_id, workflow)
+        if isinstance(output_manifest, dict):
+            _remember_manifest_assets(prompt_id, output_manifest)
     state = str(job_status.get("state") or "")
     if state == "failed":
         warnings = [
@@ -1638,7 +2076,6 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
     else:
         warnings = [str(submission.get("error") or "ComfyUI submission failed.")]
         next_steps = ["Inspect the ComfyUI response and local console."]
-
     return sanitize(
         {
             "ok": submission_ok,
@@ -1647,14 +2084,14 @@ def agent_run(arguments: dict[str, Any]) -> dict[str, Any]:
             "mode": "confirmed",
             "workflow_type": _workflow_type(arguments),
             "submitted": submitted,
-            "prompt_id": submission.get("prompt_id"),
+            "prompt_id": prompt_id or None,
             "workflow_hash": workflow_hash(workflow),
             "node_summary": workflow_summary(workflow),
             "validation": validation,
             "job_status": {
                 key: value for key, value in job_status.items() if key != "output_manifest"
             },
-            "output_manifest": job_status.get("output_manifest", {"image_count": 0, "images": []}),
+            "output_manifest": output_manifest,
             "warnings": warnings,
             "next_steps": next_steps,
         }

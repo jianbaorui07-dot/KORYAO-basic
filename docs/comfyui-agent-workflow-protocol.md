@@ -17,7 +17,13 @@ flowchart TD
     N -->|confirm_run=true| J["Submit /prompt to local ComfyUI"]
     J --> K["Return prompt_id"]
     K --> L["Poll /history/{prompt_id}"]
-    L --> M["Return job_status and output_manifest"]
+    L -->|completed within wait window| M["Return job_status and output_manifest"]
+    L -->|still running| O["comfyui.generation_result"]
+    O --> P["Resume bounded history polling"]
+    P --> M
+    M --> Q["Review asset_id"]
+    Q --> R["comfyui.regenerate (dry-run)"]
+    R -->|confirm_run=true| J
 ```
 
 ## Tools
@@ -29,6 +35,8 @@ flowchart TD
 | `comfyui.workflow_repair` | dry-run | Repairs missing nodes, bad numeric parameters, invalid dimensions, and core links. | None |
 | `comfy.workflow_lifecycle_summary` | safe read-only | Returns redacted job / asset lifecycle, submit gate, and evidence preview for a reviewed workflow. | None |
 | `comfyui.agent_run` | dry-run by default; confirmed run with `confirm_run=true` | Runs build, validate, repair, submit, status, manifest. | Contacts local ComfyUI and may cause ComfyUI to write images to its own output folder |
+| `comfyui.generation_result` | live read-only | Resumes bounded polling for one explicit prompt ID and returns terminal state plus a stable-ID, basename-only output manifest. | Sends loopback-only `GET /history/{prompt_id}` requests; never submits or reads image bytes |
+| `comfyui.regenerate` | dry-run by default; confirmed run with `confirm_run=true` | Replays the in-memory workflow provenance for one `asset_id` with bounded parameter overrides. | Confirmed mode submits a new loopback ComfyUI job; provenance is never persisted |
 
 ## Build Plan Contract
 
@@ -143,6 +151,47 @@ history 中出现任务记录本身不能作为成功证据；只有规范化终
 
 - [ComfyUI `execution.py` 终态事件](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/execution.py#L674-L820)
 - [ComfyUI `comfy_execution/jobs.py` 状态归一化](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/comfy_execution/jobs.py#L191-L243)
+
+If the confirmed run returns `queued_or_running`, call `comfyui.generation_result` with the returned `prompt_id`. The result tool:
+
+- accepts only a bounded URL-safe prompt ID;
+- accepts only a plain loopback HTTP ComfyUI URL;
+- polls for at most 60 seconds and follows no redirects;
+- hashes the prompt ID in its response;
+- gives every output a deterministic `asset_id` derived from its job/output identity, so a caller can refer to the same result without retaining a private path;
+- reduces every output filename and subfolder to a basename and never returns workflow, prompt, model, image bytes, traceback, or absolute paths;
+- distinguishes `queued_or_running`, `completed`, `completed_no_outputs`, `failed`, `cancelled`, and `status_unavailable`.
+
+`asset_id` is a logical identity, not a filesystem path or download URL. It is stable for the same prompt/output tuple and changes when the prompt ID, output node, filename, subfolder, type, or output position changes. The guarded `comfyui.regenerate` tool resolves this identity only against an in-memory provenance record; this protocol does not persist private workflow data to Git.
+
+## Regenerate Contract
+
+`comfyui.regenerate` closes the first generate → result → iterate loop. The server keeps a maximum of 128 in-memory provenance records for 24 hours. Records are created only for jobs submitted by the current `comfyui.agent_run` / `comfyui.regenerate` process and disappear on restart.
+
+The tool accepts a returned `asset_id` plus optional `prompt`, `negative_prompt`, `seed`, `steps`, `cfg`, `sampler`, `scheduler`, `width`, and `height` overrides. It returns only the names of applied override fields, validation counts, workflow hash, job state, and sanitized output metadata. It never returns the stored workflow or prompt text.
+
+Without confirmation it validates the regenerated workflow but does not submit it:
+
+```json
+{
+  "asset_id": "asset_0123456789abcdef",
+  "prompt": "refine the lighting",
+  "steps": 28,
+  "confirm_run": false
+}
+```
+
+Real replay requires a second explicit gate:
+
+```json
+{
+  "asset_id": "asset_0123456789abcdef",
+  "prompt": "refine the lighting",
+  "confirm_run": true
+}
+```
+
+Unknown, expired, or post-restart asset IDs return `asset_provenance_unavailable`; the tool never guesses a local path or scans ComfyUI history to reconstruct private provenance.
 
 ## Safety Rules
 
