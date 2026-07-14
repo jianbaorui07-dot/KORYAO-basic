@@ -457,6 +457,22 @@ CAPABILITIES: tuple[ToolCapability, ...] = (
         ),
     ),
     ToolCapability(
+        name="comfyui.regenerate",
+        bridge="comfyui",
+        action="regenerate",
+        maturity="implemented",
+        risk_level="guarded_local_process",
+        description="用当前会话 asset_id 的内存 provenance 覆写参数并重新提交 txt2img。",
+        side_effects="默认 dry-run；confirm_run=true 时向 loopback ComfyUI 提交新任务并写其本地输出。",
+        safe_default=False,
+        requires_confirmation=True,
+        requires_local_software=True,
+        source_projects=(
+            "artokun/comfyui-mcp",
+            "joenorton/comfyui-mcp-server",
+        ),
+    ),
+    ToolCapability(
         name="comfy.workflow_draft",
         bridge="comfyui",
         action="workflow_draft",

@@ -21,6 +21,9 @@ flowchart TD
     L -->|still running| O["comfyui.generation_result"]
     O --> P["Resume bounded history polling"]
     P --> M
+    M --> Q["Review asset_id"]
+    Q --> R["comfyui.regenerate (dry-run)"]
+    R -->|confirm_run=true| J
 ```
 
 ## Tools
@@ -33,6 +36,7 @@ flowchart TD
 | `comfy.workflow_lifecycle_summary` | safe read-only | Returns redacted job / asset lifecycle, submit gate, and evidence preview for a reviewed workflow. | None |
 | `comfyui.agent_run` | dry-run by default; confirmed run with `confirm_run=true` | Runs build, validate, repair, submit, status, manifest. | Contacts local ComfyUI and may cause ComfyUI to write images to its own output folder |
 | `comfyui.generation_result` | live read-only | Resumes bounded polling for one explicit prompt ID and returns terminal state plus a stable-ID, basename-only output manifest. | Sends loopback-only `GET /history/{prompt_id}` requests; never submits or reads image bytes |
+| `comfyui.regenerate` | dry-run by default; confirmed run with `confirm_run=true` | Replays the in-memory workflow provenance for one `asset_id` with bounded parameter overrides. | Confirmed mode submits a new loopback ComfyUI job; provenance is never persisted |
 
 ## Build Plan Contract
 
@@ -158,7 +162,36 @@ If the confirmed run returns `queued_or_running`, call `comfyui.generation_resul
 - reduces every output filename and subfolder to a basename and never returns workflow, prompt, model, image bytes, traceback, or absolute paths;
 - distinguishes `queued_or_running`, `completed`, `completed_no_outputs`, `failed`, `cancelled`, and `status_unavailable`.
 
-`asset_id` is a logical identity, not a filesystem path or download URL. It is stable for the same prompt/output tuple and changes when the prompt ID, output node, filename, subfolder, type, or output position changes. A future guarded regenerate tool may use this identity with an in-memory provenance record; this protocol does not persist private workflow data to Git.
+`asset_id` is a logical identity, not a filesystem path or download URL. It is stable for the same prompt/output tuple and changes when the prompt ID, output node, filename, subfolder, type, or output position changes. The guarded `comfyui.regenerate` tool resolves this identity only against an in-memory provenance record; this protocol does not persist private workflow data to Git.
+
+## Regenerate Contract
+
+`comfyui.regenerate` closes the first generate → result → iterate loop. The server keeps a maximum of 128 in-memory provenance records for 24 hours. Records are created only for jobs submitted by the current `comfyui.agent_run` / `comfyui.regenerate` process and disappear on restart.
+
+The tool accepts a returned `asset_id` plus optional `prompt`, `negative_prompt`, `seed`, `steps`, `cfg`, `sampler`, `scheduler`, `width`, and `height` overrides. It returns only the names of applied override fields, validation counts, workflow hash, job state, and sanitized output metadata. It never returns the stored workflow or prompt text.
+
+Without confirmation it validates the regenerated workflow but does not submit it:
+
+```json
+{
+  "asset_id": "asset_0123456789abcdef",
+  "prompt": "refine the lighting",
+  "steps": 28,
+  "confirm_run": false
+}
+```
+
+Real replay requires a second explicit gate:
+
+```json
+{
+  "asset_id": "asset_0123456789abcdef",
+  "prompt": "refine the lighting",
+  "confirm_run": true
+}
+```
+
+Unknown, expired, or post-restart asset IDs return `asset_provenance_unavailable`; the tool never guesses a local path or scans ComfyUI history to reconstruct private provenance.
 
 ## Safety Rules
 
