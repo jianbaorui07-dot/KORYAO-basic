@@ -42,7 +42,7 @@ npm.cmd run illustrator:vectorize:offline -- --input "<input.png>" --commit-pres
 
 默认生成 `flat_8`、`flat_16`、`line_color_16`、`nianhua_24` 四组候选。`--commit-preset` 会把选中的已验证 SVG 和预览复制为 `final_trace.svg` 与 `final_preview.png`。默认输出在被 Git 忽略的 `examples/output/illustrator/trace-practice/`；自定义输出也必须留在这个 headless 专用子树中，报告不写源图路径和文件名。
 
-这条 CLI 适合扁平插画、图标和色块稿预处理。SVG 验证证明“确实产生了可编辑路径且没有偷偷嵌入原图”，不等于视觉完全还原；复杂照片、渐变、透明度、文字和细小拓扑仍需在 Illustrator 中人工复核。
+这条 CLI 适合扁平插画、图标和色块稿预处理。SVG 验证除证明“确实产生了可编辑路径且没有偷偷嵌入原图”，还会用受限本地 rasterizer 把最终 SVG 的纯色 `rect/path` 回栅格，与本轮内存中的量化目标比较，报告像素完全匹配率、平均绝对误差和归一化相似度。相似度低于 `0.95` 时只标记 `review_required`，不得冒充视觉通过；复杂照片、渐变、透明度、文字和细小拓扑仍需在 Illustrator 中人工复核。
 
 ## Illustrator 桌面链路需要什么
 
@@ -109,7 +109,7 @@ python -m unittest tests.test_illustrator_color_trace -v
 | 项目 | 可借鉴能力 | StarBridge 当前差距 |
 | --- | --- | --- |
 | [VTracer @ `fd9cdb0`](https://github.com/visioncortex/vtracer/commit/fd9cdb08e622f237eb05be553a020ddc9e4c47a1) | MIT、无 GUI、彩色高分辨率、stacked/cutout、polygon/spline、poster/photo 预设 | headless OpenCV fallback 只有调色板量化和多边形；缺少平滑曲线、照片模式与更成熟的层次策略。VTracer 是后续候选，但其进程成功也仍需经过同一 verifier。 |
-| [ImageTracerJS @ `cb0c84a`](https://github.com/jankovicsandras/imagetracerjs/commit/cb0c84a309df5e75614d3b5166cdc77a56f12a98) | 浏览器/Node 彩色 tracing；测试会统计 SVG bytes、路径数和像素差异 | headless fallback 已补 bytes/hash/path/color 证据，但还缺把最终 SVG 回栅格后的像素差异门；原生路线已有参考 PNG↔sandbox PNG compare，二者不能混作同一证据。 |
+| [ImageTracerJS @ `cb0c84a`](https://github.com/jankovicsandras/imagetracerjs/commit/cb0c84a309df5e75614d3b5166cdc77a56f12a98) | 浏览器/Node 彩色 tracing；测试会统计 SVG bytes、路径数和像素差异 | headless fallback 已补 bytes/hash/path/color 与最终 SVG→量化目标的像素差异证据；它仍不是原始参考图↔最终 SVG 的视觉等价证明，不能与原生 PNG compare 混作同一证据。 |
 | [Inkscape @ `e76072a`](https://gitlab.com/inkscape/inkscape/-/commit/e76072ae5ae7d2ab77886450102d4d5e245834ac) | Potrace/Autotrace/libdepixelize、彩色多扫描、中心线与编辑器内结果 | 适合作为已安装编辑器的 fallback；`object-trace` 的完成文本不能证明有路径，仍须解析最终 SVG。StarBridge 尚未接入。 |
 
 本轮只补 headless 小闭环：固定 K-means 随机种子、用 `evenodd` 复合路径保留超过最小面积阈值的孔洞、验证真实 SVG 并提供事务式发布恢复；若自动恢复本身失败，旧产物备份会留在忽略输出目录供人工恢复。原生 Image Trace 的 plan / validate / compare / repair_plan / execute 保持不变；VTracer 与最终 SVG 回栅格视觉差异分别留给后续独立小轮次。
@@ -121,6 +121,6 @@ python -m unittest tests.test_illustrator_color_trace -v
 3. 为原生 Image Trace 补用户授权公开样例的真实桌面 E2E 证据；未运行前继续明确标注。
 4. 用 `next_execute_template` 驱动 execute dry-run；真实执行仍需显式确认，随后按 `post_execute_compare` 绑定明确参考图、sandbox PNG 和 trace evidence，达到轮次上限后停止，不自动重复桌面写入。
 5. 评估 VTracer 作为 headless 可选高质量后端，仍复用当前 SVG verifier 和产物清单。
-6. 增加最终 SVG 回栅格后的像素差异指标，并与现有 PNG compare 分开报告。
+6. 后续把受限 SVG 回栅格指标扩展为“原始授权参考图↔最终 SVG”独立 compare；当前仅比较本轮量化目标，并与原生 PNG compare 分开报告。
 7. 扩展 preflight 检查，例如字体替换风险、颜色空间和链接资产风险。
 8. 所有桌面软件真实写入继续要求 dry-run 之后显式确认。
