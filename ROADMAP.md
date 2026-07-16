@@ -27,7 +27,8 @@
 | visual evidence + redacted report | GUI 截图和复现说明只作为脱敏证据，不提交客户素材或私有输出 | 报告不包含真实路径、账号、token、模型路径、素材路径或授权信息 |
 | Artisan Iteration 7 paint structure | 对已有 SVG 做受拓扑保护的块面合并和客户可选的近色归并 | 基础色、重叠块、源子路径、锚点和未选描边保持不变；补丁脱敏且无收益不发布 |
 | 完成：Artisan Iteration 8 manual art direction | 增加显式手动颜色组、对象命名转移和 Illustrator 设计层名称映射协议 | 不猜测客户配色；指令与 SVG/index/profile 绑定，桌面写入前仍需显式确认 |
-| Artisan Iteration 9 confirmed Illustrator apply | 在已授权 Illustrator 中消费经过验证的映射并回读名称 | 写入显式确认、事务回滚、哈希复核；无桌面环境时 soft-exit |
+| 完成：Artisan Iteration 9 confirmed Illustrator apply protocol | 消费经过验证的映射，按 revision 与 approval 执行应用、回读、提交或回滚 | headless UXP/代理协议通过；写入显式确认、哈希复核，无桌面环境时 soft-exit |
+| Artisan Iteration 10 authorized desktop acceptance | 在用户明确授权的 Illustrator 会话中实测命名事务与 AI 副本交付 | 不覆盖源文档；回读名称和副本文件，提交脱敏证据，不提交 AI/素材 |
 | StarBridge MCP tool hardening | 保持 `status`、`probe`、tool registry 和 DXF plan 工具稳定 | `npm.cmd test` 和 `npm.cmd run preflight` 通过 |
 | Safety verification layer | 强化路径脱敏、只读检查、dry-run、发布前体检和 forbidden content 扫描 | preflight 输出可审查，失败信息给出明确修复方向 |
 
