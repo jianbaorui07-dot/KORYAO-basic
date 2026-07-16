@@ -9,7 +9,7 @@
 
 StarBridge 是以**匠心矢量**为高级方向，并完整保留**智能矢量、轻量矢量和精确重建**三种基础模式的本地创意软件开源接入层。它把 **Codex Skill** 的任务路由、**StarBridge MCP** 的结构化工具，以及 **Adobe UXP / Node Proxy** 的桌面软件通道组合成一套可审计的工作流；ComfyUI、Photoshop、CAD / AutoCAD、Blender 和 CapCut / 剪映等桥仍完整保留。
 
-普通图片默认进入**智能矢量**；Logo、图标和纹样可选择**轻量矢量**；需要技术验证或像素存档时选择**精确重建**。在三种基础模式之上，**匠心矢量**保留关键角点，以更少锚点生成直线、三次贝塞尔轮廓和人工描线式开放描边，并按切线与线宽把交叉点两侧续接成长路径。第 5 轮按局部几何把描边分成主轮廓、装饰纹、细节和微细节；第 6 轮增加客户意图预校准、矢量到矢量局部精修和可审计补丁链；第 7 轮安全合并非重叠叶子块面并压缩近似色；第 8 轮让客户用紧凑人工指令明确颜色组、对象名称和 Illustrator 设计层名称。它只使用可解释的几何特征，不声称识别人脸、文字或具体题材。所有模式都生成纯路径 SVG，并拒绝嵌入位图、脚本和外链；普通图片转矢量不调用 Illustrator Image Trace。
+普通图片默认进入**智能矢量**；Logo、图标和纹样可选择**轻量矢量**；需要技术验证或像素存档时选择**精确重建**。在三种基础模式之上，**匠心矢量**保留关键角点，以更少锚点生成直线、三次贝塞尔轮廓和人工描线式开放描边，并按切线与线宽把交叉点两侧续接成长路径。第 5 轮按局部几何把描边分成主轮廓、装饰纹、细节和微细节；第 6 轮增加客户意图预校准、矢量到矢量局部精修和可审计补丁链；第 7 轮安全合并非重叠叶子块面并压缩近似色；第 8 轮让客户明确颜色组和设计命名；第 9 轮增加确认式 Illustrator 应用、回读、提交和回滚协议。它只使用可解释的几何特征，不声称识别人脸、文字或具体题材。所有模式都生成纯路径 SVG，并拒绝嵌入位图、脚本和外链；普通图片转矢量不调用 Illustrator Image Trace。
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ flowchart LR
 | 状态 | 已覆盖能力 | 证据边界 |
 | --- | --- | --- |
 | stable（稳定） | MCP stdio、tools / resources / prompts、工具注册、状态探针、路径脱敏、safe roots、operation context、EvidenceManifest / JobStatus；ComfyUI 队列/进度/任务快照与工作流验证；AutoCAD/DXF plan validate / dry-run / guarded write | Windows 与 Ubuntu CI 验证结构、schema、安全边界、证据字段和 soft-exit |
-| primary（主推） | 四模式图片转 SVG：匠心、智能、轻量、精确；均输出已验证的无位图 SVG、矢量采样预览和报告 | 匠心 Iteration 8 增加显式人工配色、对象命名转移和哈希绑定的 Illustrator 映射；基础模式及旧入口完整保留 |
+| primary（主推） | 四模式图片转 SVG：匠心、智能、轻量、精确；均输出已验证的无位图 SVG、矢量采样预览和报告 | 匠心 Iteration 9 增加确认式 Illustrator 命名应用、状态 revision 门、回读/提交/回滚事务；基础模式及旧入口完整保留 |
 | experimental（桌面与 Adobe 协议） | Photoshop session / state / preview、sandbox recipe 计划；Illustrator 预检、精确 SVG→AI 交付和保留的彩色矢量化 / Image Trace / 旧量化协议 | CLI、verifier、schema 和协议测试已覆盖；真实桌面写入仍需本机软件、明确授权和显式确认 |
 | UXP 安全执行已实现 | Photoshop `executeAsModal` 有界排队、取消状态、history commit / rollback、临时文档自动关闭 | 已通过 Node 模拟与协议测试；仍需已授权 Photoshop 桌面实测 |
 | prototype（原型） | Blender 环境/场景/参考重建计划；CapCut / 剪映可执行文件探针和脱敏草稿顶层摘要 | 只验证公开结构和安全边界；不读取私有工程，不把探针结果写成生产控制 |
@@ -43,7 +43,19 @@ Photoshop, Illustrator, Blender, and CapCut write flows are experimental or plan
 
 完整状态见 [匠心矢量](docs/artisan-vector-mode.md)、[四模式矢量化](docs/vectorization-modes.md)、[精确像素矢量重建](docs/exact-pixel-vectorization.md)、[能力矩阵](docs/CAPABILITY_MATRIX.md) 和 [v0.1-alpha 发布说明](docs/RELEASE_V0_1_ALPHA.md)。
 
-## 最新能力：匠心矢量 Iteration 8
+## 最新能力：匠心矢量 Iteration 9
+
+第 9 轮把第 8 轮的 Illustrator 映射接入本地事务协议，但仍不绕过用户确认：
+
+- `probe` 只返回代理是否就绪、活动文档是否存在和短 `state_revision`，不返回文档名、图层名、路径或画面内容。
+- 应用计划同时绑定 SVG SHA-256、`edit_ref`、`direction_ref`、`imap_ref` 和当前状态 revision，并生成独立 `approval_ref`；计划小于 1 KB，不包含客户名称或文件路径。
+- 只有 `confirm_write=true` 与正确 `approval_ref` 同时存在才会调用本机代理；会话变化、状态过期、映射串用或代理缺失都不会写入。
+- UXP 主机先解析全部 `layer-* / shape-*` 目标，再一次性改名；目标缺失、重复、锁定或隐藏时不做部分写入。
+- 完整事务为“应用 → 回读计数 → 提交回滚快照”；回读或提交失败时自动回滚。执行回执只保留短引用、计数和状态。
+
+跨平台测试验证了确认拒绝、陈旧 revision、代理 soft-exit、成功提交、回读失败回滚、提交失败回滚、缺失目标不部分改名，以及真实本地 HTTP/WebSocket 代理的白名单与 revision 门。当前没有在已授权 Illustrator 桌面中执行真实写入，因此能力边界仍是“协议和 headless 主机模拟已验证，桌面实测待明确授权”。
+
+### Iteration 8 基线
 
 第 8 轮把“先问客户，再按人工意图处理”落实为紧凑、不可串用的本地协议：
 

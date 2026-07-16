@@ -146,6 +146,30 @@ python -m starbridge_mcp.vectorization.artisan_paint `
 
 输出额外包含 `artisan_illustrator_map.json`。它绑定输出 SVG 哈希、`edit_ref` 与 `direction_ref`，仅描述客户指定的设计层和对象名称；真正写入 Illustrator 仍需明确确认。
 
+Iteration 9 使用经过验证的 map 生成确认式桌面应用计划。先读取脱敏状态 revision，再审查不足 1 KB 的计划和 `approval_ref`：
+
+```powershell
+python -m starbridge_mcp.vectorization.artisan_illustrator probe --soft-exit
+
+python -m starbridge_mcp.vectorization.artisan_illustrator plan `
+  --svg "<output>/vector.svg" `
+  --index "<output>/artisan_edit_index.json" `
+  --direction "artisan_direction.json" `
+  --map "<output>/artisan_illustrator_map.json" `
+  --state-revision 7 `
+  --output "artisan_apply_plan.json"
+
+python -m starbridge_mcp.vectorization.artisan_illustrator execute `
+  --plan "artisan_apply_plan.json" `
+  --map "<output>/artisan_illustrator_map.json" `
+  --approval-ref "approve:0123456789ab" `
+  --confirm-write `
+  --receipt "artisan_apply_receipt.json" `
+  --soft-exit
+```
+
+`approval_ref` 必须使用实际计划返回值，示例值不能执行。代理只监听 loopback；应用前再次核对状态 revision。主机端解析完全部目标后才写入，随后回读匹配数量并提交事务；回读或提交失败自动回滚。代理未启动、没有活动文档或状态过期时返回脱敏 `not_available`，不阻塞 Ubuntu CI。
+
 精确模式额外报告：
 
 ```text

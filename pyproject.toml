@@ -80,6 +80,7 @@ starbridge-artisan-brief = "starbridge_mcp.vectorization.artisan_brief:main"
 starbridge-artisan-refine = "starbridge_mcp.vectorization.artisan_refine:main"
 starbridge-artisan-paint = "starbridge_mcp.vectorization.artisan_paint:main"
 starbridge-artisan-direction = "starbridge_mcp.vectorization.artisan_direction:main"
+starbridge-artisan-illustrator = "starbridge_mcp.vectorization.artisan_illustrator:main"
 vectorflow-studio = "starbridge_mcp.vectorization.app:main"
 
 [tool.setuptools.packages.find]

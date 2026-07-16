@@ -232,6 +232,34 @@ edit_ref + profile_ref
 
 合成回归夹具的手动颜色组把 5 个选中块面减到 3 个、全图颜色/paint 从 4/4 减到 3/3；6 个子路径、22 个锚点、基础色、重叠块和未选描边保持不变。被合并的 `shape-0004` 人工名称被确定性转移到保留的 `shape-0002`。指令与 Illustrator 映射分别小于 900 bytes，paint 补丁小于 2,800 bytes，均不包含源文件名或绝对路径。
 
+## Iteration 9：确认式 Illustrator 应用事务
+
+第九轮只消费第八轮已经验证的映射，不重新分析图片。计划编译器逐项核对 SVG 哈希、schema-v2 编辑索引、人工指令和 Illustrator 映射，并绑定当前本机会话的脱敏 `state_revision`。计划和回执都只保存短引用、目标数量和状态，不保存客户名称、SVG 全文或路径。
+
+```text
+probe：代理就绪 + 活动文档 + state_revision
+→ 编译 apply-plan / approval_ref
+→ 客户审查并显式 confirm_write
+→ 代理再次核对 revision
+→ UXP 预解析全部稳定目标
+→ 一次性应用名称
+→ readback 匹配数量
+→ commit 释放回滚快照
+失败：rollback 恢复原名称
+```
+
+安全门槛包括：
+
+- 代理 URL 只能是 `127.0.0.1` 或 `localhost`；
+- `confirm_write` 与计划派生的 `approval_ref` 缺一不可；
+- 应用请求只接受最多 4 个 `layer-*` 和 128 个 `shape-*` 名称映射；
+- 代理持有的最新 revision 与计划不一致时拒绝转发；
+- 主机解析目标时要求稳定 ID 唯一，且对象未锁定、未隐藏；
+- 应用异常在主机内立即恢复；回读或事务提交失败由调用端发起回滚；
+- 代理/Illustrator 不可用时 `probe --soft-exit` 返回 `not_available`，不假装执行成功。
+
+本轮以 Python 假传输、Node 主机模拟以及真实 loopback HTTP/WebSocket 代理完成 headless 回归。成功回执与计划均小于 1 KB；测试不包含客户名称、文件路径或图像。尚未在用户已授权的 Illustrator 桌面会话中执行真实改名，因此不把协议通过描述成桌面实测通过。
+
 ## 验收指标
 
 | 指标 | 含义 |
@@ -363,6 +391,7 @@ npm.cmd run vector-app:start
 6. **Iteration 6：客户意图与局部精修（已完成）。** 三问预校准、SVG/索引绑定、设计师可读命名、曲率布线、严格拓扑门控和补丁链。
 7. **Iteration 7：块面与颜色设计（已完成）。** 非重叠叶子块面合并、基础色保护、感知近色门、paint 补丁链和无收益拒绝发布。
 8. **Iteration 8：人工配色与 Illustrator 映射（已完成协议层）。** 显式颜色组、对象命名转移、设计层映射、三重引用绑定和低 token 指令。
-9. **Iteration 9：确认式 Illustrator 应用。** 在已授权桌面环境中消费 `imap_ref`，以事务方式应用名称、回读验证并支持回滚。
+9. **Iteration 9：确认式 Illustrator 应用（已完成协议层）。** revision 绑定计划、双重确认、全目标预解析、回读/提交/回滚和 soft-exit。
+10. **Iteration 10：授权桌面验收与 AI 交付。** 在用户明确授权的 Illustrator 会话中实测命名事务、保存副本、回读 AI 文件并记录脱敏证据。
 
 匠心模式的长期目标不是声称“一键等同人工设计”，而是用可验证的锚点数量、轮廓误差、结构分层和可编辑性，逐轮缩小与专业设计师手工矢量稿之间的差距。
