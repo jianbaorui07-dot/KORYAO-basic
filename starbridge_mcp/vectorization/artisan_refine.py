@@ -18,7 +18,7 @@ from .artisan_edit import (
     build_edit_index,
     load_edit_index,
 )
-from .artisan_strokes import _open_path
+from .curve_geometry import open_path
 from .svg_verify import SvgArtifactError, _tokenize_path, verify_svg_artifact
 
 Point = tuple[float, float]
@@ -235,7 +235,7 @@ def _refine_path(path_data: str, geometry: dict[str, Any]) -> tuple[str, dict[st
         backtracking_before += source_backtracking
         candidate_accepted = len(simplified) >= 2 and len(simplified) < len(source_anchors)
         if candidate_accepted:
-            candidate_data, _ = _open_path(
+            candidate_data, _ = open_path(
                 simplified,
                 corner_angle=152.0,
                 smoothing=0.72,
