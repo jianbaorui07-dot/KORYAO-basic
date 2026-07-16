@@ -86,6 +86,11 @@ def compact_result(result: dict[str, object]) -> dict[str, object]:
         "centerline_precision",
         "centerline_recall",
         "centerline_dice",
+        "continuation_candidate_used",
+        "continuation_path_reduction_ratio",
+        "continuation_anchor_reduction_ratio",
+        "continuation_batch_reduction_ratio",
+        "continuation_mean_path_length_gain_ratio",
     )
     artifacts = result.get("artifacts")
     artifact_refs = (

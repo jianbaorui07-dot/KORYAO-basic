@@ -230,13 +230,15 @@ def _graph_paths(skeleton: Any) -> tuple[list[list[Point]], dict[str, int]]:
     unseen = set(node_pixels)
     components: list[list[Pixel]] = []
     node_id: dict[Pixel, int] = {}
-    while unseen:
-        seed = unseen.pop()
+    for seed in sorted(node_pixels):
+        if seed not in unseen:
+            continue
+        unseen.remove(seed)
         stack = [seed]
         component = [seed]
         while stack:
             pixel = stack.pop()
-            for candidate in neighbors[pixel]:
+            for candidate in sorted(neighbors[pixel]):
                 if candidate in unseen and candidate in node_pixels:
                     unseen.remove(candidate)
                     stack.append(candidate)
@@ -257,8 +259,8 @@ def _graph_paths(skeleton: Any) -> tuple[list[list[Point]], dict[str, int]]:
     paths: list[list[Point]] = []
     components_with_edges: set[int] = set()
     for component_id, component in enumerate(components):
-        for pixel in component:
-            for candidate in neighbors[pixel]:
+        for pixel in sorted(component):
+            for candidate in sorted(neighbors[pixel]):
                 edge = _edge_key(pixel, candidate)
                 if candidate in node_pixels or edge in visited:
                     continue
@@ -269,7 +271,7 @@ def _graph_paths(skeleton: Any) -> tuple[list[list[Point]], dict[str, int]]:
                 visited.add(edge)
                 while current not in node_pixels:
                     path.append((float(current[0]), float(current[1])))
-                    options = [value for value in neighbors[current] if value != previous]
+                    options = sorted(value for value in neighbors[current] if value != previous)
                     if not options:
                         break
                     following = options[0]
@@ -288,7 +290,7 @@ def _graph_paths(skeleton: Any) -> tuple[list[list[Point]], dict[str, int]]:
             paths.append([center, (center[0], center[1] + 0.05)])
 
     for start in sorted(pixels - node_pixels):
-        for candidate in neighbors[start]:
+        for candidate in sorted(neighbors[start]):
             edge = _edge_key(start, candidate)
             if candidate in node_pixels or edge in visited:
                 continue
@@ -298,7 +300,7 @@ def _graph_paths(skeleton: Any) -> tuple[list[list[Point]], dict[str, int]]:
             visited.add(edge)
             while current != start:
                 path.append((float(current[0]), float(current[1])))
-                options = [value for value in neighbors[current] if value != previous]
+                options = sorted(value for value in neighbors[current] if value != previous)
                 if not options:
                     break
                 following = options[0]
@@ -327,6 +329,165 @@ def _distance_width(path: list[Point], distance: Any, height: int, width: int) -
     return max(1.0, min(7.0, round(raw_width * 2.0) / 2.0))
 
 
+def _path_extent(path: list[Point]) -> float:
+    return sum(math.dist(path[index - 1], path[index]) for index in range(1, len(path)))
+
+
+def _endpoint_direction(path: list[Point], endpoint: int) -> tuple[float, float]:
+    origin = path[0] if endpoint == 0 else path[-1]
+    candidates = path[1:] if endpoint == 0 else reversed(path[:-1])
+    fallback = (0.0, 0.0)
+    for candidate in candidates:
+        vector = (candidate[0] - origin[0], candidate[1] - origin[1])
+        fallback = _unit(*vector)
+        if math.hypot(*vector) >= 2.0:
+            return fallback
+    return fallback
+
+
+def _endpoint_width(
+    path: list[Point],
+    endpoint: int,
+    distance: Any,
+    height: int,
+    width: int,
+) -> float:
+    candidates = path[1:6] if endpoint == 0 else list(reversed(path[:-1]))[:5]
+    if not candidates:
+        candidates = [path[0 if endpoint == 0 else -1]]
+    values = []
+    for y, x in candidates:
+        pixel_y = max(0, min(height - 1, int(round(y))))
+        pixel_x = max(0, min(width - 1, int(round(x))))
+        values.append(float(distance[pixel_y, pixel_x]) * 2.0 - 0.65)
+    return max(1.0, float(np.median(values)))
+
+
+def _stitch_paths(
+    paths: list[list[Point]],
+    distance: Any,
+    height: int,
+    width: int,
+    *,
+    maximum_deviation_degrees: float = 38.0,
+    maximum_width_difference: float = 1.5,
+) -> tuple[list[list[Point]], dict[str, Any]]:
+    endpoint_data: dict[
+        tuple[float, float],
+        list[tuple[tuple[int, int], tuple[float, float], float, float]],
+    ] = {}
+    for path_index, path in enumerate(paths):
+        extent = _path_extent(path)
+        if len(path) < 2 or extent < 1.0 or path[0] == path[-1]:
+            continue
+        for endpoint in (0, 1):
+            point = path[0] if endpoint == 0 else path[-1]
+            key = (round(point[0], 6), round(point[1], 6))
+            endpoint_data.setdefault(key, []).append(
+                (
+                    (path_index, endpoint),
+                    _endpoint_direction(path, endpoint),
+                    _endpoint_width(path, endpoint, distance, height, width),
+                    extent,
+                )
+            )
+
+    connections: dict[tuple[int, int], tuple[int, int]] = {}
+    used_deviations: list[float] = []
+    used_width_differences: list[float] = []
+    junctions_considered = 0
+    eligible_pairs = 0
+    for entries in endpoint_data.values():
+        if len(entries) < 2:
+            continue
+        junctions_considered += 1
+        candidates: list[tuple[float, float, float, tuple[int, int], tuple[int, int]]] = []
+        for first_index, first in enumerate(entries[:-1]):
+            for second in entries[first_index + 1 :]:
+                first_endpoint, first_direction, first_width, first_extent = first
+                second_endpoint, second_direction, second_width, second_extent = second
+                if first_endpoint[0] == second_endpoint[0]:
+                    continue
+                dot = (
+                    first_direction[0] * second_direction[0]
+                    + first_direction[1] * second_direction[1]
+                )
+                deviation = math.degrees(math.acos(max(-1.0, min(1.0, -dot))))
+                width_difference = abs(first_width - second_width)
+                if (
+                    deviation <= maximum_deviation_degrees
+                    and width_difference <= maximum_width_difference
+                ):
+                    eligible_pairs += 1
+                    candidates.append(
+                        (
+                            deviation,
+                            width_difference,
+                            -min(first_extent, second_extent),
+                            first_endpoint,
+                            second_endpoint,
+                        )
+                    )
+        used: set[tuple[int, int]] = set()
+        for deviation, width_difference, _, first_endpoint, second_endpoint in sorted(candidates):
+            if first_endpoint in used or second_endpoint in used:
+                continue
+            connections[first_endpoint] = second_endpoint
+            connections[second_endpoint] = first_endpoint
+            used.add(first_endpoint)
+            used.add(second_endpoint)
+            used_deviations.append(deviation)
+            used_width_differences.append(width_difference)
+
+    starts: list[tuple[int, int]] = []
+    for path_index in range(len(paths)):
+        if (path_index, 0) not in connections:
+            starts.append((path_index, 0))
+        elif (path_index, 1) not in connections:
+            starts.append((path_index, 1))
+    starts.extend((path_index, 0) for path_index in range(len(paths)))
+
+    stitched: list[list[Point]] = []
+    visited: set[int] = set()
+    for path_index, entry_endpoint in starts:
+        if path_index in visited:
+            continue
+        trail: list[Point] = []
+        current_index = path_index
+        current_endpoint = entry_endpoint
+        while current_index not in visited:
+            path = paths[current_index]
+            oriented = path if current_endpoint == 0 else list(reversed(path))
+            if trail and trail[-1] == oriented[0]:
+                trail.extend(oriented[1:])
+            else:
+                trail.extend(oriented)
+            visited.add(current_index)
+            exit_endpoint = (current_index, 1 - current_endpoint)
+            continuation = connections.get(exit_endpoint)
+            if continuation is None or continuation[0] in visited:
+                break
+            current_index, current_endpoint = continuation
+        if len(trail) >= 2:
+            stitched.append(trail)
+
+    return stitched, {
+        "continuation_junctions_considered": junctions_considered,
+        "continuation_eligible_pairs": eligible_pairs,
+        "continuation_pairs": len(connections) // 2,
+        "continuation_maximum_deviation_degrees": round(max(used_deviations, default=0.0), 4),
+        "continuation_mean_deviation_degrees": round(
+            sum(used_deviations) / len(used_deviations) if used_deviations else 0.0,
+            4,
+        ),
+        "continuation_maximum_width_difference_px": round(
+            max(used_width_differences, default=0.0), 4
+        ),
+        "continuation_deviation_limit_degrees": maximum_deviation_degrees,
+        "continuation_width_difference_limit_px": maximum_width_difference,
+    }
+
+
 def _bbox(points: list[Point], width: int, height: int) -> tuple[int, int, int, int]:
     minimum_x = max(0, math.floor(min(point[0] for point in points)))
     minimum_y = max(0, math.floor(min(point[1] for point in points)))
@@ -335,23 +496,20 @@ def _bbox(points: list[Point], width: int, height: int) -> tuple[int, int, int, 
     return minimum_x, minimum_y, max(1, maximum_x - minimum_x), max(1, maximum_y - minimum_y)
 
 
-def trace_centerline_batches(
-    ink_mask: Any,
+def _trace_paths(
+    paths: list[list[Point]],
+    binary: Any,
+    distance: Any,
     preset: VectorPreset,
-    *,
-    batch_limit: int = 96,
+    batch_limit: int,
 ) -> tuple[tuple[StrokeBatch, ...], dict[str, Any]]:
-    height, width = ink_mask.shape
-    binary = (ink_mask > 0).astype(np.uint8)
-    skeleton, thinning_rounds = _zhang_suen_thinning(binary)
-    raw_paths, graph_metrics = _graph_paths(skeleton)
-    distance = cv2.distanceTransform(binary * 255, cv2.DIST_L2, 5)
+    height, width = binary.shape
     rendered = np.zeros_like(binary)
     simplify_epsilon = max(0.8, min(1.5, preset.simplify_ratio * 90.0))
     grouped: dict[float, list[dict[str, Any]]] = {}
     raw_anchor_count = 0
     anchor_count = 0
-    for raw_path in raw_paths:
+    for raw_path in paths:
         coordinates = np.asarray(
             [(x + 0.5, y + 0.5) for y, x in raw_path], dtype=np.float32
         ).reshape((-1, 1, 2))
@@ -384,9 +542,7 @@ def trace_centerline_batches(
                 "sampled_points": sampled_points,
                 "raw_anchors": len(raw_path),
                 "source_points": len(raw_path),
-                "length_px": sum(
-                    math.dist(points[index - 1], points[index]) for index in range(1, len(points))
-                ),
+                "length_px": _path_extent(points),
             }
         )
 
@@ -431,17 +587,143 @@ def trace_centerline_batches(
                 )
             )
     return tuple(batches), {
+        "subpaths": sum(len(batch.path_parts) for batch in batches),
+        "batches": len(batches),
+        "raw_anchors": raw_anchor_count,
+        "anchors": anchor_count,
+        "control_points": sum(batch.control_points for batch in batches),
+        "precision": precision,
+        "recall": recall,
+        "dice": dice,
+        "simplify_epsilon": simplify_epsilon,
+        "min_stroke_width": min((batch.stroke_width for batch in batches), default=0.0),
+        "max_stroke_width": max((batch.stroke_width for batch in batches), default=0.0),
+    }
+
+
+def trace_centerline_batches(
+    ink_mask: Any,
+    preset: VectorPreset,
+    *,
+    batch_limit: int = 96,
+) -> tuple[tuple[StrokeBatch, ...], dict[str, Any]]:
+    height, width = ink_mask.shape
+    binary = (ink_mask > 0).astype(np.uint8)
+    skeleton, thinning_rounds = _zhang_suen_thinning(binary)
+    raw_paths, graph_metrics = _graph_paths(skeleton)
+    distance = cv2.distanceTransform(binary * 255, cv2.DIST_L2, 5)
+    continued_paths, continuation_metrics = _stitch_paths(
+        raw_paths,
+        distance,
+        height,
+        width,
+    )
+    baseline_batches, baseline = _trace_paths(
+        raw_paths,
+        binary,
+        distance,
+        preset,
+        batch_limit,
+    )
+    continued_batches, continued = _trace_paths(
+        continued_paths,
+        binary,
+        distance,
+        preset,
+        batch_limit,
+    )
+    baseline_lengths = [_path_extent(path) for path in raw_paths]
+    continued_lengths = [_path_extent(path) for path in continued_paths]
+    baseline_mean_length = (
+        sum(baseline_lengths) / len(baseline_lengths) if baseline_lengths else 0.0
+    )
+    continued_mean_length = (
+        sum(continued_lengths) / len(continued_lengths) if continued_lengths else 0.0
+    )
+    mean_length_gain = (
+        max(0.0, continued_mean_length / baseline_mean_length - 1.0)
+        if baseline_mean_length
+        else 0.0
+    )
+    baseline_total_length = sum(baseline_lengths)
+    continued_total_length = sum(continued_lengths)
+    length_preservation = (
+        continued_total_length / baseline_total_length if baseline_total_length else 1.0
+    )
+    path_reduction = (
+        max(0.0, 1.0 - continued["subpaths"] / baseline["subpaths"])
+        if baseline["subpaths"]
+        else 0.0
+    )
+    anchor_reduction = (
+        max(0.0, 1.0 - continued["anchors"] / baseline["anchors"]) if baseline["anchors"] else 0.0
+    )
+    baseline_points = int(baseline["anchors"]) + int(baseline["control_points"])
+    continued_points = int(continued["anchors"]) + int(continued["control_points"])
+    point_reduction = max(0.0, 1.0 - continued_points / baseline_points) if baseline_points else 0.0
+    batch_reduction = (
+        max(0.0, 1.0 - continued["batches"] / baseline["batches"]) if baseline["batches"] else 0.0
+    )
+    rejection_reasons: list[str] = []
+    if path_reduction < 0.15:
+        rejection_reasons.append("path_reduction_below_15_percent")
+    if anchor_reduction < 0.03:
+        rejection_reasons.append("anchor_reduction_below_3_percent")
+    if continued["batches"] > baseline["batches"]:
+        rejection_reasons.append("edit_batch_count_increased")
+    if not math.isclose(length_preservation, 1.0, rel_tol=0.0, abs_tol=0.0001):
+        rejection_reasons.append("skeleton_length_not_preserved")
+    if continued["precision"] < baseline["precision"] - 0.01:
+        rejection_reasons.append("precision_regression_over_0_01")
+    if continued["recall"] < baseline["recall"] - 0.015:
+        rejection_reasons.append("recall_regression_over_0_015")
+    if continued["dice"] < baseline["dice"] - 0.01:
+        rejection_reasons.append("dice_regression_over_0_01")
+    continuation_used = not rejection_reasons
+    batches = continued_batches if continuation_used else baseline_batches
+    selected = continued if continuation_used else baseline
+    return batches, {
         **graph_metrics,
+        **continuation_metrics,
         "thinning_rounds": thinning_rounds,
         "centerline_raw_paths": len(raw_paths),
-        "centerline_subpaths": sum(len(batch.path_parts) for batch in batches),
-        "centerline_batches": len(batches),
-        "centerline_raw_anchors": raw_anchor_count,
-        "centerline_anchors": anchor_count,
-        "centerline_simplify_epsilon": round(simplify_epsilon, 4),
-        "centerline_precision": round(precision, 6),
-        "centerline_recall": round(recall, 6),
-        "centerline_dice": round(dice, 6),
-        "centerline_min_stroke_width": min((batch.stroke_width for batch in batches), default=0.0),
-        "centerline_max_stroke_width": max((batch.stroke_width for batch in batches), default=0.0),
+        "centerline_subpaths": selected["subpaths"],
+        "centerline_batches": selected["batches"],
+        "centerline_raw_anchors": selected["raw_anchors"],
+        "centerline_anchors": selected["anchors"],
+        "centerline_simplify_epsilon": round(float(selected["simplify_epsilon"]), 4),
+        "centerline_precision": round(float(selected["precision"]), 6),
+        "centerline_recall": round(float(selected["recall"]), 6),
+        "centerline_dice": round(float(selected["dice"]), 6),
+        "centerline_min_stroke_width": selected["min_stroke_width"],
+        "centerline_max_stroke_width": selected["max_stroke_width"],
+        "continuation_candidate_used": continuation_used,
+        "continuation_rejection_reasons": rejection_reasons,
+        "continuation_baseline_subpaths": baseline["subpaths"],
+        "continuation_candidate_subpaths": continued["subpaths"],
+        "continuation_path_reduction_ratio": round(path_reduction, 4),
+        "continuation_baseline_anchors": baseline["anchors"],
+        "continuation_candidate_anchors": continued["anchors"],
+        "continuation_anchor_reduction_ratio": round(anchor_reduction, 4),
+        "continuation_baseline_points": baseline_points,
+        "continuation_candidate_points": continued_points,
+        "continuation_point_reduction_ratio": round(point_reduction, 4),
+        "continuation_baseline_batches": baseline["batches"],
+        "continuation_candidate_batches": continued["batches"],
+        "continuation_batch_reduction_ratio": round(batch_reduction, 4),
+        "continuation_baseline_mean_path_length_px": round(baseline_mean_length, 4),
+        "continuation_candidate_mean_path_length_px": round(continued_mean_length, 4),
+        "continuation_mean_path_length_gain_ratio": round(mean_length_gain, 4),
+        "continuation_length_preservation_ratio": round(length_preservation, 6),
+        "continuation_baseline_maximum_path_length_px": round(
+            max(baseline_lengths, default=0.0), 4
+        ),
+        "continuation_candidate_maximum_path_length_px": round(
+            max(continued_lengths, default=0.0), 4
+        ),
+        "continuation_precision_delta": round(
+            float(continued["precision"] - baseline["precision"]), 6
+        ),
+        "continuation_recall_delta": round(float(continued["recall"] - baseline["recall"]), 6),
+        "continuation_dice_delta": round(float(continued["dice"] - baseline["dice"]), 6),
     }

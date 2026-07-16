@@ -714,7 +714,11 @@ def _centerline_scene_candidate(
         width=fill_scene.width,
         height=fill_scene.height,
         shapes=tuple(shapes),
-        strategy="centerline-stroke-v1",
+        strategy=(
+            "curve-continuation-v2"
+            if centerline_metrics.get("continuation_candidate_used")
+            else "centerline-stroke-v1"
+        ),
     )
     metrics = _scene_metrics(
         scene,

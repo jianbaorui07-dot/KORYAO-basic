@@ -789,6 +789,21 @@ def _markdown_report(report: dict[str, Any]) -> str:
                     f"- Stroke raster Dice: {vector['centerline_dice']:.1%}",
                 ]
             )
+            if vector.get("continuation_candidate_used"):
+                lines.extend(
+                    [
+                        "- Junction curve continuation: enabled",
+                        f"- Continued junction pairs: {vector['continuation_pairs']}",
+                        f"- Additional subpath reduction: {vector['continuation_path_reduction_ratio']:.1%}",
+                        f"- Additional continuation anchor reduction: {vector['continuation_anchor_reduction_ratio']:.1%}",
+                        f"- Edit-batch reduction: {vector['continuation_batch_reduction_ratio']:.1%}",
+                        f"- Mean editable stroke length gain: {vector['continuation_mean_path_length_gain_ratio']:.1%}",
+                    ]
+                )
+            elif "continuation_candidate_used" in vector:
+                lines.append(
+                    "- Junction curve continuation: quality gate rejected; iteration-3 centerlines retained"
+                )
         elif "centerline_candidate_used" in vector:
             lines.append(
                 "- Centerline stroke reconstruction: quality gate rejected; outline-fill fallback retained"
@@ -997,6 +1012,30 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                         "centerline_max_stroke_width",
                         "outline_fill_anchors",
                         "outline_fill_points",
+                        "continuation_candidate_used",
+                        "continuation_rejection_reasons",
+                        "continuation_pairs",
+                        "continuation_baseline_subpaths",
+                        "continuation_candidate_subpaths",
+                        "continuation_path_reduction_ratio",
+                        "continuation_baseline_anchors",
+                        "continuation_candidate_anchors",
+                        "continuation_anchor_reduction_ratio",
+                        "continuation_baseline_points",
+                        "continuation_candidate_points",
+                        "continuation_point_reduction_ratio",
+                        "continuation_baseline_batches",
+                        "continuation_candidate_batches",
+                        "continuation_batch_reduction_ratio",
+                        "continuation_baseline_mean_path_length_px",
+                        "continuation_candidate_mean_path_length_px",
+                        "continuation_mean_path_length_gain_ratio",
+                        "continuation_length_preservation_ratio",
+                        "continuation_baseline_maximum_path_length_px",
+                        "continuation_candidate_maximum_path_length_px",
+                        "continuation_precision_delta",
+                        "continuation_recall_delta",
+                        "continuation_dice_delta",
                     }
                 },
             },

@@ -267,6 +267,27 @@ class DesignVectorizationModeTests(VectorizationModeTests):
         self.assertNotIn("<image", svg)
         self.assertNotIn("base64", svg)
 
+    def test_artisan_junction_continuation_pairs_straight_tangents(self) -> None:
+        import numpy as np
+
+        from starbridge_mcp.vectorization.artisan_strokes import _path_extent, _stitch_paths
+
+        paths = [
+            [(5.0, 0.0), (5.0, 5.0)],
+            [(5.0, 5.0), (5.0, 10.0)],
+            [(0.0, 5.0), (5.0, 5.0)],
+            [(5.0, 5.0), (10.0, 5.0)],
+        ]
+        distance = np.ones((11, 11), dtype=np.float32)
+
+        stitched, metrics = _stitch_paths(paths, distance, 11, 11)
+
+        self.assertEqual(len(stitched), 2)
+        self.assertEqual(metrics["continuation_pairs"], 2)
+        self.assertEqual(metrics["continuation_maximum_deviation_degrees"], 0.0)
+        self.assertEqual(sorted(len(path) for path in stitched), [3, 3])
+        self.assertEqual(sum(_path_extent(path) for path in stitched), 20.0)
+
     def test_artisan_line_art_builds_quality_gated_centerlines_and_stable_reference(
         self,
     ) -> None:
@@ -291,6 +312,32 @@ class DesignVectorizationModeTests(VectorizationModeTests):
         self.assertGreaterEqual(vector["centerline_precision"], 0.6)
         self.assertGreaterEqual(vector["centerline_recall"], 0.9)
         self.assertGreaterEqual(vector["centerline_dice"], 0.72)
+        self.assertTrue(vector["continuation_candidate_used"])
+        self.assertEqual(vector["structure_strategy"], "curve-continuation-v2")
+        self.assertLess(
+            vector["continuation_candidate_subpaths"],
+            vector["continuation_baseline_subpaths"],
+        )
+        self.assertLess(
+            vector["continuation_candidate_anchors"],
+            vector["continuation_baseline_anchors"],
+        )
+        self.assertLessEqual(
+            vector["continuation_candidate_batches"],
+            vector["continuation_baseline_batches"],
+        )
+        self.assertGreaterEqual(vector["continuation_path_reduction_ratio"], 0.15)
+        self.assertGreaterEqual(vector["continuation_anchor_reduction_ratio"], 0.03)
+        self.assertGreaterEqual(vector["continuation_batch_reduction_ratio"], 0.0)
+        self.assertGreater(
+            vector["continuation_candidate_mean_path_length_px"],
+            vector["continuation_baseline_mean_path_length_px"],
+        )
+        self.assertGreater(vector["continuation_mean_path_length_gain_ratio"], 0.0)
+        self.assertEqual(vector["continuation_length_preservation_ratio"], 1.0)
+        self.assertGreaterEqual(vector["continuation_precision_delta"], -0.01)
+        self.assertGreaterEqual(vector["continuation_recall_delta"], -0.015)
+        self.assertGreaterEqual(vector["continuation_dice_delta"], -0.01)
         self.assertLessEqual(vector["maximum_subpaths_per_shape"], 96)
         self.assertLessEqual(vector["maximum_contour_error_px"], vector["curve_error_tolerance_px"])
         self.assertLessEqual(
@@ -351,6 +398,44 @@ class DesignVectorizationModeTests(VectorizationModeTests):
         self.assertIn("no_centerline_paths", vector["centerline_rejection_reasons"])
         self.assertEqual(vector["stroke_shape_count"], 0)
         self.assertGreater(vector["knockout_shape_count"], 0)
+
+    def test_artisan_continuation_gate_retains_iteration_three_centerlines(self) -> None:
+        source = self.make_line_art_source()
+
+        def no_continuation(paths, *_args, **_kwargs):
+            return paths, {
+                "continuation_junctions_considered": 0,
+                "continuation_eligible_pairs": 0,
+                "continuation_pairs": 0,
+                "continuation_maximum_deviation_degrees": 0.0,
+                "continuation_mean_deviation_degrees": 0.0,
+                "continuation_maximum_width_difference_px": 0.0,
+                "continuation_deviation_limit_degrees": 38.0,
+                "continuation_width_difference_limit_px": 1.5,
+            }
+
+        with mock.patch(
+            "starbridge_mcp.vectorization.artisan_strokes._stitch_paths",
+            side_effect=no_continuation,
+        ):
+            result = run_vectorization(
+                RunConfig(
+                    input_path=str(source),
+                    mode="artisan",
+                    reference_id="continuation-fallback",
+                )
+            )
+
+        vector = result["vector"]
+        self.assertTrue(vector["centerline_candidate_used"])
+        self.assertFalse(vector["continuation_candidate_used"])
+        self.assertEqual(vector["structure_strategy"], "centerline-stroke-v1")
+        self.assertIn(
+            "path_reduction_below_15_percent",
+            vector["continuation_rejection_reasons"],
+        )
+        self.assertGreater(vector["stroke_shape_count"], 0)
+        self.assertEqual(vector["knockout_shape_count"], 0)
 
     def test_svg_verifier_accepts_open_round_centerlines_and_rejects_unsafe_style(
         self,

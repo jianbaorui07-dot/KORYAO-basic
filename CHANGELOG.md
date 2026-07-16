@@ -2,6 +2,14 @@
 
 ## Unreleased / Optimizations
 
+### 2026-07-16 — Artisan Vector iteration 4
+
+* Added deterministic tangent- and width-aware continuation through skeleton junctions so visually continuous lines become longer editable paths instead of many isolated segments.
+* Added an independent continuation quality gate for subpaths, anchors, edit batches, precision, recall, and Dice, with automatic fallback to iteration-3 centerlines and then iteration-2 outline fills.
+* Added before/after continuation metrics and compact CLI evidence for path, anchor, edit-batch, and mean editable-stroke-length improvements.
+* Validated the retained authorized local pattern preview without committing any asset: 16,239 to 10,309 subpaths (36.52% fewer), 40,972 to 30,813 centerline anchors (24.79% fewer), 174 to 116 edit batches (33.33% fewer), and 57.48% longer mean paths.
+* Reduced the real local structure index from 39,756 to 23,839 bytes while retaining 94.04% recall, 74.71% Dice, no raster, no external references, and zero external AI calls.
+
 ### 2026-07-16 — Artisan Vector iteration 3
 
 * Added deterministic local centerline extraction for thin line art, producing editable open cubic strokes with round caps, round joins, and bounded variable widths.
