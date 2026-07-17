@@ -67,6 +67,30 @@ class VersionCoordinatorPluginTests(unittest.TestCase):
         self.assertNotIn("/Users/", encoded)
         self.assertNotIn("/home/", encoded)
 
+    def test_customer_workflow_is_exact_first_and_never_uses_image_trace(self) -> None:
+        plan = SERVER.build_plan({"requested_software": ["illustrator"]})
+        workflow = plan["customer_workflow"]
+
+        self.assertEqual("exact-pixel-first-then-drawn-vector", workflow["policy"])
+        self.assertFalse(workflow["image_trace_allowed"])
+        self.assertEqual(
+            ["pixel-level-print", "drawn-vector"],
+            [stage["id"] for stage in workflow["stages"]],
+        )
+        self.assertFalse(plan["safety"]["uses_image_trace"])
+
+        rule_files = [
+            REPO_ROOT / "AGENTS.md",
+            REPO_ROOT / "README.md",
+            REPO_ROOT / "docs" / "exact-pixel-vectorization.md",
+            PLUGIN_ROOT / "skills" / "starbridge-version-coordination" / "SKILL.md",
+        ]
+        for path in rule_files:
+            with self.subTest(path=path.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("精确重建", text)
+                self.assertTrue("Image Trace" in text or "图像描摹" in text)
+
     def test_migration_is_additive_and_preserves_previous_outputs(self) -> None:
         migration = SERVER.build_migration("v5", "v9")
 

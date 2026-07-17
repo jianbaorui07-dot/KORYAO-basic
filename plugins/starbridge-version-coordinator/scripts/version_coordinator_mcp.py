@@ -346,6 +346,30 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         "generation_profiles": _cumulative_capabilities(generation),
         "migration_to_v9": generation_migration,
         "software": software_plans,
+        "customer_workflow": {
+            "policy": "exact-pixel-first-then-drawn-vector",
+            "image_trace_allowed": False,
+            "stages": [
+                {
+                    "order": 1,
+                    "id": "pixel-level-print",
+                    "label": "像素级打印 / 精确重建",
+                    "implementation": "exact_pixel_vector.py",
+                    "gate": "verified raster-free SVG baseline",
+                },
+                {
+                    "order": 2,
+                    "id": "drawn-vector",
+                    "label": "绘制型矢量",
+                    "implementation": "artisan or customer-selected smart/lightweight",
+                    "requires": "verified stage-1 baseline",
+                },
+            ],
+            "stop_rule": (
+                "If exact reconstruction exceeds a safety limit, stop and ask the customer "
+                "to reduce dimensions or change the delivery goal; never fall back to Image Trace."
+            ),
+        },
         "codex": {
             "coordinator_mcp_server": "starbridge-version-coordinator",
             "coordinator_tools": [
@@ -368,6 +392,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
             ),
         },
         "next_steps": [
+            "客户任务先完成像素级打印/精确重建，再进入绘制型矢量。",
             "先执行每个软件计划中的 probe_tool。",
             "探针通过后，再把对应 full_mcp_tools 交给完整 StarBridge MCP。",
             "涉及桌面写入时重新请求用户确认，并限制在 sandbox/output。",
@@ -378,6 +403,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
             "starts_desktop_software": False,
             "writes_configuration": False,
             "contains_absolute_paths": False,
+            "uses_image_trace": False,
         },
     }
 
@@ -403,6 +429,7 @@ def build_catalog() -> dict[str, Any]:
         "software": software,
         "starbridge_generations": _cumulative_capabilities("v9"),
         "safety_modes": ["safe", "balanced", "production"],
+        "customer_default_policy": "exact-pixel-first-then-drawn-vector-no-image-trace",
     }
 
 

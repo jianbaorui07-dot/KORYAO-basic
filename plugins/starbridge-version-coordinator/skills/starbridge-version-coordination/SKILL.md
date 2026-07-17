@@ -18,6 +18,12 @@ description: Configure StarBridge for different Photoshop, Illustrator, AutoCAD,
 4. 先执行计划返回的 `probe_tool`。只有完整 StarBridge MCP 已连接且探针通过，才继续使用 `full_mcp_tools`。
 5. 本协调器只生成计划。真实写入仍需完整 StarBridge MCP、显式确认和 sandbox/output 边界。
 
+## 客户默认顺序
+
+1. 先用 `exact_pixel_vector.py` 做像素级打印 / 精确重建，验证无嵌入位图的 SVG 基线。
+2. 再按客户目标使用匠心矢量，或客户明确选择的智能 / 轻量矢量，生成绘制型路径。
+3. 客户交付不得使用 Illustrator Image Trace / 图像描摹；精确重建超限时停止，不自动回退。
+
 ## 路由规则
 
 - Photoshop UXP 以仓库 manifest 的 `minVersion=25.0.0` 为门；更低或未知版本回退到 COM 只读/headless。
