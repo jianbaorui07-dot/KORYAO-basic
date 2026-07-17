@@ -44,7 +44,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "photoshop": {
         "label": "Adobe Photoshop",
         "aliases": ("ps", "adobe-photoshop"),
-        "version_gate": "25.0.0",
+        "manifest_min_version": "25.0.0",
         "gate_source": "uxp/photoshop-bridge/manifest.json",
         "preferred_route": "uxp-node-proxy",
         "fallback_route": "com-readonly-or-headless",
@@ -56,7 +56,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "illustrator": {
         "label": "Adobe Illustrator",
         "aliases": ("ai", "adobe-illustrator"),
-        "version_gate": "30.0.0",
+        "manifest_min_version": "30.0.0",
         "gate_source": "uxp/illustrator-bridge/manifest.json",
         "preferred_route": "uxp-node-proxy-v2",
         "fallback_route": "headless-svg-or-com-readonly",
@@ -68,7 +68,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "autocad": {
         "label": "AutoCAD / CAD",
         "aliases": ("cad", "cad-autocad", "cad_autocad"),
-        "version_gate": None,
+        "manifest_min_version": None,
         "gate_source": None,
         "preferred_route": "headless-dxf-with-optional-com",
         "fallback_route": "headless-dxf",
@@ -84,7 +84,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "blender": {
         "label": "Blender",
         "aliases": ("bpy",),
-        "version_gate": None,
+        "manifest_min_version": None,
         "gate_source": None,
         "preferred_route": "plan-only-with-cli-probe",
         "fallback_route": "plan-only",
@@ -96,7 +96,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "comfyui": {
         "label": "ComfyUI",
         "aliases": ("comfy",),
-        "version_gate": None,
+        "manifest_min_version": None,
         "gate_source": None,
         "preferred_route": "loopback-api",
         "fallback_route": "workflow-validate-only",
@@ -108,7 +108,7 @@ SOFTWARE_CATALOG: dict[str, dict[str, Any]] = {
     "capcut_jianying": {
         "label": "CapCut / 剪映",
         "aliases": ("capcut", "jianying", "jianying-capcut"),
-        "version_gate": None,
+        "manifest_min_version": None,
         "gate_source": None,
         "preferred_route": "draft-probe-and-summary",
         "fallback_route": "manual-open-and-export",
@@ -243,24 +243,24 @@ def build_migration(source_generation: Any, target_generation: Any = "v9") -> di
 
 def _resolve_route(software_id: str, version: str | None) -> tuple[str, str, list[str]]:
     entry = SOFTWARE_CATALOG[software_id]
-    gate = normalize_version(entry["version_gate"])
-    parsed = version_tuple(version)
-    gate_tuple = version_tuple(gate)
+    gate = normalize_version(entry["manifest_min_version"])
     notes: list[str] = []
 
-    if gate_tuple is not None:
-        if parsed is None:
-            notes.append("版本未知：先运行只读版本探针，再决定是否启用 UXP 路由。")
-            return entry["default_route"], "needs_version_probe", notes
-        if parsed >= gate_tuple:
+    # A host application's version is not a license check or a compatibility
+    # whitelist.  Older and vendor-suffixed builds must still reach the same
+    # read-only capability probe; the probe decides whether UXP, a proxy, or a
+    # headless route is actually available.  Keep ``manifest_min_version`` as advisory
+    # metadata because it documents the manifest's preferred minimum.
+    if gate is not None:
+        if version is None:
             notes.append(
-                f"版本达到插件 manifest 的 minVersion {gate}；UXP 路由仅表示可选，不代表桌面实测已通过。"
+                f"版本未知；先做只读能力探针。manifest minVersion {gate} 仅供参考，不是阻断条件。"
             )
-            return entry["preferred_route"], "eligible", notes
-        notes.append(
-            f"版本低于插件 manifest 的 minVersion {gate}；自动选择 COM 只读或 headless 回退。"
-        )
-        return entry["fallback_route"], "fallback", notes
+        else:
+            notes.append(
+                f"已记录版本 {version}；manifest minVersion {gate} 仅供参考，兼容性由本机能力探针决定。"
+            )
+        return entry["preferred_route"], "probe_required", notes
 
     if version is None:
         notes.append("该桥没有硬编码软件版本门；仍需先运行只读环境探针。")
@@ -325,6 +325,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
                     "full_mcp_tools": list(entry["full_mcp_tools"]),
                 },
                 "notes": notes,
+                "compatibility_policy": "capability-probe-not-version-whitelist",
             }
         )
 
@@ -390,6 +391,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
                 f"请用 StarBridge Version Coordinator 按 {generation} 和 {version_summary} "
                 f"生成 {safety_mode} 配置；先探针，未确认不写入。"
             ),
+            "compatibility_policy": "capability-probe-not-version-whitelist",
         },
         "next_steps": [
             "客户任务先完成像素级打印/精确重建，再进入绘制型矢量。",
@@ -416,7 +418,7 @@ def build_catalog() -> dict[str, Any]:
                 "id": software_id,
                 "label": entry["label"],
                 "aliases": list(entry["aliases"]),
-                "version_gate": entry["version_gate"],
+                "manifest_min_version": entry["manifest_min_version"],
                 "gate_source": entry["gate_source"],
                 "probe_tool": entry["probe_tool"],
                 "default_route": entry["default_route"],
@@ -430,6 +432,7 @@ def build_catalog() -> dict[str, Any]:
         "starbridge_generations": _cumulative_capabilities("v9"),
         "safety_modes": ["safe", "balanced", "production"],
         "customer_default_policy": "exact-pixel-first-then-drawn-vector-no-image-trace",
+        "compatibility_policy": "capability-probe-not-version-whitelist",
     }
 
 
@@ -455,7 +458,7 @@ TOOLS = [
     {
         "name": "starbridge_config.catalog",
         "title": "StarBridge Version Catalog",
-        "description": "列出可协同的软件、版本门和 StarBridge v5-v9 能力档位；只读。",
+        "description": "列出可协同的软件、能力探针和 StarBridge v5-v9 能力档位；只读。",
         "inputSchema": _object_schema({}),
         "outputSchema": OUTPUT_SCHEMA,
         "annotations": READ_ONLY_ANNOTATIONS,

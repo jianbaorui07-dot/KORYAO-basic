@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-StarBridge 是以**匠心矢量**为高级方向，并完整保留**智能矢量、轻量矢量和精确重建**三种基础模式的本地创意软件开源接入层。它把 **Codex Skill** 的任务路由、**StarBridge MCP** 的结构化工具，以及 **Adobe UXP / Node Proxy** 的桌面软件通道组合成一套可审计的工作流；ComfyUI、Photoshop、CAD / AutoCAD、Blender 和 CapCut / 剪映等桥仍完整保留。
+StarBridge 是以**匠心矢量**为高级方向，并完整保留**智能矢量、轻量矢量和精确重建**三种基础模式的本地创意软件开源接入层。它把 **Codex Skill** 的任务路由、**StarBridge MCP** 的结构化工具，以及 **Adobe UXP / Node Proxy** 的桌面软件通道组合成一套可审计的工作流；ComfyUI、Photoshop、CAD / AutoCAD、Blender 和 CapCut / 剪映等桥仍完整保留。项目支持从仓库链接开始的 3 分钟适配：自动创建隔离环境、安装匹配依赖、生成项目级 Codex MCP 配置并执行安全自检。
 
 普通客户固定先走**像素级打印 / 精确重建**，把原始 RGBA 像素重建并验证为无嵌入位图的 SVG；需要更适合编辑的路径时，再以这份已验证基线进入**绘制型矢量**，优先使用匠心矢量，或按客户明确目标选择智能 / 轻量矢量。**客户交付禁止使用 Illustrator Image Trace / 图像描摹，也禁止在精确重建超限时自动回退到图像描摹。**在三种基础模式之上，**匠心矢量**保留关键角点，以更少锚点生成直线、三次贝塞尔轮廓和人工描线式开放描边，并按切线与线宽把交叉点两侧续接成长路径。第 5 轮按局部几何把描边分成主轮廓、装饰纹、细节和微细节；第 6 轮增加客户意图预校准、矢量到矢量局部精修和可审计补丁链；第 7 轮安全合并非重叠叶子块面并压缩近似色；第 8 轮让客户明确颜色组和设计命名；第 9 轮增加确认式 Illustrator 应用、回读、提交和回滚协议。它只使用可解释的几何特征，不声称识别人脸、文字或具体题材。
 
@@ -29,7 +29,7 @@ flowchart LR
 
 ## Codex 快速版本协同
 
-仓库新增自包含的 `starbridge-version-coordinator` 插件，用于把客户的 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI、CapCut / 剪映版本映射到保守的 StarBridge 路由，并把 v5-v8 工作流增量迁移到 v9。协调器只生成计划；版本未知时先探针，真实写入仍交给完整 StarBridge MCP 并要求显式确认。
+仓库新增自包含的 `starbridge-version-coordinator` 插件，用于把客户的 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI、CapCut / 剪映版本映射到基于能力探针的 StarBridge 路由，并把 v5-v8 工作流增量迁移到 v9。版本号只作协同信息，不作为正版校验或固定版本白名单；协调器只生成计划，真实写入仍交给完整 StarBridge MCP 并要求显式确认。
 
 ```powershell
 npm.cmd run codex:coordinator:self-test
@@ -149,19 +149,30 @@ Photoshop, Illustrator, Blender, and CapCut write flows are experimental or plan
 
 超过 4,000,000 像素、2,000,000 个矩形子路径或 64 MiB SVG verifier 限制时，流程停止并交还用户，不自动回退到 Image Trace。
 
-## 5 分钟开始
+## 3 分钟适配：仓库链接 → Codex → 可运行环境
 
-环境：Windows 优先、Python 3.10+；仅在运行 UXP 本地代理或前端示例时需要 Node.js。
+环境：Windows 优先、Python 3.10+；仅在安装 `standard` / `all` 档位或运行 UXP 本地代理时需要 Node.js。把仓库链接直接交给 Codex 后，让它执行：
 
 ```powershell
-git clone https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git
-cd Codex-Integration-with-Creative-Industry-Software
-
-python -m pip install --upgrade pip
-pip install -e ".[dev]"
+powershell -ExecutionPolicy Bypass -File .\bootstrap.ps1 -Profile auto
 ```
 
-先运行不依赖桌面软件的安全检查：
+这条命令会创建隔离 `.venv`、安装可复用的 Python/MCP 与无桌面矢量依赖、生成项目级 `.codex/config.toml`，并运行安全自检。检测到本机桌面软件线索时会自动选择 `standard`；需要全部可选依赖时使用 `-Profile all`。完整的 Codex 复制提示词、从 URL 克隆入口和版本说明见 [CODEX_SETUP.md](CODEX_SETUP.md)。
+
+如果仓库已经在本机，也可以直接运行：
+
+```powershell
+npm.cmd run install:quick
+```
+
+从 Git URL 克隆并安装：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-from-url.ps1 `
+  -RepositoryUrl "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git"
+```
+
+先运行不依赖桌面软件的安全检查（quickstart 已包含前三项）：
 
 ```powershell
 python examples\bridge_status.py --json --redact-paths --soft-exit

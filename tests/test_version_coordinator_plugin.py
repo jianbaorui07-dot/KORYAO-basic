@@ -36,7 +36,7 @@ class VersionCoordinatorPluginTests(unittest.TestCase):
         self.assertEqual(".", server["cwd"])
         self.assertEqual(["./scripts/version_coordinator_mcp.py"], server["args"])
 
-    def test_adobe_version_gates_select_preferred_and_fallback_routes(self) -> None:
+    def test_adobe_versions_are_probe_routed_without_a_whitelist(self) -> None:
         plan = SERVER.build_plan(
             {
                 "software_versions": {
@@ -49,8 +49,12 @@ class VersionCoordinatorPluginTests(unittest.TestCase):
         routes = {item["id"]: item for item in plan["software"]}
 
         self.assertEqual("uxp-node-proxy", routes["photoshop"]["route"])
-        self.assertEqual("headless-svg-or-com-readonly", routes["illustrator"]["route"])
-        self.assertEqual("fallback", routes["illustrator"]["eligibility"])
+        self.assertEqual("uxp-node-proxy-v2", routes["illustrator"]["route"])
+        self.assertEqual("probe_required", routes["illustrator"]["eligibility"])
+        self.assertEqual(
+            "capability-probe-not-version-whitelist",
+            routes["illustrator"]["compatibility_policy"],
+        )
         self.assertFalse(plan["safety"]["writes_configuration"])
 
     def test_unknown_versions_require_probe_and_never_include_paths(self) -> None:

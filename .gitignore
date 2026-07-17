@@ -1,6 +1,7 @@
 # 依赖目录
 node_modules/
 dist/
+build/
 
 # Python 缓存
 __pycache__/

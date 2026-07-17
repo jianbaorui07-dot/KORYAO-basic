@@ -12,7 +12,7 @@ description: Configure StarBridge for different Photoshop, Illustrator, AutoCAD,
 1. 软件或别名不清楚时，先调用 `starbridge_config.catalog`。
 2. 调用 `starbridge_config.plan`：
    - `software_versions` 只填写短版本号，例如 `25.5` 或 `30.0.1`；不要传安装路径。
-   - 未提供版本时保留 `unknown`，让计划选择只读探针；不要猜版本。
+   - 未提供版本时保留 `unknown`，让计划选择只读能力探针；不要猜版本。manifest 的 `minVersion` 只是偏好提示，不是版本白名单或授权检查。
    - 默认 `safety_mode=safe`。
 3. 如果客户仍在 v5-v8，调用 `starbridge_config.migrate` 生成增量迁移步骤；保留旧产物和旧引用。
 4. 先执行计划返回的 `probe_tool`。只有完整 StarBridge MCP 已连接且探针通过，才继续使用 `full_mcp_tools`。
@@ -26,8 +26,8 @@ description: Configure StarBridge for different Photoshop, Illustrator, AutoCAD,
 
 ## 路由规则
 
-- Photoshop UXP 以仓库 manifest 的 `minVersion=25.0.0` 为门；更低或未知版本回退到 COM 只读/headless。
-- Illustrator UXP 以仓库 manifest 的 `minVersion=30.0.0` 为门；更低或未知版本回退到 headless SVG/COM 只读。
+- Photoshop 的版本只用于协同记录；所有版本先走只读能力探针，再选择 UXP、Node Proxy 或 COM/headless 回退。
+- Illustrator 的版本只用于协同记录；所有版本先走只读能力探针，再选择 UXP、Node Proxy 或 headless SVG/COM 回退。
 - AutoCAD 默认使用 headless DXF；COM 只是可选增强。
 - Blender 默认只生成计划并做 CLI 探针，不把已记录版本当成已验证兼容。
 - ComfyUI 先探测 loopback API；不扫描模型目录。

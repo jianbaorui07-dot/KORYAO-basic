@@ -43,6 +43,10 @@ class PackageScriptsTest(unittest.TestCase):
                 "install:check:json",
                 "install:bootstrap",
                 "install:bootstrap:dry-run",
+                "install:quick",
+                "install:quick:dry-run",
+                "install:from-url",
+                "install:from-url:dry-run",
                 "mcp:registry:preview",
                 "codex:coordinator:self-test",
                 "codex:coordinator:plan",
@@ -174,6 +178,9 @@ class PackageScriptsTest(unittest.TestCase):
             "adobe",
             "illustrator-trace",
             "illustrator-vector",
+            "vectorization",
+            "vector-refinement",
+            "vector-app",
         ):
             self.assertRegex(extras_block, rf"(?m)^{extra}\s*=")
         self.assertIn("pytest>=8", extras_block)
