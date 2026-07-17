@@ -1,5 +1,7 @@
 # StarBridge：匠心矢量 + 四模式矢量化 + Codex Skill + MCP
 
+Artisan 现已支持以最终 SVG 原分辨率渲染为准的自适应少锚点优化：默认结构差异不高于 15%、归一化 MAE 不高于 0.06、边缘 Dice 不低于 0.92，合格后按锚点、子路径、文件大小和耗时选优；未通过时保留原 Artisan 基准。详见 [自适应矢量优化](docs/adaptive-vector-optimization.md)。
+
 [![CI](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/actions/workflows/ci.yml)
 ![Windows first](https://img.shields.io/badge/Windows-first-2563eb)
 ![MCP stdio](https://img.shields.io/badge/MCP-stdio-16a34a)

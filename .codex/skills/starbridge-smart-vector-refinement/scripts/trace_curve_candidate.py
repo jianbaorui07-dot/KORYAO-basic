@@ -16,7 +16,7 @@ OUTPUT_ROOT = REPO_ROOT / "examples" / "output" / "vectorization"
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}\Z")
 NUMBER = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
-TOKEN = re.compile(rf"\s*,?\s*([MLCZ]|{NUMBER})", re.IGNORECASE)
+PATH_LEXEME = re.compile(rf"\s*,?\s*([MLCZ]|{NUMBER})", re.IGNORECASE)
 TRANSLATE = re.compile(rf"translate\(\s*({NUMBER})\s*,\s*({NUMBER})\s*\)\Z")
 
 
@@ -42,7 +42,7 @@ def _tokens(path_data: str) -> list[str]:
     tokens: list[str] = []
     position = 0
     while position < len(path_data):
-        match = TOKEN.match(path_data, position)
+        match = PATH_LEXEME.match(path_data, position)
         if match is None:
             if path_data[position:].strip() == "":
                 break
@@ -69,12 +69,12 @@ def translate_path_data(
     height: int,
     precision: int = 4,
 ) -> str:
-    tokens = _tokens(path_data)
+    lexemes = _tokens(path_data)
     output: list[str] = []
     index = 0
     coordinate_pairs = {"M": 1, "L": 1, "C": 3}
-    while index < len(tokens):
-        command = tokens[index].upper()
+    while index < len(lexemes):
+        command = lexemes[index].upper()
         index += 1
         if command == "Z":
             output.append("Z")
@@ -83,14 +83,17 @@ def translate_path_data(
             raise CurveCandidateError("Only absolute M, L, C, and Z commands are supported.")
         output.append(command)
         for _ in range(coordinate_pairs[command]):
-            if index + 1 >= len(tokens):
+            if index + 1 >= len(lexemes):
                 raise CurveCandidateError("VTracer emitted an incomplete coordinate pair.")
-            if tokens[index].upper() in coordinate_pairs or tokens[index].upper() == "Z":
+            if lexemes[index].upper() in coordinate_pairs or lexemes[index].upper() == "Z":
                 raise CurveCandidateError("VTracer emitted an invalid coordinate pair.")
-            if tokens[index + 1].upper() in coordinate_pairs or tokens[index + 1].upper() == "Z":
+            if (
+                lexemes[index + 1].upper() in coordinate_pairs
+                or lexemes[index + 1].upper() == "Z"
+            ):
                 raise CurveCandidateError("VTracer emitted an invalid coordinate pair.")
-            x = min(max(float(tokens[index]) + translate_x, 0.0), float(width))
-            y = min(max(float(tokens[index + 1]) + translate_y, 0.0), float(height))
+            x = min(max(float(lexemes[index]) + translate_x, 0.0), float(width))
+            y = min(max(float(lexemes[index + 1]) + translate_y, 0.0), float(height))
             output.extend((_format_number(x, precision), _format_number(y, precision)))
             index += 2
     return " ".join(output)

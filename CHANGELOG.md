@@ -2,6 +2,12 @@
 
 ## Unreleased / Optimizations
 
+* Added Artisan final-render adaptive optimization with high-fidelity, balanced, and minimal-anchor quality presets.
+* Added original-resolution SVG rendering, structural difference, normalized MAE, edge Dice, local error hotspots, Pareto selection, reverse anchor deletion, and deterministic rollback to the prior Artisan result.
+* Added quality-gated four-anchor cubic ellipse fitting while preserving four-corner rectangles and compound-path holes.
+* Added local SHA-256 keyed candidate caching, bounded memory policies, compact quality/edit/patch references, and safe pre-publish resource-limit stops.
+* Preserved Exact, Smart, and Lightweight execution and output behavior; Illustrator remains outside candidate generation and validation.
+
 ### 2026-07-16 — Artisan Vector iteration 5
 
 * Added deterministic geometric-intent profiles for flow contours, ornaments, details, and micro details, with profile-specific simplification and Bézier smoothing.

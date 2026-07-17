@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import tempfile
 import time
 import warnings
@@ -58,6 +59,13 @@ class RunConfig:
     max_subpaths: int | None = None
     max_points: int | None = None
     max_svg_size_mb: float | None = None
+    quality_preset: str = "high-fidelity"
+    target_difference: float | None = None
+    anchor_budget: str | int = "auto"
+    resource_budget: str = "auto"
+    detail_protection: float = 0.75
+    auto_minimize_anchors: bool = True
+    compact: bool = False
 
 
 @dataclass(frozen=True)
@@ -913,6 +921,28 @@ def _markdown_report(report: dict[str, Any]) -> str:
             lines.append(
                 "- Centerline stroke reconstruction: quality gate rejected; outline-fill fallback retained"
             )
+        optimization = report.get("adaptive_optimization")
+        if optimization:
+            final_metrics = optimization["final_render_metrics"]
+            anchor_change = optimization["anchors"]
+            lines.extend(
+                [
+                    "",
+                    "## Adaptive minimum-anchor optimization",
+                    "",
+                    f"- Status: `{optimization['status']}`",
+                    f"- Quality preset: `{optimization['quality_preset']}`",
+                    f"- Candidates evaluated: {optimization['candidate_count']}",
+                    f"- Final structural difference: {final_metrics['difference_percent']:.2f}%",
+                    f"- Final normalized MAE: {final_metrics['normalized_mae']:.4f}",
+                    f"- Final edge Dice: {final_metrics['edge_dice']:.4f}",
+                    f"- Anchors: {anchor_change['before']} -> {anchor_change['after']}",
+                    f"- Cache hit rate: {optimization['cache']['hit_rate']:.1%}",
+                    f"- Stop reason: `{optimization['stop_reason']}`",
+                    f"- Quality ref: `{optimization['quality_ref']}`",
+                    f"- Patch ref: `{optimization['patch_ref']}`",
+                ]
+            )
     if report["warnings"]:
         lines.extend(["", "## 说明", "", *[f"- {item}" for item in report["warnings"]]])
     return "\n".join(lines) + "\n"
@@ -945,6 +975,7 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         artisan_structure: dict[str, Any] | None = None
         artisan_edit_index: dict[str, Any] | None = None
         artisan_scene: Any | None = None
+        adaptive_report: dict[str, Any] | None = None
 
         if preset.mode == "exact":
             rectangles = _merge_exact_rectangles(source_image, preset)
@@ -986,7 +1017,48 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 shape_names = designer_names(
                     [(shape.shape_id, shape.geometric_intent) for shape in artisan_scene.shapes]
                 )
-                _write_artisan_svg(svg_path, artisan_scene, paints, shape_names)
+                baseline_svg = staging / "artisan_baseline.svg"
+                _write_artisan_svg(baseline_svg, artisan_scene, paints, shape_names)
+                from .adaptive_optimize import (
+                    AdaptiveOptimizationError,
+                    AdaptiveOptions,
+                    optimize_artisan_scene,
+                )
+
+                try:
+                    optimized = optimize_artisan_scene(
+                        labels=labels,
+                        baseline_scene=artisan_scene,
+                        baseline_metrics=vector_metrics,
+                        baseline_svg=baseline_svg,
+                        reference=source_image,
+                        source_sha256=str(source["source_sha256"]),
+                        preset=preset,
+                        options=AdaptiveOptions(
+                            quality_preset=config.quality_preset,
+                            target_difference=config.target_difference,
+                            anchor_budget=config.anchor_budget,
+                            resource_budget=config.resource_budget,
+                            detail_protection=config.detail_protection,
+                            auto_minimize_anchors=config.auto_minimize_anchors,
+                        ),
+                        staging_dir=staging,
+                        cache_dir=OUTPUT_ROOT / ".adaptive-cache",
+                        write_scene=lambda candidate_path, candidate_scene: _write_artisan_svg(
+                            candidate_path, candidate_scene, paints, shape_names
+                        ),
+                    )
+                except AdaptiveOptimizationError as exc:
+                    raise VectorizationError(exc.code, str(exc)) from exc
+                artisan_scene = optimized.scene
+                vector_metrics = optimized.vector_metrics
+                adaptive_report = optimized.report
+                shutil.copyfile(optimized.svg_path, svg_path)
+                shutil.copyfile(optimized.render_path, staging / "svg_render.png")
+                (staging / "adaptive_optimization.json").write_text(
+                    json.dumps(adaptive_report, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
                 artisan_structure = _artisan_structure_manifest(
                     artisan_scene,
                     paints,
@@ -1063,8 +1135,19 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         final_svg = output_dir / "vector.svg"
         final_preview = output_dir / "preview.png"
         parameters_path = staging / "parameters.json"
+        public_parameters = preset.public_parameters()
+        if preset.mode == "artisan":
+            public_parameters = {
+                **public_parameters,
+                "quality_preset": config.quality_preset,
+                "target_difference": config.target_difference,
+                "anchor_budget": config.anchor_budget,
+                "resource_budget": config.resource_budget,
+                "detail_protection": config.detail_protection,
+                "auto_minimize_anchors": config.auto_minimize_anchors,
+            }
         parameters_path.write_text(
-            json.dumps(preset.public_parameters(), ensure_ascii=False, indent=2) + "\n",
+            json.dumps(public_parameters, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
         elapsed = round(time.perf_counter() - started, 4)
@@ -1224,7 +1307,8 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 if artisan_structure is not None
                 else None
             ),
-            "parameters": preset.public_parameters(),
+            "adaptive_optimization": adaptive_report,
+            "parameters": public_parameters,
             "output_dir": repo_relative(output_dir),
             "artifacts": [
                 {
@@ -1243,6 +1327,21 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
             "elapsed_seconds": elapsed,
             "warnings": warnings_list,
         }
+        if adaptive_report is None:
+            report.pop("adaptive_optimization")
+        else:
+            report["validation"].update(
+                {
+                    "final_render_quality_gate_passed": adaptive_report[
+                        "official_optimization_result"
+                    ],
+                    "formal_result": (
+                        "optimized"
+                        if adaptive_report["selected_candidate"] != "baseline"
+                        else "artisan_baseline"
+                    ),
+                }
+            )
         publish_filenames = [
             "vector.svg",
             "preview.png",
@@ -1253,6 +1352,40 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         if artisan_structure is not None:
             final_structure = output_dir / "artisan_structure.json"
             final_edit_index = output_dir / "artisan_edit_index.json"
+            final_baseline = output_dir / "artisan_baseline.svg"
+            final_render = output_dir / "svg_render.png"
+            final_optimization = output_dir / "adaptive_optimization.json"
+            report["artifacts"].extend(
+                [
+                    {
+                        **_artifact(
+                            staging / "artisan_baseline.svg",
+                            "artisan_rollback_baseline",
+                            "image/svg+xml",
+                        ),
+                        "path": repo_relative(final_baseline),
+                    },
+                    {
+                        **_artifact(
+                            staging / "svg_render.png",
+                            "final_svg_render_proof",
+                            "image/png",
+                        ),
+                        "path": repo_relative(final_render),
+                    },
+                    {
+                        **_artifact(
+                            staging / "adaptive_optimization.json",
+                            "adaptive_optimization_report",
+                            "application/json",
+                        ),
+                        "path": repo_relative(final_optimization),
+                    },
+                ]
+            )
+            publish_filenames.extend(
+                ["artisan_baseline.svg", "svg_render.png", "adaptive_optimization.json"]
+            )
             report["artifacts"].append(
                 {
                     **_artifact(
