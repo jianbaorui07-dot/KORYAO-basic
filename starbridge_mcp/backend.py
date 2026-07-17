@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hmac
+import io
 import ipaddress
 import json
 import mimetypes
 import os
 import signal
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -17,6 +20,8 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 from uuid import uuid4
 
+from PIL import Image, ImageOps, UnidentifiedImageError
+
 from starbridge_mcp.core.app_data import (
     AppDataPaths,
     append_runtime_log,
@@ -25,6 +30,12 @@ from starbridge_mcp.core.app_data import (
 )
 from starbridge_mcp.core.security import sanitize
 from starbridge_mcp.mcp_server import SERVER_INFO, handle_request
+from starbridge_mcp.vectorization.engine import (
+    RunConfig,
+    VectorizationError,
+    file_sha256,
+    run_vectorization,
+)
 
 JsonObject = dict[str, Any]
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +46,8 @@ PARENT_PID_ENV = "STARBRIDGE_PARENT_PID"
 SESSION_HEADER = "X-StarBridge-Session"
 READY_PREFIX = "STARBRIDGE_READY "
 MAX_REQUEST_BODY_BYTES = 1024 * 1024
+VECTOR_INPUT_MAX_BYTES = 128 * 1024 * 1024
+VECTOR_MODES = frozenset({"artisan", "smart", "lightweight", "exact"})
 DEFAULT_DEV_ORIGINS = (
     "http://127.0.0.1:5173",
     "http://localhost:5173",
@@ -163,6 +176,9 @@ class StarBridgeBackend:
 
         self._next_id = 1
         self._history_lock = RLock()
+        self._vector_lock = RLock()
+        self._vector_selections: dict[str, JsonObject] = {}
+        self._vector_jobs: dict[str, JsonObject] = {}
         self._shutdown_callback: Callable[[], None] | None = None
         self.mode = mode
         self._session_credential = session_credential
@@ -359,6 +375,335 @@ class StarBridgeBackend:
                 encoding="utf-8",
             )
             os.replace(temporary, self.history_path)
+
+    @staticmethod
+    def _image_preview_data_url(path: Path) -> tuple[str, int, int]:
+        try:
+            with Image.open(path) as opened:
+                if opened.format not in {"PNG", "JPEG"}:
+                    raise ValueError("unsupported_image")
+                oriented = ImageOps.exif_transpose(opened).convert("RGBA")
+                width, height = oriented.size
+                oriented.thumbnail((720, 540), Image.Resampling.LANCZOS)
+                payload = io.BytesIO()
+                oriented.save(payload, format="PNG", optimize=False, compress_level=9)
+        except (OSError, UnidentifiedImageError, ValueError) as exc:
+            raise VectorizationError(
+                "unsupported_input", "请选择可读取的 PNG 或 JPEG 图片。"
+            ) from exc
+        encoded = base64.b64encode(payload.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{encoded}", width, height
+
+    def _create_vector_selection(self, body: JsonObject) -> BackendResponse:
+        value = body.get("input_path")
+        if not isinstance(value, str) or not value.strip():
+            return self._error(
+                400,
+                "input_required",
+                "请选择一张 PNG 或 JPEG 图片。",
+                next_steps=["点击“选择图片”并只选择本次要处理的一张图片。"],
+            )
+        path = Path(value)
+        if path.suffix.lower() not in {".png", ".jpg", ".jpeg"} or not path.is_file():
+            return self._error(
+                400,
+                "unsupported_input",
+                "所选文件不是可读取的 PNG 或 JPEG 图片。",
+                next_steps=["重新选择 PNG 或 JPEG 图片。"],
+            )
+        try:
+            if path.stat().st_size > VECTOR_INPUT_MAX_BYTES:
+                return self._error(
+                    413,
+                    "input_too_large",
+                    "图片文件超过 128 MB，未载入。",
+                    next_steps=["缩小图片文件后重新选择。"],
+                )
+            preview, width, height = self._image_preview_data_url(path)
+            digest = file_sha256(path)
+        except (OSError, VectorizationError) as error:
+            code = error.code if isinstance(error, VectorizationError) else "input_unreadable"
+            message = str(error) if isinstance(error, VectorizationError) else "图片当前无法读取。"
+            return self._error(
+                400,
+                code,
+                message,
+                next_steps=["确认图片未被移动或锁定，然后重新选择。"],
+            )
+
+        selection_id = f"selection-{uuid4().hex[:16]}"
+        selection: JsonObject = {
+            "selection_id": selection_id,
+            "path": path.resolve(),
+            "file_name": path.name,
+            "source_sha256": digest,
+            "preview_data_url": preview,
+            "width": width,
+            "height": height,
+            "created_at": time.time(),
+        }
+        with self._vector_lock:
+            self._vector_selections[selection_id] = selection
+            if len(self._vector_selections) > 12:
+                oldest = min(
+                    self._vector_selections,
+                    key=lambda key: float(self._vector_selections[key]["created_at"]),
+                )
+                self._vector_selections.pop(oldest, None)
+        return BackendResponse(
+            200,
+            {
+                "ok": True,
+                "data": {
+                    "selectionId": selection_id,
+                    "fileName": path.name,
+                    "width": width,
+                    "height": height,
+                    "sourceHash": digest[:12],
+                    "previewDataUrl": preview,
+                },
+            },
+        )
+
+    @staticmethod
+    def _vector_job_public(job: JsonObject) -> JsonObject:
+        response: JsonObject = {
+            "jobId": job["job_id"],
+            "status": job["status"],
+            "progress": job["progress"],
+            "stage": job["stage"],
+            "mode": job["mode"],
+            "createdAt": job["created_at"],
+        }
+        for key in ("completed_at", "result", "error"):
+            if job.get(key) is not None:
+                public_key = {
+                    "completed_at": "completedAt",
+                    "result": "result",
+                    "error": "error",
+                }[key]
+                response[public_key] = job[key]
+        return response
+
+    def _record_vector_event(self, job: JsonObject, result: JsonObject) -> None:
+        event = {
+            "event_id": f"evt_{uuid4().hex[:12]}",
+            "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "kind": "vectorization",
+            "action": "local_vectorization",
+            "ok": True,
+            "status": "completed",
+            "mode": job["mode"],
+            "source_hash": result["sourceHash"],
+            "summary": f"{result['modeLabel']}已在本机完成。",
+            "metrics": result["metrics"],
+            "output_available": True,
+        }
+        events = self._load_history()
+        events.append(event)
+        self._save_history(events)
+
+    def _run_vector_job(
+        self,
+        job_id: str,
+        selection: JsonObject,
+        parameters: JsonObject,
+    ) -> None:
+        with self._vector_lock:
+            job = self._vector_jobs[job_id]
+            job.update(status="running", progress=18, stage="正在本机处理图片")
+
+        mode = str(job["mode"])
+        reference_id = f"desktop-{str(selection['source_sha256'])[:10]}-{job_id[-6:]}"
+        output_root = (self.app_paths.data / "vectorization").resolve()
+        output_dir = output_root / reference_id / mode
+
+        def optional_int(key: str) -> int | None:
+            value = parameters.get(key)
+            return int(value) if isinstance(value, int | float) else None
+
+        def optional_float(key: str) -> float | None:
+            value = parameters.get(key)
+            return float(value) if isinstance(value, int | float) else None
+
+        try:
+            report = run_vectorization(
+                RunConfig(
+                    input_path=str(selection["path"]),
+                    mode=mode,
+                    reference_id=reference_id,
+                    output_dir=str(output_dir),
+                    output_root=str(output_root),
+                    colors=optional_int("colors"),
+                    max_dimension=optional_int("maxDimension"),
+                    simplify_ratio=optional_float("simplifyRatio"),
+                    min_region_area=optional_int("minRegionArea"),
+                    alpha_threshold=optional_int("alphaThreshold"),
+                )
+            )
+            result_preview, _, _ = self._image_preview_data_url(output_dir / "preview.png")
+            vector = report["vector"]
+            result: JsonObject = {
+                "modeLabel": report["mode"]["label_zh"],
+                "sourceHash": str(selection["source_sha256"])[:12],
+                "sourcePreviewDataUrl": selection["preview_data_url"],
+                "resultPreviewDataUrl": result_preview,
+                "metrics": {
+                    "colors": vector["color_count"],
+                    "subpaths": vector["subpaths"],
+                    "points": vector["points"],
+                    "svgBytes": vector["svg_bytes"],
+                    "elapsedSeconds": report["elapsed_seconds"],
+                    "pixelMatch": (
+                        report["exact_validation"]["pixel_match"]
+                        if report.get("exact_validation")
+                        else None
+                    ),
+                    "anchorReductionRatio": vector.get("anchor_reduction_ratio"),
+                },
+                "warnings": report["warnings"],
+                "outputAvailable": True,
+            }
+            with self._vector_lock:
+                job = self._vector_jobs[job_id]
+                job.update(
+                    status="completed",
+                    progress=100,
+                    stage="处理完成",
+                    completed_at=datetime.now(UTC).isoformat(timespec="seconds"),
+                    result=result,
+                    output_dir=output_dir,
+                )
+            self._record_vector_event(job, result)
+        except (OSError, VectorizationError, ValueError) as error:
+            code = error.code if isinstance(error, VectorizationError) else "vectorization_failed"
+            message = str(error) if isinstance(error, VectorizationError) else "图片处理未完成。"
+            with self._vector_lock:
+                self._vector_jobs[job_id].update(
+                    status="failed",
+                    progress=100,
+                    stage="需要处理",
+                    completed_at=datetime.now(UTC).isoformat(timespec="seconds"),
+                    error={
+                        "code": code,
+                        "message": message,
+                        "nextSteps": ["检查图片和参数后重新运行；原图没有被修改。"],
+                    },
+                )
+
+    def _start_vector_job(self, body: JsonObject) -> BackendResponse:
+        required = ("confirm_run", "confirm_write", "confirm_export")
+        if any(body.get(key) is not True for key in required):
+            return self._error(
+                400,
+                "confirmation_required",
+                "开始本机处理前需要确认执行、写入和导出。",
+                next_steps=["检查参数和输出说明，再勾选本次执行确认。"],
+            )
+        selection_id = body.get("selection_id")
+        mode = body.get("mode")
+        parameters = body.get("parameters") or {}
+        if not isinstance(selection_id, str):
+            return self._error(400, "selection_required", "请先选择一张图片。")
+        if mode not in VECTOR_MODES:
+            return self._error(400, "invalid_mode", "请选择可用的 Community 矢量模式。")
+        if not isinstance(parameters, dict):
+            return self._error(400, "invalid_parameters", "处理参数格式无效。")
+        with self._vector_lock:
+            selection = self._vector_selections.get(selection_id)
+        if selection is None:
+            return self._error(
+                404,
+                "selection_expired",
+                "所选图片会话已失效。",
+                next_steps=["重新选择图片后再运行。"],
+            )
+        job_id = f"vector-{uuid4().hex[:16]}"
+        job: JsonObject = {
+            "job_id": job_id,
+            "status": "queued",
+            "progress": 6,
+            "stage": "已确认，正在准备",
+            "mode": mode,
+            "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "completed_at": None,
+            "result": None,
+            "error": None,
+            "output_dir": None,
+        }
+        with self._vector_lock:
+            self._vector_jobs[job_id] = job
+        worker = Thread(
+            target=self._run_vector_job,
+            args=(job_id, selection, parameters),
+            daemon=True,
+            name=f"starbridge-{job_id}",
+        )
+        worker.start()
+        return BackendResponse(202, {"ok": True, "data": self._vector_job_public(job)})
+
+    def _vector_job_status(self, job_id: str) -> BackendResponse:
+        with self._vector_lock:
+            job = self._vector_jobs.get(job_id)
+            if job is None:
+                return self._error(404, "job_not_found", "没有找到这项本机任务。")
+            public = self._vector_job_public(dict(job))
+        return BackendResponse(200, {"ok": True, "data": public})
+
+    def _open_vector_output(self, job_id: str) -> BackendResponse:
+        with self._vector_lock:
+            job = self._vector_jobs.get(job_id)
+            output_dir = job.get("output_dir") if job else None
+        if not isinstance(output_dir, Path) or not output_dir.is_dir():
+            return self._error(
+                409,
+                "output_not_ready",
+                "输出文件夹尚未准备好。",
+                next_steps=["等待任务完成后再打开输出文件夹。"],
+            )
+        allowed_root = (self.app_paths.data / "vectorization").resolve()
+        resolved = output_dir.resolve()
+        if allowed_root not in resolved.parents:
+            return self._error(403, "output_outside_safe_root", "输出目录不在安全范围内。")
+        try:
+            if os.name != "nt":
+                raise OSError("unsupported_platform")
+            os.startfile(resolved)  # type: ignore[attr-defined]
+        except OSError:
+            return self._error(
+                500,
+                "output_open_failed",
+                "无法打开输出文件夹。",
+                next_steps=["稍后重试，或在设置与诊断中检查应用数据目录。"],
+            )
+        return BackendResponse(200, {"ok": True, "data": {"opened": True}})
+
+    def _vector_history(self) -> BackendResponse:
+        stored = [
+            event for event in reversed(self._load_history()) if event.get("kind") == "vectorization"
+        ][:20]
+        events = [
+            {
+                "eventId": event.get("event_id"),
+                "createdAt": event.get("created_at"),
+                "mode": event.get("mode"),
+                "summary": event.get("summary"),
+                "sourceHash": event.get("source_hash"),
+                "metrics": event.get("metrics", {}),
+                "outputAvailable": event.get("output_available") is True,
+            }
+            for event in stored
+        ]
+        return BackendResponse(
+            200,
+            {
+                "ok": True,
+                "data": {
+                    "eventCount": len(events),
+                    "events": events,
+                },
+            },
+        )
 
     def _record_recipe_event(
         self, *, recipe_id: str, action: str, result: JsonObject
@@ -746,6 +1091,28 @@ class StarBridgeBackend:
                     },
                 },
             )
+
+        if method == "POST" and path == "/api/vectorization/selections":
+            return self._create_vector_selection(body)
+
+        if method == "POST" and path == "/api/vectorization/jobs":
+            return self._start_vector_job(body)
+
+        if method == "GET" and path == "/api/vectorization/history":
+            return self._vector_history()
+
+        if path.startswith("/api/vectorization/jobs/"):
+            parts = [unquote(part) for part in path.split("/") if part]
+            if len(parts) == 4 and parts[:3] == ["api", "vectorization", "jobs"]:
+                if method == "GET":
+                    return self._vector_job_status(parts[3])
+            if (
+                len(parts) == 5
+                and parts[:3] == ["api", "vectorization", "jobs"]
+                and parts[4] == "open-output"
+                and method == "POST"
+            ):
+                return self._open_vector_output(parts[3])
 
         if path.startswith("/api/recipes/"):
             parts = [unquote(part) for part in path.split("/") if part]

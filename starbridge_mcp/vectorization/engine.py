@@ -48,6 +48,7 @@ class RunConfig:
     mode: str = "smart"
     reference_id: str = "vector-job"
     output_dir: str = ""
+    output_root: str = ""
     colors: int | None = None
     max_dimension: int | None = None
     simplify_ratio: float | None = None
@@ -94,13 +95,20 @@ def repo_relative(path: Path) -> str:
         return "<REDACTED_PATH>"
 
 
-def resolve_output_dir(requested: str, reference_id: str, mode: str) -> Path:
+def resolve_output_dir(
+    requested: str, reference_id: str, mode: str, *, output_root: str = ""
+) -> Path:
     if not REFERENCE_ID.fullmatch(reference_id):
         raise VectorizationError(
             "invalid_reference_id",
             "Reference id must use lowercase letters, digits, underscores, or hyphens.",
         )
-    root = OUTPUT_ROOT.resolve()
+    configured_root = Path(output_root) if output_root else OUTPUT_ROOT
+    if output_root and not configured_root.is_absolute():
+        raise VectorizationError(
+            "invalid_output_root", "Configured output root must be an absolute path."
+        )
+    root = configured_root.resolve()
     if requested:
         candidate = Path(requested)
         if not candidate.is_absolute():
@@ -569,7 +577,12 @@ def _publish(staging: Path, output_dir: Path, filenames: tuple[str, ...]) -> Non
 def run_vectorization(config: RunConfig) -> dict[str, Any]:
     started = time.perf_counter()
     preset = _configured(config)
-    output_dir = resolve_output_dir(config.output_dir, config.reference_id, preset.mode)
+    output_dir = resolve_output_dir(
+        config.output_dir,
+        config.reference_id,
+        preset.mode,
+        output_root=config.output_root,
+    )
     source_image, source = load_source(config.input_path, preset.max_source_pixels)
     output_dir.parent.mkdir(parents=True, exist_ok=True)
 

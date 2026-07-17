@@ -1,12 +1,17 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 
 import type {
+  ApiEnvelope,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
   TransportRequest,
   TransportResponse,
   VersionInfo,
+  VectorHistory,
+  VectorJob,
+  VectorSelection,
+  VectorizationStart,
 } from "../types/api";
 import { TransportError, type StarBridgeTransport } from "./transport";
 
@@ -78,5 +83,40 @@ export class DesktopTransport implements StarBridgeTransport {
 
   importLicenseFile(contents: string): Promise<LicenseStatus> {
     return this.callLicense<LicenseStatus>("import_license_file", { contents });
+  }
+
+  chooseVectorInput(): Promise<TransportResponse<ApiEnvelope<VectorSelection>> | null> {
+    return this.call("choose_vector_input");
+  }
+
+  startVectorization(
+    request: VectorizationStart,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>> {
+    return this.call("start_vectorization", {
+      selectionId: request.selectionId,
+      mode: request.mode,
+      parameters: request.parameters,
+      confirmRun: request.confirmRun,
+      confirmWrite: request.confirmWrite,
+      confirmExport: request.confirmExport,
+    });
+  }
+
+  getVectorizationJob(
+    jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>> {
+    return this.call("vectorization_job", { jobId });
+  }
+
+  getVectorizationHistory(): Promise<
+    TransportResponse<ApiEnvelope<VectorHistory>>
+  > {
+    return this.call("vectorization_history");
+  }
+
+  openVectorOutput(
+    jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<{ opened: boolean }>>> {
+    return this.call("open_vector_output", { jobId });
   }
 }

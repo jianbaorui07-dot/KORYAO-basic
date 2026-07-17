@@ -5,6 +5,10 @@ import type {
   RuntimeStatus,
   TransportRequest,
   VersionInfo,
+  VectorHistory,
+  VectorJob,
+  VectorSelection,
+  VectorizationStart,
 } from "../types/api";
 import { createTransport } from "./runtime";
 import { TransportError, type StarBridgeTransport } from "./transport";
@@ -32,6 +36,11 @@ export interface StarBridgeClient {
   getLicenseStatus(): Promise<LicenseStatus>;
   createLicenseRequest(): Promise<LicenseRequestReceipt>;
   importLicenseFile(contents: string): Promise<LicenseStatus>;
+  chooseVectorInput(): Promise<VectorSelection | null>;
+  startVectorization(request: VectorizationStart): Promise<VectorJob>;
+  getVectorizationJob(jobId: string): Promise<VectorJob>;
+  getVectorizationHistory(): Promise<VectorHistory>;
+  openVectorOutput(jobId: string): Promise<void>;
 }
 
 function errorFromEnvelope(
@@ -61,13 +70,9 @@ function errorFromEnvelope(
 export class StarBridgeApiClient implements StarBridgeClient {
   constructor(private readonly transport: StarBridgeTransport = createTransport()) {}
 
-  private async request<T>(request: TransportRequest): Promise<ApiEnvelope<T>> {
+  private async execute<T>(operation: () => Promise<T>): Promise<T> {
     try {
-      const response = await this.transport.request<ApiEnvelope<T>>(request);
-      if (response.status >= 400 || !response.body.ok) {
-        throw errorFromEnvelope(response.status, response.body);
-      }
-      return response.body;
+      return await operation();
     } catch (error) {
       if (error instanceof UserFacingError) {
         throw error;
@@ -86,6 +91,23 @@ export class StarBridgeApiClient implements StarBridgeClient {
         error instanceof Error ? error.message : String(error),
       );
     }
+  }
+
+  private unwrap<T>(status: number, envelope: ApiEnvelope<T>): T {
+    if (status >= 400 || !envelope.ok || envelope.data === undefined) {
+      throw errorFromEnvelope(status, envelope);
+    }
+    return envelope.data;
+  }
+
+  private async request<T>(request: TransportRequest): Promise<ApiEnvelope<T>> {
+    return this.execute(async () => {
+      const response = await this.transport.request<ApiEnvelope<T>>(request);
+      if (response.status >= 400 || !response.body.ok) {
+        throw errorFromEnvelope(response.status, response.body);
+      }
+      return response.body;
+    });
   }
 
   getRuntimeStatus(): Promise<RuntimeStatus> {
@@ -122,5 +144,40 @@ export class StarBridgeApiClient implements StarBridgeClient {
 
   importLicenseFile(contents: string): Promise<LicenseStatus> {
     return this.transport.importLicenseFile(contents);
+  }
+
+  chooseVectorInput(): Promise<VectorSelection | null> {
+    return this.execute(async () => {
+      const response = await this.transport.chooseVectorInput();
+      return response ? this.unwrap(response.status, response.body) : null;
+    });
+  }
+
+  startVectorization(request: VectorizationStart): Promise<VectorJob> {
+    return this.execute(async () => {
+      const response = await this.transport.startVectorization(request);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  getVectorizationJob(jobId: string): Promise<VectorJob> {
+    return this.execute(async () => {
+      const response = await this.transport.getVectorizationJob(jobId);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  getVectorizationHistory(): Promise<VectorHistory> {
+    return this.execute(async () => {
+      const response = await this.transport.getVectorizationHistory();
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  async openVectorOutput(jobId: string): Promise<void> {
+    await this.execute(async () => {
+      const response = await this.transport.openVectorOutput(jobId);
+      this.unwrap(response.status, response.body);
+    });
   }
 }

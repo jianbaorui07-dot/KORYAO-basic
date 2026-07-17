@@ -22,6 +22,8 @@ const SESSION_HEADER: &str = "X-StarBridge-Session";
 const MAX_RECOVERY_ATTEMPTS: u8 = 1;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
 const RECOVERY_BACKOFF: Duration = Duration::from_millis(1200);
+const MAX_TYPED_RESPONSE_BYTES: usize = 12 * 1024 * 1024;
+const MAX_VECTOR_PARAMETERS_BYTES: usize = 4 * 1024;
 
 #[derive(Clone, Copy, Default, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -182,12 +184,17 @@ async fn run_backend_once(
 ) -> ProcessOutcome {
     let session_credential = format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
     let parent_pid = std::process::id().to_string();
+    let app_data_root = match starbridge_data_root(app) {
+        Ok(path) => path,
+        Err(_) => return ProcessOutcome::UnexpectedExit("app_data_root_unavailable"),
+    };
     let command = match app.shell().sidecar("starbridge-sidecar") {
         Ok(command) => command,
         Err(_) => return ProcessOutcome::UnexpectedExit("sidecar_not_staged"),
     }
     .args(["--desktop", "--parent-pid", parent_pid.as_str()])
-    .env(SESSION_ENV, &session_credential);
+    .env(SESSION_ENV, &session_credential)
+    .env(APP_DATA_ENV, app_data_root.as_os_str());
 
     let (mut events, child) = match command.spawn() {
         Ok(process) => process,
@@ -391,6 +398,63 @@ fn p1_request_allowed(request: &ApiRequest) -> bool {
         .any(|route| request.path == *route || request.path.starts_with(&format!("{route}?")))
 }
 
+fn backend_connection(manager: &BackendManager) -> Result<(u16, String), String> {
+    let inner = manager.lock();
+    if !matches!(inner.phase, RuntimePhase::Connected) {
+        return Err("本地服务尚未连接；请稍后重试或在设置与诊断中重新启动。".into());
+    }
+    Ok((
+        inner.port.ok_or("本地服务端口尚未就绪。")?,
+        inner
+            .session_credential
+            .clone()
+            .ok_or("桌面会话尚未就绪。")?,
+    ))
+}
+
+async fn call_backend_json(
+    manager: &BackendManager,
+    method: &str,
+    path: &str,
+    body: Option<Value>,
+) -> Result<ApiResponse, String> {
+    let (port, session_credential) = backend_connection(manager)?;
+    let client = loopback_client().map_err(str::to_owned)?;
+    let url = format!("http://127.0.0.1:{port}{path}");
+    let mut request = match method {
+        "GET" => client.get(url),
+        "POST" => client.post(url),
+        _ => return Err("桌面命令使用了不受支持的本机请求方式。".into()),
+    }
+    .header(SESSION_HEADER, session_credential);
+    if let Some(payload) = body {
+        request = request.json(&payload);
+    }
+    let response = request
+        .send()
+        .await
+        .map_err(|_| "本地服务没有响应；请在设置与诊断中重新启动后再试。".to_string())?;
+    let status = response.status().as_u16();
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|_| "无法读取本地服务响应；请重新运行本次任务。".to_string())?;
+    if bytes.len() > MAX_TYPED_RESPONSE_BYTES {
+        return Err("本地预览超过桌面端允许的大小；请缩小图片后重试。".into());
+    }
+    let body = serde_json::from_slice(&bytes)
+        .map_err(|_| "本地服务返回了无法识别的结果；请查看技术详情。".to_string())?;
+    Ok(ApiResponse { status, body })
+}
+
+fn valid_vector_id(value: &str, prefix: &str) -> bool {
+    value.len() <= 80
+        && value.starts_with(prefix)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+}
+
 #[tauri::command]
 fn backend_status(manager: State<'_, BackendManager>) -> RuntimeStatus {
     manager.snapshot()
@@ -436,6 +500,108 @@ async fn backend_request(
     let body =
         serde_json::from_slice(&bytes).map_err(|_| "本地服务返回了无法识别的结果。".to_string())?;
     Ok(ApiResponse { status, body })
+}
+
+#[tauri::command]
+async fn choose_vector_input(
+    manager: State<'_, BackendManager>,
+) -> Result<Option<ApiResponse>, String> {
+    let selected = tauri::async_runtime::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .add_filter("图片", &["png", "jpg", "jpeg"])
+            .set_title("选择一张要矢量化的图片")
+            .pick_file()
+    })
+    .await
+    .map_err(|_| "无法打开文件选择窗口；请重新尝试。".to_string())?;
+    let Some(path) = selected else {
+        return Ok(None);
+    };
+    let response = call_backend_json(
+        &manager,
+        "POST",
+        "/api/vectorization/selections",
+        Some(serde_json::json!({ "input_path": path.to_string_lossy() })),
+    )
+    .await?;
+    Ok(Some(response))
+}
+
+#[tauri::command]
+async fn start_vectorization(
+    selection_id: String,
+    mode: String,
+    parameters: Value,
+    confirm_run: bool,
+    confirm_write: bool,
+    confirm_export: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_vector_id(&selection_id, "selection-") {
+        return Err("所选图片会话无效；请重新选择图片。".into());
+    }
+    if !matches!(mode.as_str(), "artisan" | "smart" | "lightweight" | "exact") {
+        return Err("请选择可用的 Community 矢量模式。".into());
+    }
+    if !parameters.is_object()
+        || serde_json::to_vec(&parameters)
+            .map_or(true, |value| value.len() > MAX_VECTOR_PARAMETERS_BYTES)
+    {
+        return Err("处理参数无效；请恢复默认参数后重试。".into());
+    }
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/vectorization/jobs",
+        Some(serde_json::json!({
+            "selection_id": selection_id,
+            "mode": mode,
+            "parameters": parameters,
+            "confirm_run": confirm_run,
+            "confirm_write": confirm_write,
+            "confirm_export": confirm_export
+        })),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn vectorization_job(
+    job_id: String,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_vector_id(&job_id, "vector-") {
+        return Err("任务编号无效；请返回任务记录后重试。".into());
+    }
+    call_backend_json(
+        &manager,
+        "GET",
+        &format!("/api/vectorization/jobs/{job_id}"),
+        None,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn vectorization_history(manager: State<'_, BackendManager>) -> Result<ApiResponse, String> {
+    call_backend_json(&manager, "GET", "/api/vectorization/history", None).await
+}
+
+#[tauri::command]
+async fn open_vector_output(
+    job_id: String,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_vector_id(&job_id, "vector-") {
+        return Err("任务编号无效；请返回任务记录后重试。".into());
+    }
+    call_backend_json(
+        &manager,
+        "POST",
+        &format!("/api/vectorization/jobs/{job_id}/open-output"),
+        Some(serde_json::json!({})),
+    )
+    .await
 }
 
 async fn request_graceful_stop(manager: &BackendManager) {
@@ -573,6 +739,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             backend_status,
             backend_request,
+            choose_vector_input,
+            start_vectorization,
+            vectorization_job,
+            vectorization_history,
+            open_vector_output,
             restart_backend,
             open_logs_directory,
             version_info,

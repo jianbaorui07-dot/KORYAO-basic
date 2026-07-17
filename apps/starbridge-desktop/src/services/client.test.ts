@@ -41,6 +41,14 @@ function transportReturning(status: number, body: Record<string, unknown>): Star
       features: [],
       commercialVerifierConfigured: true,
     }),
+    chooseVectorInput: async () => null,
+    startVectorization: async () => ({ status: 202, body: { ok: false } }),
+    getVectorizationJob: async () => ({ status: 404, body: { ok: false } }),
+    getVectorizationHistory: async () => ({
+      status: 200,
+      body: { ok: true, data: { eventCount: 0, events: [] } },
+    }),
+    openVectorOutput: async () => ({ status: 200, body: { ok: true, data: { opened: true } } }),
   } as StarBridgeTransport;
 }
 

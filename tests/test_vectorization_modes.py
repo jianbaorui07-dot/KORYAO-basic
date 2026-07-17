@@ -128,6 +128,39 @@ class VectorizationModeTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, "output_outside_sandbox")
         self.assertFalse(outside.exists())
 
+    def test_trusted_absolute_output_root_keeps_artifacts_inside_app_data(self) -> None:
+        source = self.make_exact_source()
+        app_output_root = (self.root / "local-app-data" / "vectorization").resolve()
+
+        result = run_vectorization(
+            RunConfig(
+                input_path=str(source),
+                mode="exact",
+                reference_id="desktop-safe-root",
+                output_root=str(app_output_root),
+            )
+        )
+
+        expected = app_output_root / "desktop-safe-root" / "exact"
+        self.assertTrue(result["ok"])
+        self.assertTrue((expected / "vector.svg").is_file())
+        self.assertFalse(self.output_root.exists())
+
+    def test_trusted_output_root_must_be_absolute(self) -> None:
+        source = self.make_exact_source()
+
+        with self.assertRaises(VectorizationError) as raised:
+            run_vectorization(
+                RunConfig(
+                    input_path=str(source),
+                    mode="exact",
+                    reference_id="relative-root",
+                    output_root="relative/output",
+                )
+            )
+
+        self.assertEqual("invalid_output_root", raised.exception.code)
+
     def test_cli_failure_is_structured_and_does_not_echo_private_input(self) -> None:
         private_path = self.root / "do-not-echo-this-name.png"
         stdout = io.StringIO()

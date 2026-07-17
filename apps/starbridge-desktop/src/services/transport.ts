@@ -1,10 +1,15 @@
 import type {
+  ApiEnvelope,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
   TransportRequest,
   TransportResponse,
   VersionInfo,
+  VectorHistory,
+  VectorJob,
+  VectorSelection,
+  VectorizationStart,
 } from "../types/api";
 
 export class TransportError extends Error {
@@ -28,4 +33,17 @@ export interface StarBridgeTransport {
   getLicenseStatus(): Promise<LicenseStatus>;
   createLicenseRequest(): Promise<LicenseRequestReceipt>;
   importLicenseFile(contents: string): Promise<LicenseStatus>;
+  chooseVectorInput(): Promise<TransportResponse<ApiEnvelope<VectorSelection>> | null>;
+  startVectorization(
+    request: VectorizationStart,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>>;
+  getVectorizationJob(
+    jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>>;
+  getVectorizationHistory(): Promise<
+    TransportResponse<ApiEnvelope<VectorHistory>>
+  >;
+  openVectorOutput(
+    jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<{ opened: boolean }>>>;
 }

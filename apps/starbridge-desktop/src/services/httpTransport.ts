@@ -6,6 +6,10 @@ import type {
   TransportRequest,
   TransportResponse,
   VersionInfo,
+  VectorHistory,
+  VectorJob,
+  VectorSelection,
+  VectorizationStart,
 } from "../types/api";
 import { TransportError, type StarBridgeTransport } from "./transport";
 
@@ -122,5 +126,41 @@ export class HttpTransport implements StarBridgeTransport {
       "desktop_required",
       "请在 StarBridge Windows 桌面版中导入授权文件。",
     );
+  }
+
+  async chooseVectorInput(): Promise<
+    TransportResponse<ApiEnvelope<VectorSelection>> | null
+  > {
+    throw new TransportError(
+      "desktop_required",
+      "请在 StarBridge Windows 桌面版中选择本机图片。",
+    );
+  }
+
+  async startVectorization(
+    _request: VectorizationStart,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在 StarBridge Windows 桌面版中运行本机矢量化。",
+    );
+  }
+
+  async getVectorizationJob(
+    _jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<VectorJob>>> {
+    throw new TransportError("desktop_required", "浏览器预览不读取桌面任务。");
+  }
+
+  async getVectorizationHistory(): Promise<
+    TransportResponse<ApiEnvelope<VectorHistory>>
+  > {
+    throw new TransportError("desktop_required", "浏览器预览不读取桌面任务记录。");
+  }
+
+  async openVectorOutput(
+    _jobId: string,
+  ): Promise<TransportResponse<ApiEnvelope<{ opened: boolean }>>> {
+    throw new TransportError("desktop_required", "请在桌面版中打开输出文件夹。");
   }
 }

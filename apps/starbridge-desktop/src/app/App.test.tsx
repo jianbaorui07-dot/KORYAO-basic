@@ -41,15 +41,22 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeC
       features: ["batch.processing"],
       commercialVerifierConfigured: true,
     }),
+    chooseVectorInput: vi.fn().mockResolvedValue(null),
+    startVectorization: vi.fn(),
+    getVectorizationJob: vi.fn(),
+    getVectorizationHistory: vi.fn().mockResolvedValue({ eventCount: 0, events: [] }),
+    openVectorOutput: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 describe("desktop runtime status", () => {
-  it("shows the starting state before the runtime responds", () => {
+  it("shows the product home while the runtime starts", () => {
     const pending = new Promise<RuntimeStatus>(() => undefined);
     render(<App client={makeClient(pending)} />);
 
-    expect(screen.getByText("正在启动 StarBridge")).toBeInTheDocument();
+    expect(screen.getByText("StarBridge 已准备好")).toBeInTheDocument();
+    expect(screen.getByText("正在启动")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "开始图片矢量化" })).toBeDisabled();
   });
 
   it("shows a connected state in ordinary language", async () => {
@@ -64,8 +71,8 @@ describe("desktop runtime status", () => {
       />,
     );
 
-    expect(await screen.findByText("本地服务已连接")).toBeInTheDocument();
-    expect(screen.getByText("安全本地服务已经就绪。")).toBeInTheDocument();
+    expect(await screen.findByText("运行正常 · 仅本机")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "开始图片矢量化" })).toBeEnabled();
     expect(screen.queryByText(/49152/)).not.toBeInTheDocument();
   });
 
@@ -81,9 +88,10 @@ describe("desktop runtime status", () => {
       />,
     );
 
-    expect(await screen.findByText("本地服务尚未连接")).toBeInTheDocument();
-    expect(screen.getByText("重新启动本地服务")).toBeInTheDocument();
-    expect(screen.getByText("查看技术详情")).toBeInTheDocument();
+    expect(await screen.findByText("本地服务离线")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "打开设置与诊断" }));
+    expect(screen.getByRole("button", { name: "重新启动本地服务" })).toBeInTheDocument();
+    expect(screen.getByText("技术详情")).toBeInTheDocument();
     expect(screen.getByText("backend process not found")).toBeInTheDocument();
   });
 
@@ -104,7 +112,8 @@ describe("desktop runtime status", () => {
     );
     render(<App client={client} />);
 
-    expect(await screen.findByText("本地服务启动失败")).toBeInTheDocument();
+    expect(await screen.findByText("需要处理")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "打开设置与诊断" }));
     expect(screen.getByText("桌面会话已失效，请重新启动本地服务。")).toBeInTheDocument();
     expect(screen.getByText("HTTP 403; authentication_failed")).toBeInTheDocument();
   });
@@ -116,12 +125,13 @@ describe("desktop runtime status", () => {
       recoveryAttempts: 1,
     });
     render(<App client={client} />);
-    await screen.findByText("本地服务启动失败");
+    await screen.findByText("需要处理");
+    fireEvent.click(screen.getByRole("button", { name: "打开设置与诊断" }));
 
     fireEvent.click(screen.getByRole("button", { name: "重新启动本地服务" }));
 
     await waitFor(() => expect(client.restartBackend).toHaveBeenCalledOnce());
-    expect(await screen.findByText("本地服务已恢复。")).toBeInTheDocument();
+    expect(await screen.findByText("运行正常 · 仅本机")).toBeInTheDocument();
   });
 
   it("shows the offline Community license flow without claiming Pro is active", async () => {
@@ -132,11 +142,12 @@ describe("desktop runtime status", () => {
     });
     render(<App client={client} />);
 
-    expect(await screen.findByText("Community 免费版正在本机运行，不需要授权文件。"))
+    fireEvent.click(await screen.findByRole("button", { name: "版本与授权" }));
+    expect(screen.getByText("你可以直接使用免费功能，无需登录、无需联网，也不需要授权文件。"))
       .toBeInTheDocument();
     expect(screen.queryByText("授权有效")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "导出设备授权申请" }));
+    fireEvent.click(screen.getByRole("button", { name: "导出设备申请" }));
     await waitFor(() => expect(client.createLicenseRequest).toHaveBeenCalledOnce());
     expect(await screen.findByText(/文件夹已打开/)).toBeInTheDocument();
   });

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import time
 import unittest
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
+
+from PIL import Image
 
 from starbridge_mcp.backend import StarBridgeBackend, make_handler
 
@@ -23,6 +26,98 @@ class BackendApiTests(unittest.TestCase):
         self.assertEqual(200, response.status)
         self.assertTrue(response.body["ok"])
         self.assertEqual("starbridge-backend", response.body["service"])
+
+    def _make_vector_source(self) -> Path:
+        source = Path(self.temp_dir.name) / "private-customer-art.png"
+        image = Image.new("RGBA", (12, 8), (0, 0, 0, 0))
+        for x in range(2, 10):
+            for y in range(1, 7):
+                image.putpixel((x, y), (28, 98, 214, 255))
+        image.save(source)
+        return source
+
+    def test_vectorization_requires_all_three_explicit_confirmations(self) -> None:
+        source = self._make_vector_source()
+        selected = self.backend.route(
+            "POST",
+            "/api/vectorization/selections",
+            json.dumps({"input_path": str(source)}).encode("utf-8"),
+        )
+        selection_id = selected.body["data"]["selectionId"]
+
+        response = self.backend.route(
+            "POST",
+            "/api/vectorization/jobs",
+            json.dumps(
+                {
+                    "selection_id": selection_id,
+                    "mode": "exact",
+                    "parameters": {},
+                    "confirm_run": True,
+                    "confirm_write": True,
+                }
+            ).encode("utf-8"),
+        )
+
+        self.assertEqual(400, response.status)
+        self.assertEqual("confirmation_required", response.body["error"]["code"])
+
+    def test_vectorization_runs_locally_without_exposing_the_input_path(self) -> None:
+        source = self._make_vector_source()
+        selected = self.backend.route(
+            "POST",
+            "/api/vectorization/selections",
+            json.dumps({"input_path": str(source)}).encode("utf-8"),
+        )
+
+        self.assertEqual(200, selected.status)
+        serialized_selection = json.dumps(selected.body, ensure_ascii=False)
+        self.assertNotIn(str(source), serialized_selection)
+        self.assertNotIn(str(source.parent), serialized_selection)
+        selection = selected.body["data"]
+        self.assertEqual(source.name, selection["fileName"])
+        self.assertTrue(selection["previewDataUrl"].startswith("data:image/png;base64,"))
+
+        started = self.backend.route(
+            "POST",
+            "/api/vectorization/jobs",
+            json.dumps(
+                {
+                    "selection_id": selection["selectionId"],
+                    "mode": "exact",
+                    "parameters": {},
+                    "confirm_run": True,
+                    "confirm_write": True,
+                    "confirm_export": True,
+                }
+            ).encode("utf-8"),
+        )
+        self.assertEqual(202, started.status)
+        job_id = started.body["data"]["jobId"]
+
+        deadline = time.monotonic() + 10
+        completed = started
+        while time.monotonic() < deadline:
+            completed = self.backend.route("GET", f"/api/vectorization/jobs/{job_id}")
+            if completed.body["data"]["status"] in {"completed", "failed"}:
+                break
+            time.sleep(0.05)
+
+        self.assertEqual("completed", completed.body["data"]["status"], completed.body)
+        result = completed.body["data"]["result"]
+        self.assertTrue(result["metrics"]["pixelMatch"])
+        self.assertTrue(result["resultPreviewDataUrl"].startswith("data:image/png;base64,"))
+        serialized_job = json.dumps(completed.body, ensure_ascii=False)
+        self.assertNotIn(str(source), serialized_job)
+        self.assertNotIn(str(source.parent), serialized_job)
+
+        output_root = self.backend.app_paths.data / "vectorization"
+        self.assertTrue(any(output_root.rglob("vector.svg")))
+        history = self.backend.route("GET", "/api/vectorization/history")
+        self.assertEqual(1, history.body["data"]["eventCount"])
+        serialized_history = json.dumps(history.body, ensure_ascii=False)
+        self.assertNotIn(source.name, serialized_history)
+        self.assertNotIn(str(source.parent), serialized_history)
 
     def test_capabilities_endpoint_reuses_mcp_registry(self) -> None:
         response = self.backend.route("GET", "/api/capabilities?safe_only=true")

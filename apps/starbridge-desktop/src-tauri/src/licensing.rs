@@ -79,6 +79,9 @@ pub(crate) struct LicenseStatus {
     edition: &'static str,
     message: String,
     license_id: Option<String>,
+    issued_on: Option<String>,
+    perpetual: bool,
+    current_device_matched: bool,
     device_limit: u8,
     features: Vec<String>,
     commercial_verifier_configured: bool,
@@ -142,6 +145,9 @@ fn community_status(verifier_configured: bool) -> LicenseStatus {
         edition: "community",
         message: "Community 免费版正在本机运行，不需要授权文件。".into(),
         license_id: None,
+        issued_on: None,
+        perpetual: false,
+        current_device_matched: false,
         device_limit: 0,
         features: Vec::new(),
         commercial_verifier_configured: verifier_configured,
@@ -155,6 +161,9 @@ fn invalid_status(reason: &'static str, verifier_configured: bool) -> LicenseSta
         edition: "community",
         message: LicenseError(reason).user_message(),
         license_id: None,
+        issued_on: None,
+        perpetual: false,
+        current_device_matched: false,
         device_limit: 0,
         features: Vec::new(),
         commercial_verifier_configured: verifier_configured,
@@ -163,16 +172,27 @@ fn invalid_status(reason: &'static str, verifier_configured: bool) -> LicenseSta
 }
 
 fn active_status(payload: LicensePayload) -> LicenseStatus {
+    let masked_license_id = mask_license_id(&payload.license_id);
     LicenseStatus {
         state: "active",
         edition: payload.edition.as_str(),
         message: "离线授权签名和当前设备绑定均已验证。".into(),
-        license_id: Some(payload.license_id),
+        license_id: Some(masked_license_id),
+        issued_on: Some(payload.issued_on),
+        perpetual: payload.perpetual,
+        current_device_matched: true,
         device_limit: payload.device_limit,
         features: payload.features,
         commercial_verifier_configured: true,
         reason: None,
     }
+}
+
+fn mask_license_id(value: &str) -> String {
+    if value.len() <= 10 {
+        return "••••".into();
+    }
+    format!("{}••••{}", &value[..6], &value[value.len() - 4..])
 }
 
 fn license_directory(root: &Path) -> PathBuf {
