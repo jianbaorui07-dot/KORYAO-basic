@@ -52,6 +52,8 @@ $startInfo.RedirectStandardError = $true
 $startInfo.Arguments = "--desktop --parent-pid $PID"
 $startInfo.EnvironmentVariables["STARBRIDGE_SESSION_TOKEN"] = $sessionCredential
 $startInfo.EnvironmentVariables["STARBRIDGE_APP_DATA_DIR"] = $temporaryRoot
+$codexTestHome = Join-Path $temporaryRoot "codex-home"
+$startInfo.EnvironmentVariables["CODEX_HOME"] = $codexTestHome
 $process = [Diagnostics.Process]::new()
 $process.StartInfo = $startInfo
 $parentExitChildId = $null
@@ -109,6 +111,93 @@ try {
         -TimeoutSec 10
     if (-not $bootstrap.ok) {
         throw "The authenticated bootstrap request failed."
+    }
+
+    $connections = Invoke-RestMethod `
+        -Uri "http://127.0.0.1:$($ready.port)/api/connections" `
+        -Headers $headers `
+        -TimeoutSec 10
+    if (-not $connections.ok -or $connections.data.drawing_enabled) {
+        throw "The packaged sidecar did not begin with a locked Codex connection."
+    }
+    if ($connections.data.schema_version -ne "starbridge.desktop-connections.v2") {
+        throw "The packaged sidecar did not expose the creative-application pairing protocol."
+    }
+    if ($connections.data.applications.Count -ne 6) {
+        throw "The packaged sidecar did not report all six creative-application adapters."
+    }
+    foreach ($application in $connections.data.applications) {
+        if (-not $application.id -or -not $application.pairing_state -or -not $application.adapter_kind) {
+            throw "A packaged creative-application adapter omitted its pairing metadata."
+        }
+    }
+    $pairingCode = [string]$connections.data.codex.pairing_code
+    if ($pairingCode -notmatch "^[A-Z2-9]{8}$") {
+        throw "The packaged sidecar returned an invalid pairing code."
+    }
+
+    $connectorInstall = Invoke-RestMethod `
+        -Uri "http://127.0.0.1:$($ready.port)/api/connections/codex/install" `
+        -Method Post `
+        -Headers $headers `
+        -ContentType "application/json" `
+        -Body '{"confirm_install":true}' `
+        -TimeoutSec 10
+    $codexTestConfig = Join-Path $codexTestHome "config.toml"
+    if (-not $connectorInstall.data.installed -or -not (Test-Path -LiteralPath $codexTestConfig -PathType Leaf)) {
+        throw "The packaged sidecar did not install its managed Codex connector."
+    }
+    $codexTestConfigText = [IO.File]::ReadAllText($codexTestConfig)
+    if (-not $codexTestConfigText.Contains("mcp_servers.starbridge-desktop") -or $codexTestConfigText.Contains($sessionCredential)) {
+        throw "The managed Codex connector config was missing or exposed the desktop credential."
+    }
+
+    $mcpInfo = [Diagnostics.ProcessStartInfo]::new()
+    $mcpInfo.FileName = $executable
+    $mcpInfo.UseShellExecute = $false
+    $mcpInfo.CreateNoWindow = $true
+    $mcpInfo.RedirectStandardInput = $true
+    $mcpInfo.RedirectStandardOutput = $true
+    $mcpInfo.RedirectStandardError = $true
+    $mcpInfo.Arguments = "--mcp"
+    $mcpInfo.EnvironmentVariables["STARBRIDGE_APP_DATA_DIR"] = $temporaryRoot
+    $mcpProcess = [Diagnostics.Process]::new()
+    $mcpProcess.StartInfo = $mcpInfo
+    if (-not $mcpProcess.Start()) {
+        throw "The packaged sidecar could not start in MCP connector mode."
+    }
+    $pairRequest = @{
+        jsonrpc = "2.0"
+        id = 1
+        method = "tools/call"
+        params = @{
+            name = "starbridge.desktop_pair"
+            arguments = @{
+                pairing_code = $pairingCode
+                confirm_pairing = $true
+                confirm_write = $true
+                dry_run = $false
+            }
+        }
+    } | ConvertTo-Json -Depth 8 -Compress
+    $mcpProcess.StandardInput.WriteLine($pairRequest)
+    $mcpProcess.StandardInput.Flush()
+    $pairResponseLine = $mcpProcess.StandardOutput.ReadLine()
+    $mcpProcess.StandardInput.Close()
+    if (-not $mcpProcess.WaitForExit(10000)) {
+        $mcpProcess.Kill()
+        throw "The packaged MCP connector did not exit after input closed."
+    }
+    $pairResponse = $pairResponseLine | ConvertFrom-Json
+    if (-not $pairResponse.result.structuredContent.ok) {
+        throw "The packaged MCP connector did not pair the desktop session."
+    }
+    $connections = Invoke-RestMethod `
+        -Uri "http://127.0.0.1:$($ready.port)/api/connections" `
+        -Headers $headers `
+        -TimeoutSec 10
+    if (-not $connections.data.drawing_enabled) {
+        throw "The desktop session stayed locked after a valid Codex MCP pairing."
     }
 
     $sourceFile = Join-Path $temporaryRoot "community-vector-source.png"

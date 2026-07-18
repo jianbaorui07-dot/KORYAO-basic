@@ -29,6 +29,7 @@ from starbridge_mcp.core.color_vectorization import (
     validate_color_vectorization_metrics,
 )
 from starbridge_mcp.core.control_planner import build_control_plan
+from starbridge_mcp.core.desktop_connections import pair_desktop_session
 from starbridge_mcp.core.evidence import (
     DEFAULT_MANIFEST_FILENAME,
     ValidationResult,
@@ -241,6 +242,39 @@ TOOL_DEFINITIONS: list[JsonObject] = [
             },
             required=["bridge"],
         ),
+    ),
+    _standard_tool(
+        name="starbridge.desktop_pair",
+        title="Pair StarBridge Session",
+        description=(
+            "使用连接中心当前显示的一次性配对码关联正在运行的 StarBridge 桌面会话。"
+            "只写入可撤销的本地配对回执，不读取 Codex 凭据、用户文件或创意软件文档。"
+        ),
+        input_schema=_object_schema(
+            {
+                "pairing_code": {
+                    "type": "string",
+                    "pattern": "^[A-Z2-9]{8}$",
+                    "description": "StarBridge 连接中心当前显示的 8 位配对码。",
+                },
+                "confirm_pairing": {
+                    "type": "boolean",
+                    "description": "必须明确为 true，确认关联当前桌面会话。",
+                },
+                "confirm_write": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "必须明确为 true，确认写入可撤销的本地配对回执。",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "默认只验证配对计划；实际关联必须明确设为 false。",
+                },
+            },
+            required=["pairing_code", "confirm_pairing", "confirm_write"],
+        ),
+        read_only=False,
     ),
     {
         "name": "starbridge.tools",
@@ -1837,7 +1871,9 @@ def _enrich_tool_annotations() -> None:
         )
         tool["annotations"] = annotations
         if not read_only:
-            if tool["name"] == "comfyui.agent_run":
+            if tool["name"] == "starbridge.desktop_pair":
+                properties.setdefault("dry_run", {"type": "boolean", "default": True})
+            elif tool["name"] == "comfyui.agent_run":
                 properties.setdefault("confirm_run", {"type": "boolean", "default": False})
             else:
                 properties.setdefault("dry_run", {"type": "boolean", "default": True})
@@ -1871,6 +1907,15 @@ def _handle_probe(arguments: JsonObject) -> JsonObject:
     if not arguments.get("bridge"):
         raise ValueError("bridge is required")
     return build_response(_namespace_for_status(arguments, probe_default=True))
+
+
+def _handle_desktop_pair(arguments: JsonObject) -> JsonObject:
+    return pair_desktop_session(
+        pairing_code=str(arguments.get("pairing_code") or ""),
+        confirm_pairing=bool(arguments.get("confirm_pairing", False))
+        and bool(arguments.get("confirm_write", False)),
+        dry_run=bool(arguments.get("dry_run", True)),
+    )
 
 
 def _handle_tools(arguments: JsonObject) -> JsonObject:
@@ -3530,6 +3575,7 @@ def _handle_photoshop_run(arguments: JsonObject) -> JsonObject:
 TOOL_HANDLERS: dict[str, ToolHandler] = {
     "starbridge.status": _handle_status,
     "starbridge.probe": _handle_probe,
+    "starbridge.desktop_pair": _handle_desktop_pair,
     "starbridge.tools": _handle_tools,
     "starbridge.control_plan": _handle_control_plan,
     "starbridge.safe_roots": _handle_safe_roots,

@@ -1,5 +1,9 @@
 import type {
   ApiEnvelope,
+  CodexConnectionResetResult,
+  CodexConnectorInstallResult,
+  ConnectionOverview,
+  CreativeApplicationConnection,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
@@ -34,6 +38,14 @@ export interface StarBridgeClient {
   getBootstrap(): Promise<ApiEnvelope<unknown>>;
   restartBackend(): Promise<RuntimeStatus>;
   openLogsDirectory(): Promise<string>;
+  getConnections(): Promise<ConnectionOverview>;
+  installCodexConnector(confirmInstall: boolean): Promise<CodexConnectorInstallResult>;
+  resetCodexConnection(confirmReset: boolean): Promise<CodexConnectionResetResult>;
+  openCodexPairing(pairingCode: string): Promise<void>;
+  openGitHubProject(): Promise<void>;
+  pairCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection>;
+  reconnectCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection>;
+  disconnectCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection>;
   getVersion(): Promise<VersionInfo>;
   getUpdateStatus(): Promise<SoftwareUpdateStatus>;
   checkForUpdate(): Promise<SoftwareUpdateStatus>;
@@ -65,6 +77,7 @@ function errorFromEnvelope(
     authentication_failed: "桌面会话已失效，请重新启动本地服务。",
     origin_not_allowed: "当前页面不能直接访问本地服务。",
     request_too_large: "这次请求包含的内容过大，请减少输入后重试。",
+    codex_association_required: "请先在连接中心关联当前 Codex 会话，再开始制图。",
   };
 
   return new UserFacingError(
@@ -140,6 +153,59 @@ export class StarBridgeApiClient implements StarBridgeClient {
 
   openLogsDirectory(): Promise<string> {
     return this.transport.openLogsDirectory();
+  }
+
+  getConnections(): Promise<ConnectionOverview> {
+    return this.execute(async () => {
+      const response = await this.transport.request<ApiEnvelope<ConnectionOverview>>({
+        method: "GET",
+        path: "/api/connections",
+      });
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  installCodexConnector(confirmInstall: boolean): Promise<CodexConnectorInstallResult> {
+    return this.execute(async () => {
+      const response = await this.transport.installCodexConnector(confirmInstall);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  resetCodexConnection(confirmReset: boolean): Promise<CodexConnectionResetResult> {
+    return this.execute(async () => {
+      const response = await this.transport.resetCodexConnection(confirmReset);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  openCodexPairing(pairingCode: string): Promise<void> {
+    return this.execute(() => this.transport.openCodexPairing(pairingCode));
+  }
+
+  openGitHubProject(): Promise<void> {
+    return this.execute(() => this.transport.openGitHubProject());
+  }
+
+  pairCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection> {
+    return this.execute(async () => {
+      const response = await this.transport.pairCreativeApplication(applicationId, true);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  reconnectCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection> {
+    return this.execute(async () => {
+      const response = await this.transport.reconnectCreativeApplication(applicationId, true);
+      return this.unwrap(response.status, response.body);
+    });
+  }
+
+  disconnectCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection> {
+    return this.execute(async () => {
+      const response = await this.transport.disconnectCreativeApplication(applicationId, true);
+      return this.unwrap(response.status, response.body);
+    });
   }
 
   getVersion(): Promise<VersionInfo> {

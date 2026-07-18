@@ -1,5 +1,8 @@
 import type {
   ApiEnvelope,
+  CodexConnectionResetResult,
+  CodexConnectorInstallResult,
+  CreativeApplicationConnection,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
@@ -98,6 +101,68 @@ export class HttpTransport implements StarBridgeTransport {
     throw new TransportError(
       "desktop_required",
       "浏览器开发模式不能打开应用日志目录。",
+    );
+  }
+
+  async installCodexConnector(
+    _confirmInstall: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中配置 Codex 连接器。",
+    );
+  }
+
+  async resetCodexConnection(
+    _confirmReset: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CodexConnectionResetResult>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中重新关联 Codex。",
+    );
+  }
+
+  async openCodexPairing(_pairingCode: string): Promise<void> {
+    throw new TransportError(
+      "desktop_required",
+      "浏览器预览不能打开本机 Codex 应用。",
+    );
+  }
+
+  async openGitHubProject(): Promise<void> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中打开 GitHub 项目。",
+    );
+  }
+
+  async pairCreativeApplication(
+    _applicationId: string,
+    _confirmPairing: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中配对创意软件。",
+    );
+  }
+
+  async reconnectCreativeApplication(
+    _applicationId: string,
+    _confirmReconnect: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中重新连接创意软件。",
+    );
+  }
+
+  async disconnectCreativeApplication(
+    _applicationId: string,
+    _confirmDisconnect: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    throw new TransportError(
+      "desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中解除创意软件配对。",
     );
   }
 

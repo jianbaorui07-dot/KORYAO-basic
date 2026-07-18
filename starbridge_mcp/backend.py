@@ -28,6 +28,10 @@ from starbridge_mcp.core.app_data import (
     resolve_app_data_paths,
     write_crash_diagnostic,
 )
+from starbridge_mcp.core.desktop_connections import (
+    ConnectionSetupError,
+    DesktopConnectionManager,
+)
 from starbridge_mcp.core.security import sanitize
 from starbridge_mcp.mcp_server import SERVER_INFO, handle_request
 from starbridge_mcp.vectorization.engine import (
@@ -183,6 +187,7 @@ class StarBridgeBackend:
         self._session_credential = session_credential
         self.max_request_body_bytes = max_request_body_bytes
         self.app_paths: AppDataPaths = resolve_app_data_paths(app_data_dir)
+        self.connections = DesktopConnectionManager(self.app_paths)
         self.static_root = static_root or DEFAULT_STATIC_ROOT
         self.history_path = history_path or self.app_paths.history_file
         if cors_allowed_origins is None:
@@ -591,6 +596,13 @@ class StarBridgeBackend:
                 )
 
     def _start_vector_job(self, body: JsonObject) -> BackendResponse:
+        if self.mode == "desktop" and not self.connections.drawing_enabled():
+            return self._error(
+                409,
+                "codex_association_required",
+                "当前 StarBridge Desktop 会话尚未与 Codex 关联，制图任务未启动。",
+                next_steps=["打开软件联动中的连接中心，完成本次 Codex 配对后重试。"],
+            )
         required = ("confirm_run", "confirm_write", "confirm_export")
         if any(body.get(key) is not True for key in required):
             return self._error(
@@ -964,6 +976,96 @@ class StarBridgeBackend:
                     },
                 },
             )
+
+        if method == "GET" and path == "/api/connections":
+            return BackendResponse(200, {"ok": True, "data": self.connections.overview()})
+
+        if method == "POST" and path == "/api/connections/codex/install":
+            if self.mode != "desktop":
+                return self._error(
+                    409,
+                    "desktop_required",
+                    "只能在安装后的 StarBridge Desktop 中配置 Codex 连接器。",
+                )
+            try:
+                installed = self.connections.install_codex_connector(
+                    confirm_install=body.get("confirm_install") is True
+                )
+            except ConnectionSetupError as error:
+                return self._error(
+                    409,
+                    error.code,
+                    str(error),
+                    next_steps=error.next_steps,
+                )
+            return BackendResponse(200, {"ok": True, "data": installed})
+
+        if method == "POST" and path == "/api/connections/codex/reset":
+            if body.get("confirm_reset") is not True:
+                return self._error(
+                    400,
+                    "confirmation_required",
+                    "重新关联前需要明确确认。",
+                )
+            reset = self.connections.reset_pairing()
+            self.record_runtime_event("codex_pairing_reset")
+            return BackendResponse(200, {"ok": True, "data": reset})
+
+        if method == "POST" and path == "/api/connections/applications/pair":
+            try:
+                paired = self.connections.pair_application(
+                    str(body.get("application_id") or ""),
+                    confirm_pairing=body.get("confirm_pairing") is True,
+                )
+            except ConnectionSetupError as error:
+                return self._error(
+                    409,
+                    error.code,
+                    str(error),
+                    next_steps=error.next_steps,
+                )
+            self.record_runtime_event(
+                "creative_application_paired", {"application_id": paired["id"]}
+            )
+            return BackendResponse(200, {"ok": True, "data": paired})
+
+        if method == "POST" and path == "/api/connections/applications/reconnect":
+            try:
+                reconnected = self.connections.reconnect_application(
+                    str(body.get("application_id") or ""),
+                    confirm_reconnect=body.get("confirm_reconnect") is True,
+                )
+            except ConnectionSetupError as error:
+                return self._error(
+                    409,
+                    error.code,
+                    str(error),
+                    next_steps=error.next_steps,
+                )
+            self.record_runtime_event(
+                "creative_application_reconnected",
+                {"application_id": reconnected["id"]},
+            )
+            return BackendResponse(200, {"ok": True, "data": reconnected})
+
+        if method == "POST" and path == "/api/connections/applications/disconnect":
+            try:
+                disconnected = self.connections.disconnect_application(
+                    str(body.get("application_id") or ""),
+                    confirm_disconnect=body.get("confirm_disconnect") is True,
+                )
+            except ConnectionSetupError as error:
+                return self._error(
+                    409,
+                    error.code,
+                    str(error),
+                    next_steps=error.next_steps,
+                )
+            self.record_runtime_event(
+                "creative_application_disconnected",
+                {"application_id": disconnected["id"]},
+            )
+            return BackendResponse(200, {"ok": True, "data": disconnected})
 
         if method == "GET" and path == "/api/status":
             arguments: JsonObject = {

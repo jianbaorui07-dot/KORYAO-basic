@@ -4,20 +4,22 @@ import { Brand } from "../components/Brand/Brand";
 import { EditionBadge } from "../components/EditionBadge/EditionBadge";
 import { Navigation } from "../components/Navigation/Navigation";
 import { StatusChip } from "../components/StatusChip/StatusChip";
-import type { LicenseStatus, RuntimeStatus, SoftwareUpdateStatus, VersionInfo } from "../types/api";
+import type { ConnectionOverview, LicenseStatus, RuntimeStatus, SoftwareUpdateStatus, VersionInfo } from "../types/api";
 import { PAGE_TITLES, type PageId } from "./routes";
 
 interface AppShellProps {
   currentPage: PageId;
   onNavigate: (page: PageId) => void;
   status: RuntimeStatus;
+  connections: ConnectionOverview | null;
   license: LicenseStatus;
   version: VersionInfo | null;
   updateStatus: SoftwareUpdateStatus;
+  onOpenGitHub: () => Promise<void>;
   children: ReactNode;
 }
 
-export function AppShell({ currentPage, onNavigate, status, license, version, updateStatus, children }: AppShellProps) {
+export function AppShell({ currentPage, onNavigate, status, connections, license, version, updateStatus, onOpenGitHub, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -35,6 +37,15 @@ export function AppShell({ currentPage, onNavigate, status, license, version, up
             <h1>{PAGE_TITLES[currentPage]}</h1>
           </div>
           <div className="topbar-actions">
+            <button
+              type="button"
+              className={connections?.drawing_enabled ? "codex-topbar-chip is-connected" : "codex-topbar-chip"}
+              onClick={() => onNavigate("integrations")}
+              title="打开连接中心"
+            >
+              <span aria-hidden="true" />
+              {connections?.drawing_enabled ? "Codex 已关联" : "Codex 待关联"}
+            </button>
             {updateStatus.available && updateStatus.version ? (
               <button
                 type="button"
@@ -44,6 +55,14 @@ export function AppShell({ currentPage, onNavigate, status, license, version, up
                 可更新至 v{updateStatus.version}
               </button>
             ) : null}
+            <button
+              type="button"
+              className="github-project-button"
+              onClick={() => void onOpenGitHub()}
+              title="打开 StarBridge GitHub 项目"
+            >
+              GitHub 项目
+            </button>
             <StatusChip state={status.state} />
             <EditionBadge edition={license.edition} />
             <span className="version-copy">v{version?.desktop ?? "—"}</span>

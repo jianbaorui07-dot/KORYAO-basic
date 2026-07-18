@@ -2,6 +2,9 @@ import { Channel, invoke as tauriInvoke } from "@tauri-apps/api/core";
 
 import type {
   ApiEnvelope,
+  CodexConnectionResetResult,
+  CodexConnectorInstallResult,
+  CreativeApplicationConnection,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
@@ -88,6 +91,47 @@ export class DesktopTransport implements StarBridgeTransport {
 
   openLogsDirectory(): Promise<string> {
     return this.call<string>("open_logs_directory");
+  }
+
+  installCodexConnector(
+    confirmInstall: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
+    return this.call("install_codex_connector", { confirmInstall });
+  }
+
+  resetCodexConnection(
+    confirmReset: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CodexConnectionResetResult>>> {
+    return this.call("reset_codex_connection", { confirmReset });
+  }
+
+  openCodexPairing(pairingCode: string): Promise<void> {
+    return this.call("open_codex_pairing", { pairingCode });
+  }
+
+  openGitHubProject(): Promise<void> {
+    return this.call("open_github_project");
+  }
+
+  pairCreativeApplication(
+    applicationId: string,
+    confirmPairing: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    return this.call("pair_creative_application", { applicationId, confirmPairing });
+  }
+
+  reconnectCreativeApplication(
+    applicationId: string,
+    confirmReconnect: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    return this.call("reconnect_creative_application", { applicationId, confirmReconnect });
+  }
+
+  disconnectCreativeApplication(
+    applicationId: string,
+    confirmDisconnect: boolean,
+  ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
+    return this.call("disconnect_creative_application", { applicationId, confirmDisconnect });
   }
 
   getVersion(): Promise<VersionInfo> {

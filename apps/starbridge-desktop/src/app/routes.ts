@@ -16,7 +16,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { id: "home", label: "首页" },
   { id: "vectorization", label: "图片矢量化" },
   { id: "batch", label: "批量处理" },
-  { id: "integrations", label: "软件联动" },
+  { id: "integrations", label: "连接中心" },
   { id: "tasks", label: "任务记录" },
   { id: "license", label: "版本与授权" },
   { id: "diagnostics", label: "设置与诊断" },

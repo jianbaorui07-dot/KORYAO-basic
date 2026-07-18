@@ -1,6 +1,6 @@
 # StarBridge 软件更新通道
 
-状态：**软件内更新链路已实现，但正式通道尚未启用。** 当前缺少受信任的 Windows 代码签名身份、生产更新签名密钥和首个通过发布门禁的 GitHub Release，因此不能声称用户已经可以更新。
+状态：**软件内更新链路已实现，但正式通道尚未启用。** 当前只有 unsigned internal preview，仍缺少受信任的 Windows 代码签名身份、生产更新签名密钥和首个通过发布门禁的签名 GitHub Release，因此不能声称用户已经可以自动更新。
 
 ## 用户体验
 
@@ -8,11 +8,12 @@
 
 1. StarBridge 启动约 2.5 秒后检查一次正式版本；应用持续运行时每 4 小时检查一次。
 2. 用户可以在“设置与诊断 → 软件更新”关闭定时检查，或随时点击“立即检查更新”。
-3. 检查只读取固定地址 `https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/latest/download/latest.json`。
-4. 发现更高的 SemVer 版本后，在顶部栏和软件更新页显示版本号与发布说明。
-5. StarBridge 不自动下载。用户必须确认已经保存工作，才会开始下载。
-6. Tauri 在安装前强制验证更新包签名；验证不能关闭。验证失败时保留当前版本。
-7. 签名验证通过后，StarBridge 先请求本机 sidecar 正常关闭并释放 loopback 端口，再启动 NSIS 更新安装程序。Windows 安装阶段会关闭当前应用。
+3. 顶部栏提供固定的“GitHub 项目”按钮，一键打开公开项目主页；地址由 Rust 固定白名单提供，前端不能传入任意 URL。
+4. 检查只读取固定地址 `https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/latest/download/latest.json`。
+5. 发现更高的 SemVer 版本后，在顶部栏和软件更新页显示版本号与发布说明。
+6. StarBridge 不自动下载。用户必须确认已经保存工作，才会开始下载。
+7. Tauri 在安装前强制验证更新包签名；验证不能关闭。验证失败时保留当前版本。
+8. 签名验证通过后，StarBridge 先请求本机 sidecar 正常关闭并释放 loopback 端口，再启动 NSIS 更新安装程序。Windows 安装阶段会关闭当前应用。
 
 软件关闭时不运行后台更新服务。Community 的核心创作流程仍可完全离线使用；更新检查失败不会阻止启动、矢量化或读取本机任务。
 

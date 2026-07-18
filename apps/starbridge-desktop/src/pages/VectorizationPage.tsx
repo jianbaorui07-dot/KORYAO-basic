@@ -8,6 +8,8 @@ import type { VectorJob, VectorMode, VectorSelection } from "../types/api";
 interface VectorizationPageProps {
   client: StarBridgeClient;
   runtimeReady: boolean;
+  codexConnected: boolean;
+  onOpenConnections: () => void;
   onTaskSaved: () => void;
 }
 
@@ -16,7 +18,13 @@ function errorCopy(error: unknown) {
   return { message: error instanceof Error ? error.message : "这一步没有完成。", steps: ["检查图片和参数后重试；原图不会被修改。"] };
 }
 
-export function VectorizationPage({ client, runtimeReady, onTaskSaved }: VectorizationPageProps) {
+export function VectorizationPage({
+  client,
+  runtimeReady,
+  codexConnected,
+  onOpenConnections,
+  onTaskSaved,
+}: VectorizationPageProps) {
   const [selection, setSelection] = useState<VectorSelection | null>(null);
   const [mode, setMode] = useState<VectorMode>("smart");
   const [colors, setColors] = useState(12);
@@ -99,13 +107,19 @@ export function VectorizationPage({ client, runtimeReady, onTaskSaved }: Vectori
       </header>
 
       {!runtimeReady ? <ErrorState title="本地服务尚未就绪" message="图片尚未执行。请先在设置与诊断中重新启动本地服务。" /> : null}
+      {runtimeReady && !codexConnected ? (
+        <section className="drawing-connection-gate" role="status">
+          <div><span aria-hidden="true">↗</span><div><strong>制图入口正在等待 Codex 关联</strong><p>为当前桌面会话完成一次短期配对后，图片选择和执行按钮才会开放。</p></div></div>
+          <button type="button" className="primary" onClick={onOpenConnections}>前往连接中心</button>
+        </section>
+      ) : null}
       {error ? <ErrorState message={error.message} nextSteps={error.steps} /> : null}
 
       <div className="workflow-grid">
         <section className="workflow-controls">
           <div className="workflow-step">
             <span className="step-number">1</span><div className="step-content"><h3>选择图片</h3><p>支持 PNG 与 JPEG，最大 128 MB。</p>
-              <button type="button" className="secondary" disabled={!runtimeReady || busy || running} onClick={() => void choose()}>{selection ? "重新选择图片" : "选择图片"}</button>
+              <button type="button" className="secondary" disabled={!runtimeReady || !codexConnected || busy || running} onClick={() => void choose()}>{selection ? "重新选择图片" : "选择图片"}</button>
               {selection ? <div className="selected-file"><img src={selection.previewDataUrl} alt="所选原图预览" /><div><strong>{selection.fileName}</strong><span>{selection.width} × {selection.height} px · 校验 {selection.sourceHash}</span></div></div> : <p className="not-run">尚未执行，也没有创建输出文件。</p>}
             </div>
           </div>
@@ -117,7 +131,7 @@ export function VectorizationPage({ client, runtimeReady, onTaskSaved }: Vectori
           <div className="workflow-step">
             <span className="step-number">3</span><div className="step-content"><h3>确认参数并执行</h3><div className="parameter-row"><label>目标颜色<input type="number" min="2" max="32" value={colors} disabled={mode === "exact"} onChange={(event) => setColors(Number(event.currentTarget.value))} /></label><label>最大边长<input type="number" min="256" max="8192" step="128" value={maxDimension} onChange={(event) => setMaxDimension(Number(event.currentTarget.value))} /></label></div>
               <label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} /><span>确认在 StarBridge 应用数据目录执行、写入并导出本次结果。</span></label>
-              <button type="button" className="primary" disabled={!runtimeReady || !selection || busy || running} onClick={() => void run()}>{running ? "正在本机处理" : "开始本机矢量化"}</button>
+              <button type="button" className="primary" disabled={!runtimeReady || !codexConnected || !selection || busy || running} onClick={() => void run()}>{running ? "正在本机处理" : "开始本机矢量化"}</button>
             </div>
           </div>
         </section>

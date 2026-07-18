@@ -19,6 +19,85 @@ export interface VersionInfo {
   backend?: string;
 }
 
+export type CodexConnectionState =
+  | "not_found"
+  | "connector_required"
+  | "awaiting_pairing"
+  | "paired"
+  | "error";
+
+export type CreativeApplicationState =
+  | "not_installed"
+  | "installed"
+  | "running"
+  | "bridge_ready"
+  | "unavailable";
+
+export type CreativeApplicationPairingState =
+  | "not_available"
+  | "open_required"
+  | "ready_to_pair"
+  | "paired"
+  | "paired_limited"
+  | "reconnect_required"
+  | "unavailable";
+
+export interface CodexConnection {
+  state: CodexConnectionState;
+  app_available: boolean;
+  connector_configured: boolean;
+  session_paired: boolean;
+  pairing_code: string;
+  message: string;
+  next_steps: string[];
+}
+
+export interface CreativeApplicationConnection {
+  id: string;
+  name: string;
+  mark: string;
+  state: CreativeApplicationState;
+  installed: boolean;
+  running: boolean;
+  bridge_available: boolean;
+  managed: boolean;
+  message: string;
+  pairing_state: CreativeApplicationPairingState;
+  paired: boolean;
+  adapter_kind: "com" | "http" | "process";
+  control_level: "verified_bridge" | "session_detection";
+  capabilities: string[];
+  next_steps: string[];
+  last_connected_at?: string;
+  version?: string;
+}
+
+export interface ConnectionOverview {
+  schema_version: "starbridge.desktop-connections.v2";
+  checked_at: string;
+  drawing_enabled: boolean;
+  codex: CodexConnection;
+  applications: CreativeApplicationConnection[];
+  safety: {
+    loopback_only: true;
+    credentials_read: false;
+    external_apps_force_restarted: false;
+  };
+}
+
+export interface CodexConnectorInstallResult {
+  installed: boolean;
+  connector: string;
+  message: string;
+  restart_required: boolean;
+  next_steps: string[];
+}
+
+export interface CodexConnectionResetResult {
+  reset: boolean;
+  pairing_code: string;
+}
+
 export interface SoftwareUpdateStatus {
   configured: boolean;
   source: string;

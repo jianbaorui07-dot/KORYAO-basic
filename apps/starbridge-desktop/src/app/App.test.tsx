@@ -3,8 +3,29 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { StarBridgeClient } from "../services/client";
 import { UserFacingError } from "../services/client";
-import type { RuntimeStatus } from "../types/api";
+import type { ConnectionOverview, RuntimeStatus } from "../types/api";
 import { App } from "./App";
+
+const PAIRED_CONNECTIONS: ConnectionOverview = {
+  schema_version: "starbridge.desktop-connections.v2",
+  checked_at: "2026-07-18T08:00:00Z",
+  drawing_enabled: true,
+  codex: {
+    state: "paired",
+    app_available: true,
+    connector_configured: true,
+    session_paired: true,
+    pairing_code: "ABCD2345",
+    message: "Codex 已关联当前桌面会话，制图入口已开放。",
+    next_steps: [],
+  },
+  applications: [],
+  safety: {
+    loopback_only: true,
+    credentials_read: false,
+    external_apps_force_restarted: false,
+  },
+};
 
 function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeClient {
   return {
@@ -17,6 +38,20 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeC
       recoveryAttempts: 1,
     }),
     openLogsDirectory: vi.fn().mockResolvedValue("<LOCAL_APP_DATA>/StarBridge/logs"),
+    getConnections: vi.fn().mockResolvedValue(PAIRED_CONNECTIONS),
+    installCodexConnector: vi.fn().mockResolvedValue({
+      installed: true,
+      connector: "starbridge-desktop",
+      message: "连接器已安装。",
+      restart_required: true,
+      next_steps: [],
+    }),
+    resetCodexConnection: vi.fn().mockResolvedValue({ reset: true, pairing_code: "WXYZ6789" }),
+    openCodexPairing: vi.fn().mockResolvedValue(undefined),
+    openGitHubProject: vi.fn().mockResolvedValue(undefined),
+    pairCreativeApplication: vi.fn(),
+    reconnectCreativeApplication: vi.fn(),
+    disconnectCreativeApplication: vi.fn(),
     getVersion: vi.fn().mockResolvedValue({ desktop: "0.1.0" }),
     getUpdateStatus: vi.fn().mockResolvedValue({
       configured: false,
@@ -73,7 +108,7 @@ describe("desktop runtime status", () => {
 
     expect(screen.getByText("StarBridge 已准备好")).toBeInTheDocument();
     expect(screen.getByText("正在启动")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "开始图片矢量化" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "连接 Codex 后开始制图" })).toBeDisabled();
   });
 
   it("shows a connected state in ordinary language", async () => {
@@ -89,8 +124,112 @@ describe("desktop runtime status", () => {
     );
 
     expect(await screen.findByText("运行正常 · 仅本机")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "开始图片矢量化" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "开始图片矢量化" })).toBeEnabled();
     expect(screen.queryByText(/49152/)).not.toBeInTheDocument();
+  });
+
+  it("opens the fixed GitHub project from the top bar", async () => {
+    const client = makeClient({
+      state: "connected",
+      message: "安全本地服务已经就绪。",
+      recoveryAttempts: 0,
+    });
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "GitHub 项目" }));
+    expect(client.openGitHubProject).toHaveBeenCalledOnce();
+  });
+
+  it("locks drawing until the current Codex session is paired", async () => {
+    const client = makeClient({
+      state: "connected",
+      message: "安全本地服务已经就绪。",
+      recoveryAttempts: 0,
+    });
+    client.getConnections = vi.fn().mockResolvedValue({
+      ...PAIRED_CONNECTIONS,
+      drawing_enabled: false,
+      codex: {
+        ...PAIRED_CONNECTIONS.codex,
+        state: "awaiting_pairing",
+        session_paired: false,
+        message: "连接器已配置，正在等待 Codex 确认当前桌面会话。",
+      },
+    });
+    render(<App client={client} />);
+
+    const connect = await screen.findByRole("button", { name: "连接 Codex 后开始制图" });
+    fireEvent.click(connect);
+    expect(await screen.findByText("先关联 Codex，再连接本机创意软件")).toBeInTheDocument();
+    expect(screen.getByText("ABCD2345")).toBeInTheDocument();
+  });
+
+  it("installs the managed connector before opening a new Codex pairing task", async () => {
+    const client = makeClient({
+      state: "connected",
+      message: "安全本地服务已经就绪。",
+      recoveryAttempts: 0,
+    });
+    client.getConnections = vi.fn().mockResolvedValue({
+      ...PAIRED_CONNECTIONS,
+      drawing_enabled: false,
+      codex: {
+        ...PAIRED_CONNECTIONS.codex,
+        state: "connector_required",
+        connector_configured: false,
+        session_paired: false,
+        message: "已找到 Codex；需要安装 StarBridge 本地连接器。",
+      },
+    });
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "连接 Codex 后开始制图" }));
+    fireEvent.click(await screen.findByRole("button", { name: "安装连接器并打开 Codex" }));
+
+    await waitFor(() => expect(client.installCodexConnector).toHaveBeenCalledWith(true));
+    expect(client.openCodexPairing).toHaveBeenCalledWith("ABCD2345");
+  });
+
+  it("pairs a running creative application without claiming a process-only bridge can edit", async () => {
+    const client = makeClient({
+      state: "connected",
+      message: "安全本地服务已经就绪。",
+      recoveryAttempts: 0,
+    });
+    const blender = {
+      id: "blender",
+      name: "Blender",
+      mark: "Bl",
+      state: "running" as const,
+      installed: true,
+      running: true,
+      bridge_available: false,
+      managed: false,
+      message: "软件正在运行，等待与当前 StarBridge 会话配对。",
+      pairing_state: "ready_to_pair" as const,
+      paired: false,
+      adapter_kind: "process" as const,
+      control_level: "session_detection" as const,
+      capabilities: ["进程会话检测", "本机任务路由"],
+      next_steps: [],
+    };
+    client.getConnections = vi.fn().mockResolvedValue({
+      ...PAIRED_CONNECTIONS,
+      applications: [blender],
+    });
+    client.pairCreativeApplication = vi.fn().mockResolvedValue({
+      ...blender,
+      paired: true,
+      pairing_state: "paired_limited",
+      message: "当前软件会话已配对；目前仅支持检测和任务路由。",
+    });
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "连接中心" }));
+    fireEvent.click(await screen.findByRole("button", { name: "开始配对" }));
+
+    await waitFor(() => expect(client.pairCreativeApplication).toHaveBeenCalledWith("blender"));
+    expect(await screen.findByText(/当前仅提供存在性检测和任务路由/)).toBeInTheDocument();
   });
 
   it("shows offline recovery guidance and technical details", async () => {

@@ -384,6 +384,7 @@ fn p1_request_allowed(request: &ApiRequest) -> bool {
     const SAFE_ROUTES: &[&str] = &[
         "/api/health",
         "/api/bootstrap",
+        "/api/connections",
         "/api/status",
         "/api/capabilities",
         "/api/tools",
@@ -501,6 +502,136 @@ async fn backend_request(
     let body =
         serde_json::from_slice(&bytes).map_err(|_| "本地服务返回了无法识别的结果。".to_string())?;
     Ok(ApiResponse { status, body })
+}
+
+#[tauri::command]
+async fn install_codex_connector(
+    confirm_install: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/connections/codex/install",
+        Some(serde_json::json!({ "confirm_install": confirm_install })),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn reset_codex_connection(
+    confirm_reset: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/connections/codex/reset",
+        Some(serde_json::json!({ "confirm_reset": confirm_reset })),
+    )
+    .await
+}
+
+fn valid_creative_application_id(application_id: &str) -> bool {
+    matches!(
+        application_id,
+        "photoshop" | "illustrator" | "comfyui" | "autocad" | "blender" | "jianying_capcut"
+    )
+}
+
+#[tauri::command]
+async fn pair_creative_application(
+    application_id: String,
+    confirm_pairing: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_creative_application_id(&application_id) {
+        return Err("软件配对标识无效；请从连接中心重新选择。".into());
+    }
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/connections/applications/pair",
+        Some(serde_json::json!({
+            "application_id": application_id,
+            "confirm_pairing": confirm_pairing
+        })),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn reconnect_creative_application(
+    application_id: String,
+    confirm_reconnect: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_creative_application_id(&application_id) {
+        return Err("软件配对标识无效；请从连接中心重新选择。".into());
+    }
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/connections/applications/reconnect",
+        Some(serde_json::json!({
+            "application_id": application_id,
+            "confirm_reconnect": confirm_reconnect
+        })),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn disconnect_creative_application(
+    application_id: String,
+    confirm_disconnect: bool,
+    manager: State<'_, BackendManager>,
+) -> Result<ApiResponse, String> {
+    if !valid_creative_application_id(&application_id) {
+        return Err("软件配对标识无效；请从连接中心重新选择。".into());
+    }
+    call_backend_json(
+        &manager,
+        "POST",
+        "/api/connections/applications/disconnect",
+        Some(serde_json::json!({
+            "application_id": application_id,
+            "confirm_disconnect": confirm_disconnect
+        })),
+    )
+    .await
+}
+
+#[tauri::command]
+fn open_codex_pairing(pairing_code: String) -> Result<(), String> {
+    let valid = pairing_code.len() == 8
+        && pairing_code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || matches!(byte, b'2'..=b'9'));
+    if !valid {
+        return Err("配对码无效；请在连接中心重新生成。".into());
+    }
+    let prompt = format!(
+        "请调用 StarBridge MCP 工具 starbridge.desktop_pair，参数 pairing_code=\"{pairing_code}\"、dry_run=false、confirm_pairing=true、confirm_write=true。完成后告诉我关联结果；不要读取或输出任何 Codex 登录凭据。"
+    );
+    let mut link = url::Url::parse("codex://new").map_err(|_| "无法创建 Codex 深链接。")?;
+    link.query_pairs_mut().append_pair("prompt", &prompt);
+    open::that(link.as_str()).map_err(|_| {
+        "无法打开 Codex；请确认 Codex 已安装，然后复制连接中心的配对指令。".to_string()
+    })
+}
+
+const GITHUB_PROJECT_URL: &str =
+    "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software";
+
+#[tauri::command]
+fn open_github_project() -> Result<(), String> {
+    let target = url::Url::parse(GITHUB_PROJECT_URL)
+        .map_err(|_| "StarBridge GitHub 项目地址无效。".to_string())?;
+    if target.scheme() != "https" || target.host_str() != Some("github.com") {
+        return Err("StarBridge GitHub 项目地址未通过安全检查。".into());
+    }
+    open::that(target.as_str()).map_err(|_| "无法打开浏览器；请稍后重试。".to_string())
 }
 
 #[tauri::command]
@@ -742,6 +873,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             backend_status,
             backend_request,
+            install_codex_connector,
+            reset_codex_connection,
+            pair_creative_application,
+            reconnect_creative_application,
+            disconnect_creative_application,
+            open_codex_pairing,
+            open_github_project,
             choose_vector_input,
             start_vectorization,
             vectorization_job,
@@ -821,6 +959,35 @@ mod tests {
         ] {
             assert!(!p1_request_allowed(&request("GET", path, None)), "{path}");
         }
+    }
+
+    #[test]
+    fn creative_pairing_accepts_only_the_fixed_application_ids() {
+        for application_id in [
+            "photoshop",
+            "illustrator",
+            "comfyui",
+            "autocad",
+            "blender",
+            "jianying_capcut",
+        ] {
+            assert!(valid_creative_application_id(application_id));
+        }
+        assert!(!valid_creative_application_id("../../private"));
+        assert!(!valid_creative_application_id("unknown"));
+    }
+
+    #[test]
+    fn github_project_button_is_fixed_to_the_public_repository() {
+        let target = url::Url::parse(GITHUB_PROJECT_URL).expect("valid project URL");
+        assert_eq!(target.scheme(), "https");
+        assert_eq!(target.host_str(), Some("github.com"));
+        assert_eq!(
+            target.path(),
+            "/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software"
+        );
+        assert!(target.query().is_none());
+        assert!(target.fragment().is_none());
     }
 
     #[test]
