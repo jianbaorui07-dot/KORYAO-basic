@@ -10,7 +10,8 @@ use url::Url;
 
 use crate::{request_graceful_stop, BackendManager};
 
-const UPDATE_ENDPOINT: &str = "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/latest/download/latest.json";
+const UPDATE_ENDPOINT: &str =
+    "https://github.com/jianbaorui07-dot/CreNexus/releases/latest/download/latest.json";
 const UPDATE_SOURCE_LABEL: &str = "GitHub Releases";
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -167,7 +168,7 @@ pub(crate) async fn install_update(
     let _ = on_event.send(UpdateProgress::Installing);
     update
         .install(bytes)
-        .map_err(|_| "更新安装程序未能启动；请重新打开 StarBridge 后再试。".to_string())
+        .map_err(|_| "更新安装程序未能启动；请重新打开 CreNexus 后再试。".to_string())
 }
 
 #[cfg(test)]
@@ -181,7 +182,7 @@ mod tests {
         assert_eq!(endpoint.host_str(), Some("github.com"));
         assert_eq!(
             endpoint.path(),
-            "/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/latest/download/latest.json"
+            "/jianbaorui07-dot/CreNexus/releases/latest/download/latest.json"
         );
         assert!(endpoint.query().is_none());
         assert!(endpoint.fragment().is_none());

@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -58,14 +58,14 @@ def _default_root() -> Path:
     if os.name == "nt":
         local_app_data = os.environ.get("LOCALAPPDATA")
         if local_app_data:
-            return Path(local_app_data) / "StarBridge"
-        return Path.home() / "AppData" / "Local" / "StarBridge"
+            return Path(local_app_data) / "CreNexus"
+        return Path.home() / "AppData" / "Local" / "CreNexus"
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "StarBridge"
+        return Path.home() / "Library" / "Application Support" / "CreNexus"
     xdg_data_home = os.environ.get("XDG_DATA_HOME")
     if xdg_data_home:
-        return Path(xdg_data_home) / "StarBridge"
-    return Path.home() / ".local" / "share" / "StarBridge"
+        return Path(xdg_data_home) / "CreNexus"
+    return Path.home() / ".local" / "share" / "CreNexus"
 
 
 def resolve_app_data_paths(
@@ -95,7 +95,7 @@ def append_runtime_log(
 ) -> None:
     payload = sanitize(
         {
-            "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "event": event,
             "details": details or {},
         }
@@ -108,7 +108,7 @@ def append_runtime_log(
 def write_crash_diagnostic(paths: AppDataPaths, *, error_type: str, summary: str) -> Path:
     payload = sanitize(
         {
-            "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "event": "backend_crash",
             "error_type": error_type,
             "summary": summary,

@@ -47,7 +47,7 @@ class ChineseLabelCoverageTest(unittest.TestCase):
         protocol = self.read_text("docs/starbridge-link-protocol.md")
         index = self.read_text("docs/中文用途索引.md")
 
-        self.assertIn("星桥链接协议", protocol)
+        self.assertIn("创枢链接协议", protocol)
         self.assertIn("Photoshop 本机接入实操", protocol)
         self.assertIn("diagnose_local.ps1", protocol)
         self.assertIn("document_info.ps1", protocol)
@@ -62,7 +62,7 @@ class ChineseLabelCoverageTest(unittest.TestCase):
         self.assertIn("Adobe Illustrator 的 `.ai`", protocol)
         self.assertIn("整体方案和本机实例对照", protocol)
         self.assertIn("本机没有时怎么补", protocol)
-        self.assertIn("星桥链接协议入口", index)
+        self.assertIn("创枢链接协议入口", index)
 
     def test_illustrator_vector_bridge_is_indexed(self) -> None:
         readme = self.read_text("README.md")

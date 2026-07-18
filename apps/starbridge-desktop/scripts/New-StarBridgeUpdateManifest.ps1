@@ -5,12 +5,12 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^[A-Za-z0-9._-]+\.exe$')][string]$InstallerAssetName,
     [Parameter(Mandatory = $true)][string]$SignaturePath,
     [Parameter(Mandatory = $true)][string]$OutputPath,
-    [string]$Notes = "StarBridge stability and product experience update.",
+    [string]$Notes = "CreNexus stability and product experience update.",
     [datetime]$PublishedAt = [datetime]::UtcNow
 )
 
 $ErrorActionPreference = "Stop"
-$repository = "jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software"
+$repository = "jianbaorui07-dot/CreNexus"
 $signatureFile = [IO.Path]::GetFullPath($SignaturePath)
 $outputFile = [IO.Path]::GetFullPath($OutputPath)
 

@@ -123,7 +123,7 @@ impl LicenseError {
             "license_schema_unsupported" => "授权文件版本不受当前软件支持。",
             "license_payload_invalid" => "授权文件内容不完整或包含无效字段。",
             "license_signature_invalid" => "授权文件签名无效，未导入任何内容。",
-            "license_key_unknown" => "授权文件不是由当前 StarBridge 版本认可的密钥签发。",
+            "license_key_unknown" => "授权文件不是由当前 CreNexus 版本认可的密钥签发。",
             "commercial_verifier_not_configured" => "当前 Community 构建未配置商业版验签公钥。",
             "device_not_licensed" => "该授权文件未绑定当前 Windows 设备。",
             "device_identity_unavailable" => "无法读取本机设备标识，未创建或导入授权。",
@@ -516,7 +516,7 @@ pub(crate) fn create_request(
     let request = LicenseRequest {
         schema: REQUEST_SCHEMA,
         request_id: request_id.clone(),
-        product: "StarBridge",
+        product: "CreNexus",
         desktop_version,
         platform: "windows-x86_64",
         requested_edition: "pro",
@@ -533,7 +533,7 @@ pub(crate) fn create_request(
     let directory = license_directory(root).join("requests");
     fs::create_dir_all(&directory)
         .map_err(|_| LicenseError("license_request_failed").user_message())?;
-    let file_name = format!("StarBridge-license-request-{request_id}.json");
+    let file_name = format!("CreNexus-license-request-{request_id}.json");
     let target = directory.join(&file_name);
     write_synced(&target, &encoded)
         .map_err(|_| LicenseError("license_request_failed").user_message())?;
@@ -541,7 +541,7 @@ pub(crate) fn create_request(
         LicenseRequestReceipt {
             request_id,
             file_name,
-            location: "<LOCAL_APP_DATA>/StarBridge/license/requests",
+            location: "<LOCAL_APP_DATA>/CreNexus/license/requests",
             folder_opened: false,
         },
         directory,

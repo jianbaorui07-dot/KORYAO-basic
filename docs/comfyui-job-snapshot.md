@@ -6,7 +6,7 @@
 
 ## 为什么需要单独的安全摘要
 
-新版 ComfyUI 的单任务接口可能同时返回 workflow、outputs、preview、execution error、traceback 和节点级执行信息。StarBridge 只保留以下低敏字段：
+新版 ComfyUI 的单任务接口可能同时返回 workflow、outputs、preview、execution error、traceback 和节点级执行信息。CreNexus 只保留以下低敏字段：
 
 - 哈希后的 `logical_job_id`；
 - 标准化状态：`pending`、`in_progress`、`completed`、`failed` 或 `cancelled`；
@@ -67,7 +67,7 @@ live 模式遵守以下边界：
 3. WebSocket 窗口结束、断开或 Codex 稍后恢复任务时，用原始 `job_id` 调用本工具。
 4. 只有 `terminal=true` 才能作为完成、失败或取消通知依据；不能根据队列深度推断完成。
 
-官方依据：ComfyUI 当前 server 路由提供 `GET /api/jobs/{job_id}`，并将任务状态统一为 pending、in progress、completed、failed、cancelled；完整响应同时可能包含 workflow 和 outputs，因此 StarBridge 必须做字段级最小化。
+官方依据：ComfyUI 当前 server 路由提供 `GET /api/jobs/{job_id}`，并将任务状态统一为 pending、in progress、completed、failed、cancelled；完整响应同时可能包含 workflow 和 outputs，因此 CreNexus 必须做字段级最小化。
 
 - [ComfyUI server.py：`/api/jobs/{job_id}`](https://github.com/Comfy-Org/ComfyUI/blob/master/server.py)
 - [ComfyUI jobs.py：任务状态与响应归一化](https://github.com/Comfy-Org/ComfyUI/blob/master/comfy_execution/jobs.py)

@@ -1,13 +1,13 @@
 # 统一 Operation Context Envelope
 
-StarBridge 的 recipe 已能返回计划、风险等级、质量门和 EvidenceManifest，但此前没有统一描述“一次操作前后软件状态发生了什么变化”。这会让 Codex 在多步操作中反复读取状态，也容易在失败后丢失当前上下文。
+CreNexus 的 recipe 已能返回计划、风险等级、质量门和 EvidenceManifest，但此前没有统一描述“一次操作前后软件状态发生了什么变化”。这会让 Codex 在多步操作中反复读取状态，也容易在失败后丢失当前上下文。
 
 参考项目：
 
 - [alisaitteke/photoshop-mcp](https://github.com/alisaitteke/photoshop-mcp) 会在操作后返回文档、活动图层、选择状态和操作结果。
 - [MCP 2025-06-18 schema](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-06-18/schema.ts) 支持为 tool 声明 `outputSchema`，并通过 `structuredContent` 返回结构化结果。
 
-StarBridge 不复制第三方实现，也不开放任意脚本。本协议只吸收“操作后附带可预测上下文”的接口模式。
+CreNexus 不复制第三方实现，也不开放任意脚本。本协议只吸收“操作后附带可预测上下文”的接口模式。
 
 ## v1 契约
 
@@ -52,7 +52,7 @@ duration_ms, status, active_item_type, color_mode
 - 不允许未知状态字段，避免把文档名、图层名、prompt、模型名或素材内容混入上下文。
 - 状态标签不得包含路径、token、Cookie、OAuth、PSD、AI、DWG、模型或草稿线索。
 - evidence 只使用逻辑 ID，不接收 manifest 文件路径。
-- warning 会经过 StarBridge sanitizer；是否发生脱敏会在结果中标记。
+- warning 会经过 CreNexus sanitizer；是否发生脱敏会在结果中标记。
 - tool 本身永远只读，即使它描述的是一次已确认写入后的状态。
 
 ## Recipe 接入

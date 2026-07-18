@@ -58,9 +58,9 @@ class FakeApplication:
 class LiveSessionProtocolTests(unittest.TestCase):
     def test_schema_and_python_normalizer_share_core_fields(self) -> None:
         schema = json.loads(
-            (ROOT / "examples" / "live_session" / "starbridge_live_session.v1.schema.json").read_text(
-                encoding="utf-8"
-            )
+            (
+                ROOT / "examples" / "live_session" / "starbridge_live_session.v1.schema.json"
+            ).read_text(encoding="utf-8")
         )
         normalized = normalize_live_update(update(), expected_bridge="autocad")
         self.assertFalse(schema["additionalProperties"])

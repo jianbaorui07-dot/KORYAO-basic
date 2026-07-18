@@ -17,9 +17,9 @@ from starbridge_mcp.backend import (
     READY_PREFIX,
     SESSION_HEADER,
     SESSION_TOKEN_ENV,
+    CreNexusBackend,
+    CreNexusHttpServer,
     ParentProcessMonitor,
-    StarBridgeBackend,
-    StarBridgeHttpServer,
 )
 from starbridge_mcp.core.app_data import APP_DATA_ENV, resolve_app_data_paths
 
@@ -34,8 +34,8 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         self.addCleanup(self.temp_dir.cleanup)
         self.root = Path(self.temp_dir.name)
 
-    def desktop_backend(self, **kwargs: object) -> StarBridgeBackend:
-        return StarBridgeBackend(
+    def desktop_backend(self, **kwargs: object) -> CreNexusBackend:
+        return CreNexusBackend(
             app_data_dir=self.root / "app-data",
             session_credential=TEST_SESSION_CREDENTIAL,
             mode="desktop",
@@ -44,7 +44,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
 
     @staticmethod
     def request(
-        server: StarBridgeHttpServer,
+        server: CreNexusHttpServer,
         method: str,
         path: str,
         *,
@@ -63,7 +63,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
             connection.close()
 
     def test_port_zero_binds_random_loopback_port_and_releases_it(self) -> None:
-        server = StarBridgeHttpServer(self.desktop_backend(), port=0)
+        server = CreNexusHttpServer(self.desktop_backend(), port=0)
         server.start()
         port = server.port
         try:
@@ -79,13 +79,13 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
             # The listener must be gone, but an accepted connection can remain in
             # TIME_WAIT on Linux. SO_REUSEADDR distinguishes that kernel state
-            # from an active StarBridge listener without weakening the assertion.
+            # from an active CreNexus listener without weakening the assertion.
             probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             probe.bind(("127.0.0.1", port))
 
     def test_non_loopback_bind_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "loopback"):
-            StarBridgeHttpServer(self.desktop_backend(), host="0.0.0.0", port=0)
+            CreNexusHttpServer(self.desktop_backend(), host="0.0.0.0", port=0)
 
     def test_health_is_public_but_bootstrap_requires_current_session(self) -> None:
         backend = self.desktop_backend()
@@ -132,7 +132,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
                 self.assertNotIn(TEST_SESSION_CREDENTIAL, path.read_text(encoding="utf-8"))
 
     def test_desktop_mode_never_returns_wildcard_cors(self) -> None:
-        server = StarBridgeHttpServer(self.desktop_backend(), port=0)
+        server = CreNexusHttpServer(self.desktop_backend(), port=0)
         server.start()
         try:
             status, headers, payload = self.request(
@@ -153,8 +153,8 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         self.assertEqual("no-store", headers["cache-control"])
 
     def test_development_cors_echoes_only_an_explicit_allowed_origin(self) -> None:
-        backend = StarBridgeBackend(app_data_dir=self.root / "development")
-        server = StarBridgeHttpServer(backend, port=0)
+        backend = CreNexusBackend(app_data_dir=self.root / "development")
+        server = CreNexusHttpServer(backend, port=0)
         server.start()
         try:
             status, headers, _ = self.request(
@@ -172,7 +172,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
 
     def test_request_body_size_and_content_type_are_enforced(self) -> None:
         backend = self.desktop_backend(max_request_body_bytes=32)
-        server = StarBridgeHttpServer(backend, port=0)
+        server = CreNexusHttpServer(backend, port=0)
         server.start()
         try:
             too_large = self.request(
@@ -204,7 +204,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         self.assertEqual("unsupported_content_type", wrong_type[2]["error"]["code"])
 
     def test_invalid_content_length_is_rejected(self) -> None:
-        server = StarBridgeHttpServer(self.desktop_backend(), port=0)
+        server = CreNexusHttpServer(self.desktop_backend(), port=0)
         server.start()
         connection = HTTPConnection(server.host, server.port, timeout=5)
         try:
@@ -223,7 +223,7 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         self.assertEqual("invalid_content_length", payload["error"]["code"])
 
     def test_app_data_override_creates_only_documented_subdirectories(self) -> None:
-        target = self.root / "中文 路径" / "StarBridge"
+        target = self.root / "中文 路径" / "CreNexus"
         with patch.dict(os.environ, {APP_DATA_ENV: str(target)}):
             paths = resolve_app_data_paths()
 
@@ -245,17 +245,17 @@ class DesktopBackendSecurityTests(unittest.TestCase):
         )
 
     def test_history_round_trip_uses_app_data_history_directory(self) -> None:
-        backend = StarBridgeBackend(app_data_dir=self.root / "round trip")
+        backend = CreNexusBackend(app_data_dir=self.root / "round trip")
         backend.route("GET", "/api/recipes/comfyui_txt2img_lifecycle/plan")
 
-        reloaded = StarBridgeBackend(app_data_dir=self.root / "round trip")
+        reloaded = CreNexusBackend(app_data_dir=self.root / "round trip")
         history = reloaded.route("GET", "/api/audit/history")
 
         self.assertEqual(reloaded.app_paths.history_file, reloaded.history_path)
         self.assertEqual(1, history.body["data"]["event_count"])
 
     def test_authenticated_shutdown_stops_server_cleanly(self) -> None:
-        server = StarBridgeHttpServer(self.desktop_backend(), port=0)
+        server = CreNexusHttpServer(self.desktop_backend(), port=0)
         server.start()
 
         status, _, payload = self.request(

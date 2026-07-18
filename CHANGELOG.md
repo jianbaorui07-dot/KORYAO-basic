@@ -74,7 +74,7 @@
   `safe_write_protocol`. Each template bakes in the validate-first / dry-run /
   explicit-confirmation / sandbox-only protocol. Implemented in
   `starbridge_mcp/core/prompts.py`, covered by `tests/test_mcp_prompts.py`.
-* StarBridge now exposes the full MCP surface: Tools (what the client can do),
+* CreNexus now exposes the full MCP surface: Tools (what the client can do),
   Resources (what the client should know), and Prompts (how to do it safely).
 
 ### 2026-06-27 — MCP Resources, regression fix, lint gate
@@ -133,7 +133,7 @@
 
 ### Added
 
-* StarBridge MCP stdio server
+* CreNexus MCP stdio server
 * Safe local bridge status and probes
 * ComfyUI workflow validation
 * AutoCAD DXF dry-run bridge

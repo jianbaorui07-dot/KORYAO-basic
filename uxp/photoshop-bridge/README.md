@@ -1,6 +1,6 @@
-# StarBridge Photoshop UXP Bridge
+# CreNexus Photoshop UXP Bridge
 
-This is the local UXP plugin side of the StarBridge Photoshop bridge.
+This is the local UXP plugin side of the CreNexus Photoshop bridge.
 
 ## Current State
 

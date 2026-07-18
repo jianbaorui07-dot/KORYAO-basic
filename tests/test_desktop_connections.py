@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from starbridge_mcp.backend import SESSION_HEADER, StarBridgeBackend
+from starbridge_mcp.backend import SESSION_HEADER, CreNexusBackend
 from starbridge_mcp.core.app_data import APP_DATA_ENV, resolve_app_data_paths
 from starbridge_mcp.core.desktop_connections import (
     CONNECTOR_BEGIN,
@@ -146,7 +146,7 @@ class DesktopConnectionTests(unittest.TestCase):
 
     def test_desktop_api_enforces_pairing_before_vectorization(self) -> None:
         credential = "desktop-test-credential-0000000000000000000000000001"
-        backend = StarBridgeBackend(
+        backend = CreNexusBackend(
             app_data_dir=self.root / "backend-data",
             session_credential=credential,
             mode="desktop",
@@ -234,7 +234,7 @@ class DesktopConnectionTests(unittest.TestCase):
 
     def test_application_pairing_api_lifecycle_uses_fixed_ids_and_confirmations(self) -> None:
         credential = "desktop-test-credential-0000000000000000000000000002"
-        backend = StarBridgeBackend(
+        backend = CreNexusBackend(
             app_data_dir=self.root / "backend-pair-data",
             session_credential=credential,
             mode="desktop",

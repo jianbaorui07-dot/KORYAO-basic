@@ -50,7 +50,7 @@
     fillRect(doc, "color_block_left", [[80, 330], [500, 330], [500, 760], [80, 760]], rgb(47, 128, 237));
     fillRect(doc, "color_block_right", [[580, 330], [1000, 330], [1000, 760], [580, 760]], rgb(242, 153, 74));
     fillRect(doc, "color_block_footer", [[80, 820], [1000, 820], [1000, 900], [80, 900]], rgb(39, 174, 96));
-    textLayer(doc, "title_text", "StarBridge PS Demo", 72, 80, 170, rgb(28, 35, 49));
+    textLayer(doc, "title_text", "CreNexus PS Demo", 72, 80, 170, rgb(28, 35, 49));
     textLayer(doc, "subtitle_text", "Photoshop sandbox layer export", 34, 84, 230, rgb(80, 92, 112));
 
     var saveOptions = new PhotoshopSaveOptions();

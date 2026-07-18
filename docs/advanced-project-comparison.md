@@ -1,4 +1,4 @@
-# StarBridge 同类先进项目对比
+# CreNexus 同类先进项目对比
 
 调研时间：2026-05-24；2026-05-27 追加公开 GitHub 页面复核。第三方源码只克隆到本机 `third_party_research/`，该目录已加入 `.gitignore`，不进入 GitHub。以下结论来自 README、LICENSE、`requirements.txt`、`package.json`、`pyproject.toml`、启动方式、MCP 配置、工具接口和安全边界的只读分析；没有安装全局依赖、没有登录账号、没有调用真实素材。
 
@@ -6,10 +6,10 @@
 
 本次复核重点看四类成熟项目的 README 呈现方式和可运行入口：
 
-| 项目 | 明显强项 | StarBridge 对应修正 |
+| 项目 | 明显强项 | CreNexus 对应修正 |
 | --- | --- | --- |
 | `daobataotie/CAD-MCP` | 开头就列出 CAD 支持范围、依赖、配置和 MCP Inspector 命令 | 保持 CAD 离线 DXF 与真实 AutoCAD 控制分层，并在 README 增加更短的验证命令 |
-| `contextform/freecad-mcp` | Quick Install、更新、卸载、故障排查都放在 README 一屏内 | StarBridge 先补“三分钟验证”和 npm 快捷命令；完整安装器暂不进入 MVP |
+| `contextform/freecad-mcp` | Quick Install、更新、卸载、故障排查都放在 README 一屏内 | CreNexus 先补“三分钟验证”和 npm 快捷命令；完整安装器暂不进入 MVP |
 | `joenorton/comfyui-mcp-server` | Quick Start 把 ComfyUI 启动、server 启动和 test client 验证拆清楚 | 增加 `comfy:workflow:validate`，先验证 workflow，不直接提交生成任务 |
 | `artokun/comfyui-mcp` | 工具数量、插件/命令/技能清单和自动发现能力很完整 | 增加 `starbridge.tools` 能力清单，但保留 safe-only 过滤，避免工具过宽 |
 
@@ -28,7 +28,7 @@
 | `puran-water/autocad-mcp` | AutoCAD / AutoCAD LT | Python MCP + File IPC + AutoLISP dispatcher + ezdxf headless backend | 是 | 很适合 Codex，尤其 headless DXF fallback | 中：uv、Python、AutoCAD LT 2024+ 可选 LISP；headless 可无 AutoCAD | File IPC 要 Windows 原生 Python；ezdxf 跨平台 | 双 backend、8 个 consolidated tools、AutoLISP dispatcher、无 AutoCAD 时仍可 DXF | 需要用户手动 APPLOAD；真实 DWG 操作风险高 | MIT，风险低 | P0 |
 | `AnCode666/multiCAD-mcp` | AutoCAD/ZWCAD/GstarCAD/BricsCAD | Python FastMCP + Windows COM + adapter/mixin + dashboard | 是 | 适合借鉴 CAD 统一 adapter 架构 | 中高：uv、pywin32、CAD 软件、FastMCP | Windows-only，COM 依赖明确 | 7 个 unified tools 聚合 50+ 命令、adapter manager、diagnostics、日志 | 默认输出目录示例和 dashboard/log 需脱敏；直接控制 CAD 需人工确认 | Apache-2.0，兼容但需保留声明 | P1 |
 | `artokun/comfyui-mcp` | ComfyUI | TypeScript/Node MCP + ComfyUI client + Claude Code plugin/skills/agents/hooks | 是 | 适合借鉴插件化和命令体系，直接引入偏重 | 中高：Node 22+、npm、ComfyUI、可选模型下载/token | README 标注 macOS/Linux/Windows | workflow 执行、可视化、模型/节点发现、skills/commands/agents 组合 | 自动查找/下载模型和输出图像管理会触碰本仓库隐私边界 | MIT，风险低 | P1 |
-| `IO-AtelierTech/comfyui-mcp` | ComfyUI | Python MCP + Pydantic settings + schema validation + workflow layout | 是 | 很适合借鉴 Python 工具分层 | 中：uvx/uv、ComfyUI、workflow env | 跨平台，依赖本机/远程 ComfyUI | system/discovery/workflow/execution 工具拆分、API/UI workflow 区分、workflow 校验 | 示例 env 有真实路径占位，接入时必须统一用 StarBridge 占位和脱敏 | MIT，风险低 | P0 |
+| `IO-AtelierTech/comfyui-mcp` | ComfyUI | Python MCP + Pydantic settings + schema validation + workflow layout | 是 | 很适合借鉴 Python 工具分层 | 中：uvx/uv、ComfyUI、workflow env | 跨平台，依赖本机/远程 ComfyUI | system/discovery/workflow/execution 工具拆分、API/UI workflow 区分、workflow 校验 | 示例 env 有真实路径占位，接入时必须统一用 CreNexus 占位和脱敏 | MIT，风险低 | P0 |
 | `joenorton/comfyui-mcp-server` | ComfyUI | Python MCP streamable HTTP + asset/job/workflow managers | 是 | 适合借鉴状态化作业和 asset identity | 中：pip、ComfyUI、HTTP server | 跨平台，localhost 默认 | streamable HTTP、job polling/cancel、asset registry、publish 管理 | 资产发布和输出目录管理容易泄露项目路径/生成图；asset session 生命周期需文档化 | Apache-2.0，兼容但需保留声明 | P1 |
 | `sun-guannan/VectCutAPI` | 剪映/CapCut | Python/FastAPI + draft JSON + MCP server + pyJianYingDraft | 是 | 适合研究草稿桥，不宜直接纳入 | 中高：Python、FFmpeg、剪映/CapCut、可选云/API | README 提到 Windows venv；实际需本机验证 | draft create/save、字幕/音频/图片/特效工具、MCP 文档 | 项目含云 API、下载、OSS、草稿写入；真实素材和账号边界复杂 | LICENSE 为 Apache 文本但 pyproject classifier 写 MIT，需核对 | P2 |
 | `Hommy-master/capcut-mate` | 剪映/CapCut | FastAPI + Pydantic + 草稿/素材/导出 + 可选 Windows UI 自动化依赖 | 否，偏 REST/API | 可由 Codex 调 REST，但不是 MCP-first | 高：Python 3.11+、uv、FastAPI、可选 pyautogui/uiautomation | Windows extras 明确 | 草稿管理、素材添加、API 文档、本地服务化 | 含云渲染/导出/下载/账号场景，生产边界不适合本仓库 MVP | MIT，风险低 | P2 |
@@ -53,5 +53,5 @@ P1 用于架构参考：
 
 P2/P3 暂不直接迁移源码，只保留调研：
 
-- 许可证或安装路径不清晰、工具过宽、会写用户目录、含云账号/API key、或需要 UXP/全局安装的项目，都不进入 StarBridge MVP。
+- 许可证或安装路径不清晰、工具过宽、会写用户目录、含云账号/API key、或需要 UXP/全局安装的项目，都不进入 CreNexus MVP。
 - 本轮没有项目被标为 P3；但涉及账号登录、云渲染、批量下载、付费能力绕过或自动发布的子功能，一律按 P3 处理。

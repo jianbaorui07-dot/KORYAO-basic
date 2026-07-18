@@ -1,4 +1,4 @@
-"""Compatibility entry point for the three-mode StarBridge vectorization engine."""
+"""Compatibility entry point for the three-mode CreNexus vectorization engine."""
 
 from starbridge_mcp.vectorization.cli import main
 

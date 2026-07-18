@@ -3,7 +3,7 @@ name: starbridge-smart-vector-refinement
 description: Refine raster-to-vector results into seam-free, raster-free cubic Bezier SVG candidates with measured final-render fidelity and lower complexity. Use when the user requests Smart or Artisan vectorization, says an SVG is fragmented or visibly different, reports more than 30% structural difference, wants fewer anchors and more human-drawn curves, needs candidate comparison, or wants a verified Illustrator handoff without Image Trace.
 ---
 
-# StarBridge Smart Vector Refinement
+# CreNexus Smart Vector Refinement
 
 Turn a weak Smart/Artisan result into a measured curve candidate. Preserve existing modes and artifacts; add a refinement pass instead of replacing the original workflow.
 
@@ -49,7 +49,7 @@ python .codex\skills\starbridge-smart-vector-refinement\scripts\trace_curve_cand
   --output-dir "examples/output/vectorization/<reference-id>/curve-a"
 ```
 
-The script uses VTracer stacked spline tracing, flattens translation transforms, clamps coordinates to the canvas, normalizes the SVG to StarBridge's safe path contract, and runs the repository SVG verifier. It does not call Illustrator Image Trace.
+The script uses VTracer stacked spline tracing, flattens translation transforms, clamps coordinates to the canvas, normalizes the SVG to CreNexus's safe path contract, and runs the repository SVG verifier. It does not call Illustrator Image Trace.
 
 ### 3. Render the final SVG
 

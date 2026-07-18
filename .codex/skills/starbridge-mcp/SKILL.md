@@ -1,13 +1,13 @@
 ---
 name: starbridge-mcp
-description: Use StarBridge Creative Software MCP from Codex. Use when the task involves configuring, running, inspecting, validating, or extending the StarBridge MCP stdio server; connecting Codex/Cursor/Claude Code to local creative software bridges; choosing safe MCP tools for Photoshop, Illustrator, ComfyUI, Blender, AutoCAD/DXF, CapCut/Jianying, or Adobe research; debugging MCP tools/list or tools/call; preparing redacted status reports; or deciding whether a request should use MCP, Computer Use, local scripts, or manual user action.
+description: Use CreNexus Creative Software MCP from Codex. Use when the task involves configuring, running, inspecting, validating, or extending the CreNexus MCP stdio server; connecting Codex/Cursor/Claude Code to local creative software bridges; choosing safe MCP tools for Photoshop, Illustrator, ComfyUI, Blender, AutoCAD/DXF, CapCut/Jianying, or Adobe research; debugging MCP tools/list or tools/call; preparing redacted status reports; or deciding whether a request should use MCP, Computer Use, local scripts, or manual user action.
 ---
 
-# StarBridge MCP
+# CreNexus MCP
 
 ## Core Rule
 
-Treat StarBridge as a local-first, safety-first MCP layer. Prefer structured, redacted, dry-run or read-only tools before GUI automation or real desktop writes.
+Treat CreNexus as a local-first, safety-first MCP layer. Prefer structured, redacted, dry-run or read-only tools before GUI automation or real desktop writes.
 
 Never read private assets, model folders, customer drawings, PSD/AI/DWG/AEP/PRPROJ/INDD projects, CapCut drafts, browser profiles, OAuth caches, Creative Cloud caches, generated images, rendered video, or local output folders unless the user explicitly provides a public test file and the repository contract allows it.
 
@@ -22,7 +22,7 @@ Read only the files relevant to the task:
 - Adobe research: `docs/adobe-mcp-github-research.md`, `docs/github-comparison.md`
 - Computer Use routing: `docs/07-codex-computer-use.md`
 
-For code changes to MCP tools, also use the local StarBridge code-engineering rules if present at `.codex/skills/starbridge-code-engineer/SKILL.md`. For CI or release validation, also use `.codex/skills/starbridge-preflight-skill/SKILL.md`.
+For code changes to MCP tools, also use the local CreNexus code-engineering rules if present at `.codex/skills/starbridge-code-engineer/SKILL.md`. For CI or release validation, also use `.codex/skills/starbridge-preflight-skill/SKILL.md`.
 
 ## Specialized Skills
 
@@ -132,7 +132,7 @@ If local software is unavailable, report it as unavailable or skipped. Do not tu
 
 ## Response Format
 
-When finishing a StarBridge MCP task, report:
+When finishing a CreNexus MCP task, report:
 
 - What changed or what was inspected.
 - Which MCP/client path was used.

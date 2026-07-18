@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/protocols/photoshop/node_proxy_rpc.v1.schema.json",
-  "title": "StarBridge Photoshop Node Proxy RPC v1",
+  "title": "CreNexus Photoshop Node Proxy RPC v1",
   "type": "object",
   "required": ["jsonrpc", "id", "method", "params"],
   "additionalProperties": false,

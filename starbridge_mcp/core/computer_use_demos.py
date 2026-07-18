@@ -238,7 +238,7 @@ def build_capcut_gui_demo(
 def illustrator_svg_fallback() -> str:
     return """<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
   <rect width="1080" height="1080" fill="#f7f7f2"/>
-  <text x="90" y="150" font-family="Arial, sans-serif" font-size="68" fill="#111827">StarBridge Vector Demo</text>
+  <text x="90" y="150" font-family="Arial, sans-serif" font-size="68" fill="#111827">CreNexus Vector Demo</text>
   <line x1="90" y1="220" x2="990" y2="220" stroke="#2563eb" stroke-width="10"/>
   <circle cx="260" cy="520" r="120" fill="#10b981" opacity="0.85"/>
   <polygon points="560,390 710,650 410,650" fill="#f59e0b" opacity="0.88"/>

@@ -1,10 +1,10 @@
-# StarBridge 产品化审计
+# CreNexus 产品化审计
 
 > 当前审计基线：`origin/main` 提交 `fad9268`，审计日期 2026-07-18。早期基线 `86371fd` 的审计结论已过时，不再作为当前产品事实。
 
 ## 当前结论
 
-仓库已经拥有 Python CLI、StarBridge MCP、Tool Registry、safe roots、路径脱敏、确认门、EvidenceManifest、JobStatus、四种矢量化引擎、Tauri 2 + React 桌面端、Python sidecar、NSIS/更新器代码和多种创意软件桥。架构升级必须保留这些能力，通过兼容层和 Workflow Engine 逐步迁移，不能推倒重写。
+仓库已经拥有 Python CLI、CreNexus MCP、Tool Registry、safe roots、路径脱敏、确认门、EvidenceManifest、JobStatus、四种矢量化引擎、Tauri 2 + React 桌面端、Python sidecar、NSIS/更新器代码和多种创意软件桥。架构升级必须保留这些能力，通过兼容层和 Workflow Engine 逐步迁移，不能推倒重写。
 
 审计中前四项缺口已在 `codex/workflow-foundation` 实施，当前剩余发布与第三方软件验收缺口为：
 

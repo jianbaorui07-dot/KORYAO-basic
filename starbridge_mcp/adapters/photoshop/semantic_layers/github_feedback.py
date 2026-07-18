@@ -5,7 +5,7 @@ import os
 import re
 import secrets
 import subprocess
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -63,7 +63,7 @@ def build_manifest_feedback(
     return {
         "schema_version": FEEDBACK_SCHEMA_VERSION,
         "event_id": secrets.token_hex(8),
-        "day_utc": datetime.now(UTC).date().isoformat(),
+        "day_utc": datetime.now(timezone.utc).date().isoformat(),
         "event_type": event_type,
         "pipeline_version": str(manifest.get("pipeline", {}).get("version") or "unknown"),
         "strategy": str(manifest.get("strategy", {}).get("id") or "unknown"),
@@ -110,7 +110,7 @@ def build_batch_feedback(
     return {
         "schema_version": FEEDBACK_SCHEMA_VERSION,
         "event_id": secrets.token_hex(8),
-        "day_utc": datetime.now(UTC).date().isoformat(),
+        "day_utc": datetime.now(timezone.utc).date().isoformat(),
         "event_type": "batch",
         "pipeline_version": "batch_v1",
         "strategy": "mixed_or_configured",

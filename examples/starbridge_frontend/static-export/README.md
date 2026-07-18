@@ -1,6 +1,6 @@
-# StarBridge Console Static Export
+# CreNexus Console Static Export
 
-This directory contains a packaged static export of the StarBridge Creative Console.
+This directory contains a packaged static export of the CreNexus Creative Console.
 
 - `index.html` is the exported console page.
 - `support.js` is the runtime required by the exported page.

@@ -1,13 +1,13 @@
 ---
 name: starbridge-photoshop-mcp
-description: Use StarBridge Photoshop MCP safely from Codex. Use when the user mentions Photoshop, PS, PSD, layers, document info, subject cutout, camera raw, BatchPlay validation, Photoshop recipes, Photoshop COM, UXP or node proxy, or asks Codex to inspect or extend Photoshop-related StarBridge MCP tools.
+description: Use CreNexus Photoshop MCP safely from Codex. Use when the user mentions Photoshop, PS, PSD, layers, document info, subject cutout, camera raw, BatchPlay validation, Photoshop recipes, Photoshop COM, UXP or node proxy, or asks Codex to inspect or extend Photoshop-related CreNexus MCP tools.
 ---
 
-# StarBridge Photoshop MCP
+# CreNexus Photoshop MCP
 
 ## Core Rule
 
-Treat Photoshop as a local authorized desktop app with private user assets. Prefer StarBridge read-only probes, document summaries, recipe plans, and validation before any GUI action or export.
+Treat Photoshop as a local authorized desktop app with private user assets. Prefer CreNexus read-only probes, document summaries, recipe plans, and validation before any GUI action or export.
 
 Do not open private PSD files, scan source-image folders, run arbitrary JSX/BatchPlay, save/export real artwork, read Creative Cloud cache, or write outside approved sandbox output.
 

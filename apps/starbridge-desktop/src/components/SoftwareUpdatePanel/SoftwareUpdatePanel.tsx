@@ -21,7 +21,7 @@ interface SoftwareUpdatePanelProps {
 function progressLabel(progress: SoftwareUpdateProgress | null): string {
   if (!progress || progress.event === "started") return "正在下载签名更新包…";
   if (progress.event === "verified") return "签名验证通过，正在安全关闭本地任务…";
-  if (progress.event === "installing") return "正在启动安装程序，StarBridge 将自动关闭。";
+  if (progress.event === "installing") return "正在启动安装程序，CreNexus 将自动关闭。";
   const { contentLength, downloadedBytes } = progress.data;
   if (!contentLength) return `已下载 ${Math.round(downloadedBytes / 1024 / 1024)} MB`;
   return `已下载 ${Math.min(100, Math.round((downloadedBytes / contentLength) * 100))}%`;
@@ -53,7 +53,7 @@ export function SoftwareUpdatePanel({
         <div>
           <h3>软件更新</h3>
           <p>
-            正式版本发布到 GitHub 后，StarBridge 会检查签名更新。只请求版本信息，
+            正式版本发布到 GitHub 后，CreNexus 会检查签名更新。只请求版本信息，
             不上传图片、设计文件、授权文件或使用数据。
           </p>
         </div>
@@ -98,7 +98,7 @@ export function SoftwareUpdatePanel({
           <div className="update-version-row">
             <div>
               <span>发现新版本</span>
-              <strong>StarBridge v{status.version}</strong>
+              <strong>CreNexus v{status.version}</strong>
             </div>
             <small>当前 v{status.currentVersion}</small>
           </div>

@@ -1,6 +1,6 @@
 # 安装和发布路径
 
-这份文档把 StarBridge 从“能跑的工程仓库”整理成更像产品的安装入口和发布路线。当前仓库仍是 `v0.1-alpha`，下面的 PyPI、npm 和 MCP registry 步骤是发布路径，不代表已经正式发布。
+这份文档把 CreNexus 从“能跑的工程仓库”整理成更像产品的安装入口和发布路线。当前仓库仍是 `v0.1-alpha`，下面的 PyPI、npm 和 MCP registry 步骤是发布路径，不代表已经正式发布。
 
 ## 一键本机检查
 
@@ -36,7 +36,7 @@ powershell -ExecutionPolicy Bypass -File .\bootstrap.ps1 -Profile auto
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-from-url.ps1 `
-  -RepositoryUrl "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git"
+  -RepositoryUrl "https://github.com/jianbaorui07-dot/CreNexus.git"
 ```
 
 安装脚本按能力探针适配版本，不以正版校验或固定版本白名单阻断 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI 和剪映/CapCut；桌面软件授权、登录和激活仍由用户自行负责，脚本不会绕过这些机制。

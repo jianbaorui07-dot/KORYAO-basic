@@ -1,6 +1,6 @@
-# StarBridge 本地后端
+# CreNexus 本地后端
 
-StarBridge 的本地 HTTP 后端复用现有 MCP 工具、工作流、Evidence（证据摘要）和安全规则。它没有增加新的软件写入权限，也不会因为提供 HTTP 接口而绕过原有的 `confirm_write`、`confirm_export` 或 `confirm_run` 确认门槛。
+CreNexus 的本地 HTTP 后端复用现有 MCP 工具、工作流、Evidence（证据摘要）和安全规则。它没有增加新的软件写入权限，也不会因为提供 HTTP 接口而绕过原有的 `confirm_write`、`confirm_export` 或 `confirm_run` 确认门槛。
 
 ## 两种运行模式
 
@@ -42,11 +42,11 @@ npm.cmd run app:dev
 
 P1 采用方案 A：React 组件通过 Tauri `invoke` 调用 Rust 代理，由 Rust 访问 Python 后端。会话令牌只保存在 Rust 进程内存中，不暴露给 WebView。桌面模式不接受浏览器来源，因此不会返回 `Access-Control-Allow-Origin: *`，也不依赖 CORS 来保护令牌。
 
-现有网页开发模式继续使用受限来源的 HTTP 客户端。React 组件统一调用 `StarBridgeApiClient`，不直接保存端口或令牌。
+现有网页开发模式继续使用受限来源的 HTTP 客户端。React 组件统一调用 `CreNexusApiClient`，不直接保存端口或令牌。
 
 ## 身份验证
 
-`GET /api/health` 是唯一无需会话令牌的启动探测接口，只返回最小服务状态。其他 `/api` 路由都要求当前桌面会话的 `X-StarBridge-Session` 请求头，包括：
+`GET /api/health` 是唯一无需会话令牌的启动探测接口，只返回最小服务状态。其他 `/api` 路由都要求当前桌面会话的 `X-CreNexus-Session` 请求头，包括：
 
 - `/api/bootstrap`、状态、能力和资源查询；
 - recipe plan、Evidence 和 guarded run；
@@ -70,7 +70,7 @@ P1 采用方案 A：React 组件通过 Tauri `invoke` 调用 Rust 代理，由 R
 正式 Windows 桌面模式默认使用：
 
 ```text
-%LOCALAPPDATA%\StarBridge\
+%LOCALAPPDATA%\CreNexus\
 ├─ data\
 ├─ history\
 ├─ logs\

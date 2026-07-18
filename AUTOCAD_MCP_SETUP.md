@@ -6,7 +6,7 @@
 
 Selected project: https://github.com/daobataotie/CAD-MCP
 
-Reason: it targets Windows CAD through COM and supports AutoCAD, GstarCAD, and ZWCAD. This matches the StarBridge direction: let Codex call local CAD software through a controlled bridge.
+Reason: it targets Windows CAD through COM and supports AutoCAD, GstarCAD, and ZWCAD. This matches the CreNexus direction: let Codex call local CAD software through a controlled bridge.
 
 ## Local Path Policy
 

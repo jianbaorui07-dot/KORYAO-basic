@@ -1,10 +1,10 @@
-# StarBridge Computer Use Architecture
+# CreNexus Computer Use Architecture
 
-StarBridge is a Codex automation bridge for Windows creative software. It combines Windows Computer Use for foreground GUI work, structured tools for deterministic outputs, and safety guards for local-first execution.
+CreNexus is a Codex automation bridge for Windows creative software. It combines Windows Computer Use for foreground GUI work, structured tools for deterministic outputs, and safety guards for local-first execution.
 
 ## Positioning
 
-StarBridge lets Codex use scripts, APIs, CLI tools, COM, JSX, UXP, SVG, DXF, and workflow JSON where those channels are stable. It also prepares explicit Windows Computer Use plans for software tasks that need the real GUI, such as Photoshop layers, Illustrator export dialogs, Blender windows, AutoCAD views, or CapCut timelines.
+CreNexus lets Codex use scripts, APIs, CLI tools, COM, JSX, UXP, SVG, DXF, and workflow JSON where those channels are stable. It also prepares explicit Windows Computer Use plans for software tasks that need the real GUI, such as Photoshop layers, Illustrator export dialogs, Blender windows, AutoCAD views, or CapCut timelines.
 
 The repository does not call a private OpenAI or Codex Computer Use API from Python. The real GUI executor is Codex itself. This repo provides plans, protocols, safety checks, instructions, logs, and evidence formats.
 
@@ -20,7 +20,7 @@ Use this first when a task can be completed deterministically through scripts or
 
 3. Safety Guard Layer
 
-All GUI and write-capable plans are guarded. Defaults are dry-run and no user file overwrite. Real writes require `--confirm-write`. GUI operation requires `--allow-computer-use`. Destructive operations require a separate human checkpoint. StarBridge never enters passwords, tokens, verification codes, payment data, or account credentials.
+All GUI and write-capable plans are guarded. Defaults are dry-run and no user file overwrite. Real writes require `--confirm-write`. GUI operation requires `--allow-computer-use`. Destructive operations require a separate human checkpoint. CreNexus never enters passwords, tokens, verification codes, payment data, or account credentials.
 
 ## Limits
 

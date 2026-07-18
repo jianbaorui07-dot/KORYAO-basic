@@ -1,4 +1,4 @@
-# StarBridge 官网候选
+# CreNexus 官网候选
 
 这是未发布的静态官网源码，不是桌面应用，也没有与现有 `chatgpt.site` 建立可验证部署关系。
 

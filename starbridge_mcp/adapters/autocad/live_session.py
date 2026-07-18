@@ -69,7 +69,9 @@ def _iso_datetime(value: Any) -> str:
     return normalized
 
 
-def normalize_live_update(value: dict[str, Any], expected_bridge: str | None = None) -> dict[str, Any]:
+def normalize_live_update(
+    value: dict[str, Any], expected_bridge: str | None = None
+) -> dict[str, Any]:
     """Validate and minimize one cross-application Codex progress update."""
     if not isinstance(value, dict):
         raise ValueError("session_update_must_be_object")
@@ -122,8 +124,7 @@ def format_autocad_prompt(value: dict[str, Any]) -> str:
     update = normalize_live_update(value, expected_bridge="autocad")
     step = update["step"]
     return (
-        f"\n[Codex {update['progress']}% · {step['index']}/{step['total']}] "
-        f"{update['message']}\n"
+        f"\n[Codex {update['progress']}% · {step['index']}/{step['total']}] {update['message']}\n"
     )
 
 

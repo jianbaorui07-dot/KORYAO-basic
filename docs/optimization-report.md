@@ -1,4 +1,4 @@
-# StarBridge 优化报告
+# CreNexus 优化报告
 
 时间：2026-05-24
 
@@ -22,7 +22,7 @@ python -m starbridge_mcp.server --json
 - 新增 `.env.example`、`scripts/setup_starbridge.ps1`、[docs/local-mcp-setup.md](local-mcp-setup.md)。
 - 新增 `tests/test_starbridge_schema.py` 和 `tests/test_security_boundaries.py`。
 - 补强 `.gitignore`，覆盖 `research_repos/`、`third_party_research/`、模型、PSD、AI、DWG、DXF、视频、剪映草稿和临时输出。
-- 更新 README，把项目定位为 “StarBridge：Codex 本地创意软件 MCP 桥接框架”。
+- 更新 README，把项目定位为 “CreNexus：Codex 本地创意软件 MCP 桥接框架”。
 - 补强旧 `examples/bridge_status.py` 的输出脱敏，避免 JSON 状态里出现真实用户目录。
 
 ## 当前能力矩阵
@@ -96,7 +96,7 @@ python scripts\security_check.py
 security check passed
 ```
 
-### StarBridge 统一入口验证
+### CreNexus 统一入口验证
 
 命令：
 
@@ -114,7 +114,7 @@ ok, bridge, action, message, details, warnings, next_steps
 
 时间：2026-05-24
 
-本轮只基于已提交的 StarBridge MVP 做增量增强，没有修改未跟踪的 CAD MVP 根目录文件。
+本轮只基于已提交的 CreNexus MVP 做增量增强，没有修改未跟踪的 CAD MVP 根目录文件。
 
 完成内容：
 
@@ -137,7 +137,7 @@ ok, bridge, action, message, details, warnings, next_steps
   - `cad_autocad` -> `autocad`
   - `capcut_jianying` -> `jianying_capcut`
 - 新增 [docs/starbridge-tool-roadmap.md](starbridge-tool-roadmap.md)，规划 `status`、`probe`、`open_file`、`read_document_info`、`export_result`、`run_script`。
-- 新增 [docs/codex-usage-prompts.md](codex-usage-prompts.md)，整理未来 Codex 调用 StarBridge 的标准提示词。
+- 新增 [docs/codex-usage-prompts.md](codex-usage-prompts.md)，整理未来 Codex 调用 CreNexus 的标准提示词。
 - 增加 schema 测试，覆盖所有 bridge profile 的统一返回字段。
 
 第二轮验证结果：
@@ -206,7 +206,7 @@ security check passed
 
 时间：2026-05-24
 
-本轮只处理第一台电脑负责的 StarBridge 核心安全输出，不开发新 bridge，不扩展 ComfyUI，不扩展剪映 / CapCut，也不修改 CI、SECURITY、CONTRIBUTING 或发布审计文档。
+本轮只处理第一台电脑负责的 CreNexus 核心安全输出，不开发新 bridge，不扩展 ComfyUI，不扩展剪映 / CapCut，也不修改 CI、SECURITY、CONTRIBUTING 或发布审计文档。
 
 完成内容：
 
@@ -286,7 +286,7 @@ Ran 224 tests OK
 
 时间：2026-06-27
 
-继第四轮的 Resources 之后，补齐 MCP 第三个标准原语 **Prompts**，让 StarBridge 完整暴露 Tools + Resources + Prompts，对齐同类成熟 MCP server 的完整能力面。
+继第四轮的 Resources 之后，补齐 MCP 第三个标准原语 **Prompts**，让 CreNexus 完整暴露 Tools + Resources + Prompts，对齐同类成熟 MCP server 的完整能力面。
 
 完成内容：
 

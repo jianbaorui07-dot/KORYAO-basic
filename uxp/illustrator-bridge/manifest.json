@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
   "id": "com.starbridge.illustrator.bridge.experimental",
-  "name": "StarBridge Illustrator Bridge (Experimental)",
+  "name": "CreNexus Illustrator Bridge (Experimental)",
   "version": "0.2.0",
   "main": "index.html",
   "host": {
@@ -20,7 +20,7 @@
     {
       "type": "panel",
       "id": "starbridgeIllustratorPanel",
-      "label": {"default": "StarBridge"},
+      "label": {"default": "CreNexus"},
       "minimumSize": {"width": 260, "height": 300},
       "preferredDockedSize": {"width": 300, "height": 480},
       "preferredFloatingSize": {"width": 340, "height": 520}

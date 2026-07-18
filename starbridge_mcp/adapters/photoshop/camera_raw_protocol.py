@@ -162,7 +162,7 @@ def build_camera_raw_tune_protocol(
         "source": source,
         "output": output,
         "descriptor_status": "missing",
-        "execution_path": ["Codex", "StarBridge MCP", "Node Proxy", "UXP Plugin", "Photoshop"],
+        "execution_path": ["Codex", "CreNexus MCP", "Node Proxy", "UXP Plugin", "Photoshop"],
         "safety": {
             "dry_run_default": True,
             "requires_confirm_apply_for_real_apply": True,

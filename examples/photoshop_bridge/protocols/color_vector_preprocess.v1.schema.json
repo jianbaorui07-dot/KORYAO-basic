@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/color_vector_preprocess.v1.schema.json",
-  "title": "StarBridge Photoshop Color Vector Preprocess Plan",
+  "title": "CreNexus Photoshop Color Vector Preprocess Plan",
   "type": "object",
   "additionalProperties": false,
   "required": [

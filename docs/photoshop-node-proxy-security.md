@@ -2,7 +2,7 @@
 
 ## 目标
 
-Photoshop UXP 插件为了让本机 MCP 非交互地导出 sandbox 预览，当前仍声明 `localFileSystem: fullAccess`。该权限只表示宿主允许访问文件系统，不代表 StarBridge 接受任意路径。Node Proxy 和 UXP 必须继续执行更窄的运行时边界。
+Photoshop UXP 插件为了让本机 MCP 非交互地导出 sandbox 预览，当前仍声明 `localFileSystem: fullAccess`。该权限只表示宿主允许访问文件系统，不代表 CreNexus 接受任意路径。Node Proxy 和 UXP 必须继续执行更窄的运行时边界。
 
 ## 请求边界
 
@@ -42,7 +42,7 @@ Node Proxy 从自身源码位置推导仓库根目录，不信任调用方传入
 - UXP 全部成功后，Node Proxy 才把临时文件提升为最终文件并计算 SHA-256；失败时只清理本任务精确命名的应用拥有文件。
 - 普通 RPC 的代理等待上限为 8 秒；固定生产 RPC 配合 UXP 模态上限使用 55 秒等待，超时返回结构化错误并清理尚未提升的应用临时文件。
 
-Adobe 官方 UXP 文件权限文档建议优先使用插件专属目录或文件选择器。StarBridge 保留 `fullAccess` 只为已确认的本机自动化预览；不得把它扩展为任意文件读取、删除或覆盖能力。
+Adobe 官方 UXP 文件权限文档建议优先使用插件专属目录或文件选择器。CreNexus 保留 `fullAccess` 只为已确认的本机自动化预览；不得把它扩展为任意文件读取、删除或覆盖能力。
 
 ## BatchPlay sandbox
 

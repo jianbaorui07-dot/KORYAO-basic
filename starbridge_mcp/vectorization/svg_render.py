@@ -175,7 +175,7 @@ def render_verified_svg(
     output_width: int | None = None,
     output_height: int | None = None,
 ) -> dict[str, Any]:
-    """Render StarBridge's verified path-only SVG dialect without external applications."""
+    """Render CreNexus's verified path-only SVG dialect without external applications."""
     if supersample not in {1, 2, 3, 4}:
         raise SvgRenderError("Supersampling must be between one and four.")
     try:

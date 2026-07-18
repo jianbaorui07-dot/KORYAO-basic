@@ -1,4 +1,4 @@
-"""StarBridge MCP read-only resources.
+"""CreNexus MCP read-only resources.
 
 Following the MCP convention "resources describe what the client should know,
 tools describe what the client can do", this module exposes static, sanitized
@@ -22,7 +22,7 @@ JsonObject = dict[str, Any]
 # the optional `instructions` field to teach the client how to use the server
 # safely before it issues any tool call.
 SERVER_INSTRUCTIONS = (
-    "StarBridge bridges AI agents to local creative software (ComfyUI, Blender, "
+    "CreNexus bridges AI agents to local creative software (ComfyUI, Blender, "
     "AutoCAD/DXF, Photoshop, Illustrator, CapCut/Jianying) on a Windows-first, "
     "local-first, safe-by-default basis.\n\n"
     "Read the `starbridge://safety-policy` resource first. Read-only probe, "
@@ -35,9 +35,9 @@ SERVER_INSTRUCTIONS = (
     "opens private assets, logs in, pays, or bypasses licensing."
 )
 
-SAFETY_POLICY_MARKDOWN = """# StarBridge Safety Policy
+SAFETY_POLICY_MARKDOWN = """# CreNexus Safety Policy
 
-StarBridge is local-first and safe-by-default. Read this before calling any tool
+CreNexus is local-first and safe-by-default. Read this before calling any tool
 that writes or launches local software.
 
 ## Default posture
@@ -75,7 +75,7 @@ def _bridge_profiles_payload() -> JsonObject:
     return sanitize(
         {
             "ok": True,
-            "framework": "StarBridge",
+            "framework": "CreNexus",
             "resource": "bridges",
             "bridge_count": len(BRIDGE_PROFILES),
             "bridges": {name: dict(profile) for name, profile in BRIDGE_PROFILES.items()},
@@ -92,15 +92,15 @@ _RESOURCE_TABLE: tuple[tuple[str, str, str, str, str], ...] = (
     (
         "starbridge://capabilities",
         "starbridge-capabilities",
-        "StarBridge Capability Matrix",
-        "Full StarBridge tool capability registry with risk level, maturity, and "
+        "CreNexus Capability Matrix",
+        "Full CreNexus tool capability registry with risk level, maturity, and "
         "confirmation metadata. Read-only.",
         "application/json",
     ),
     (
         "starbridge://safe-roots",
         "starbridge-safe-roots",
-        "StarBridge Safe Roots",
+        "CreNexus Safe Roots",
         "Repo-relative read-only and writable sandbox roots, write policy, and MCP "
         "roots alignment hints. Read-only.",
         "application/json",
@@ -108,7 +108,7 @@ _RESOURCE_TABLE: tuple[tuple[str, str, str, str, str], ...] = (
     (
         "starbridge://bridges",
         "starbridge-bridges",
-        "StarBridge Bridge Profiles",
+        "CreNexus Bridge Profiles",
         "Static per-bridge metadata: target software, probe type, required env "
         "vars, readiness condition, and safety boundary. Read-only.",
         "application/json",
@@ -116,7 +116,7 @@ _RESOURCE_TABLE: tuple[tuple[str, str, str, str, str], ...] = (
     (
         "starbridge://safety-policy",
         "starbridge-safety-policy",
-        "StarBridge Safety Policy",
+        "CreNexus Safety Policy",
         "The safe-by-default protocol: dry-run defaults, confirmation flags, output "
         "boundaries, and out-of-scope actions. Read-only.",
         "text/markdown",

@@ -157,7 +157,7 @@ def build_operation_context(
     parent_context_id: str | None = None,
 ) -> dict[str, Any]:
     if bridge not in BRIDGES:
-        raise ValueError("bridge must be a supported StarBridge bridge")
+        raise ValueError("bridge must be a supported CreNexus bridge")
     action = _ensure_identifier("action", action)
     operation_id = _ensure_identifier("operation_id", operation_id)
     if phase not in PHASES:

@@ -18,7 +18,7 @@ Codex 接入 Photoshop 可以分成三层：
 
 Camera Raw tuning 是实验能力。V1 支持参数规划和安全验证；真实 Photoshop apply 需要已验证的本机 BatchPlay descriptor 和显式确认。当前结构化链路是：
 
-`Codex -> StarBridge MCP -> Node Proxy -> UXP Plugin -> Photoshop`
+`Codex -> CreNexus MCP -> Node Proxy -> UXP Plugin -> Photoshop`
 
 `ps.camera_raw.tune` 不自动拖动 Camera Raw modal UI。默认 `dry_run=true` 只返回计划；`dry_run=false` 必须同时提供 `confirm_apply=true`。在没有已审 Camera Raw Filter descriptor fixture 前，真实 apply 会返回 `camera_raw_batchplay_descriptor_not_recorded`。
 

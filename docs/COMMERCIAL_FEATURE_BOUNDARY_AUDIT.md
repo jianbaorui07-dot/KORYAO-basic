@@ -1,4 +1,4 @@
-# StarBridge 公开 MIT 与商业功能边界审计
+# CreNexus 公开 MIT 与商业功能边界审计
 
 审计基线：`503afa79c32c42b82acece7f51a12012a6709af0`  
 审计日期：2026-07-17  
@@ -71,7 +71,7 @@
 
 当前 `LICENSE` 的版权行为：
 
-> Copyright (c) 2025 曹瑞 and StarBridge contributors
+> Copyright (c) 2025 曹瑞 and CreNexus contributors
 
 Git 历史只能证明该文本已进入公开仓库，不能证明“曹瑞”、GitHub 仓库所有者、未来收款主体和代码签名证书主体之间的法律关系。该问题需要产品所有者在正式收费、申请代码签名证书或签署用户协议前确认。
 

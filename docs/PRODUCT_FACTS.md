@@ -1,4 +1,4 @@
-# StarBridge 产品事实
+# CreNexus 产品事实
 
 本文与 `product/product-manifest.json` 共同构成产品状态的单一事实源。当前产品版本为 `0.1.0-alpha.0`；Python 包使用等价的 PEP 440 版本 `0.1.0a0`。能力矩阵的修订号不是产品版本。
 

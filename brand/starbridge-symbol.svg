@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc" data-source="starbridge-symbol">
-  <title id="title">StarBridge 星桥轨迹标志</title>
+  <title id="title">CreNexus 创枢轨迹标志</title>
   <desc id="desc">两条桥梁轨迹形成开放回旋，在右上方连接一个四角星节点。</desc>
   <g id="starbridge-symbol">
     <rect data-role="field" x="4" y="4" width="56" height="56" rx="14" fill="#153A73"/>

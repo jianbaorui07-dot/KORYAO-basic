@@ -55,7 +55,7 @@ principle as the reverse pipeline's "geometry engine, not pixels" boundary.
 
 ## Reproducing locally (COM transport, Windows)
 
-The transport is the StarBridge Illustrator pattern: attach to the **already
+The transport is the CreNexus Illustrator pattern: attach to the **already
 running** Illustrator and inject a JSX string prefixed with a config block.
 Paths below are placeholders — never commit machine-specific paths.
 

@@ -1,6 +1,6 @@
 # Codex 版本配置协同服务
 
-`starbridge-version-coordinator` 是一个自包含 Codex 插件。它先根据客户的软件版本和 StarBridge v5-v9 代际生成安全路由计划，再把已通过能力探针的动作交给完整 StarBridge MCP。版本号只是协同信息，不是正版校验或版本白名单；协调器本身不读取客户素材、不扫描安装目录、不启动桌面软件，也不写配置或工程文件。
+`starbridge-version-coordinator` 是一个自包含 Codex 插件。它先根据客户的软件版本和 CreNexus v5-v9 代际生成安全路由计划，再把已通过能力探针的动作交给完整 CreNexus MCP。版本号只是协同信息，不是正版校验或版本白名单；协调器本身不读取客户素材、不扫描安装目录、不启动桌面软件，也不写配置或工程文件。
 
 ## 三分钟接入 Codex
 
@@ -25,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File plugins\starbridge-version-coordinator\
 安装后新建一个 Codex 任务，并说：
 
 ```text
-请按 Photoshop 25.5、Illustrator 30.0 和 StarBridge v8 生成 safe 配置，并给出迁移到 v9 的最短步骤。
+请按 Photoshop 25.5、Illustrator 30.0 和 CreNexus v8 生成 safe 配置，并给出迁移到 v9 的最短步骤。
 ```
 
 也可以在安装前直接验证自包含服务：
@@ -48,7 +48,7 @@ python plugins\starbridge-version-coordinator\scripts\version_coordinator_mcp.py
 
 Photoshop 和 Illustrator 的 UXP manifest 仍保留 `minVersion` 作为偏好提示，但不再把它当作阻断门槛；旧版、厂商后缀版和未知版都先进入只读能力探针。兼容性由探针和能力测试确认，不能把“探针通过”误写成桌面写入已验收。
 
-## StarBridge v5-v9 迁移
+## CreNexus v5-v9 迁移
 
 | 代际 | 新增档位 | 迁移行为 |
 | --- | --- | --- |

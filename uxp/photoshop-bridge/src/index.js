@@ -152,7 +152,7 @@ function cameraRawPlan(params = {}) {
         export_after_apply: Boolean(rawOutput.export_after_apply),
       },
       descriptor_status: "missing",
-      execution_path: ["Codex", "StarBridge MCP", "Node Proxy", "UXP Plugin", "Photoshop"],
+      execution_path: ["Codex", "CreNexus MCP", "Node Proxy", "UXP Plugin", "Photoshop"],
     },
   };
 }
@@ -208,7 +208,7 @@ async function cameraRawTune(params) {
     };
   }
   if (params?.descriptor_fixture_verified === true && Array.isArray(params?.descriptors) && params.descriptors.length) {
-    return runModalJob("ps.camera_raw.tune", { commandName: "StarBridge Camera Raw Tune" }, async () => {
+    return runModalJob("ps.camera_raw.tune", { commandName: "CreNexus Camera Raw Tune" }, async () => {
       const batchplayResult = await action.batchPlay(params.descriptors, { synchronousExecution: true, modalBehavior: "execute" });
       return {
         ok: true,
@@ -224,7 +224,7 @@ async function cameraRawTune(params) {
       };
     });
   }
-  return runModalJob("ps.camera_raw.tune", { commandName: "StarBridge Camera Raw Tune" }, async () => ({
+  return runModalJob("ps.camera_raw.tune", { commandName: "CreNexus Camera Raw Tune" }, async () => ({
     ok: false,
     dry_run: false,
     confirm_apply: true,
@@ -534,7 +534,7 @@ async function previewExport(params) {
     return { ok: false, message: "output_path is required for real preview export." };
   }
   assertSandboxOutputPath(params);
-  return runModalJob("ps.preview.export", { commandName: "StarBridge Preview Export" }, async () => {
+  return runModalJob("ps.preview.export", { commandName: "CreNexus Preview Export" }, async () => {
     const fileEntry = await saveActiveDocumentAsPng(document, absolutePath);
     return {
       ok: true,
@@ -568,7 +568,7 @@ async function batchplayExecuteConfirmed(params) {
     descriptors,
     requireConfirmation: Boolean(params?.confirm_write),
     sandboxOnly: true,
-    commandName: "StarBridge Typed BatchPlay",
+    commandName: "CreNexus Typed BatchPlay",
   });
   const document = activeDocumentOrNull();
   return {

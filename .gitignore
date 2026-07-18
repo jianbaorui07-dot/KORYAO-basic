@@ -14,13 +14,13 @@ __pycache__/
 !.env.example
 .codex/config.toml
 *.starbridge-license
-StarBridge-license-request-*.json
+CreNexus-license-request-*.json
 starbridge-license-private*
 .venv/
 .venv-build/
 venv/
 
-# StarBridge Desktop 本地产物
+# CreNexus Desktop 本地产物
 apps/starbridge-desktop/node_modules/
 apps/starbridge-desktop/dist/
 apps/starbridge-desktop/build/

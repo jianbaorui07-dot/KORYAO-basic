@@ -427,8 +427,8 @@ function App() {
       <ArtField activeColor={activeColor} />
       <div className="grid-veil" />
 
-      <aside className="side-rail" aria-label="StarBridge">
-        <div className="rail-mark" title="StarBridge">
+      <aside className="side-rail" aria-label="CreNexus">
+        <div className="rail-mark" title="CreNexus">
           <GitBranch size={22} />
         </div>
         {[Radar, Layers3, ShieldCheck, FileJson, Gauge].map((Icon, index) => (
@@ -444,7 +444,7 @@ function App() {
             <span className={error ? 'is-offline' : ''} />
             {error ? 'Backend offline' : `Backend connected: ${API_BASE}`}
           </div>
-          <h1>StarBridge Creative Workbench</h1>
+          <h1>CreNexus Creative Workbench</h1>
           <p>
             面向 Photoshop、Blender、CAD 和 ComfyUI 的本地优先控制台：选择软件桥，选择已审查 recipe，预览计划和证据，再确认一次安全执行请求。
           </p>

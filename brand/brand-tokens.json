@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "brand": {
-    "name": "StarBridge",
-    "descriptorZh": "本地创意工作台",
-    "conceptZh": "星桥轨迹"
+    "name": "CreNexus",
+    "descriptorZh": "AI 创意软件协同平台",
+    "conceptZh": "创枢轨迹"
   },
   "fontFamily": {
     "ui": "Segoe UI Variable, Segoe UI, Microsoft YaHei UI, PingFang SC, system-ui, sans-serif",

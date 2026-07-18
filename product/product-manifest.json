@@ -28,26 +28,26 @@
     "stableDesktopWriteRequiresReviewedLocalAppEvidence": true
   },
   "product": {
-    "name": "StarBridge",
-    "descriptionZhCn": "本地创意工作台",
+    "name": "CreNexus",
+    "descriptionZhCn": "AI 创意软件协同平台",
     "version": "0.1.0-alpha.0",
-    "positioning": "Windows 本地创意工作台：Codex 负责理解与调度，StarBridge MCP 负责受控执行、安全验证和脱敏证据，创意软件负责实际生产。",
+    "positioning": "Windows AI 创意软件协同平台：Codex 负责理解与调度，CreNexus MCP 负责受控执行、安全验证和脱敏证据，创意软件负责实际生产。",
     "serverRequired": false,
     "desktopValidation": "experimental",
     "installerValidation": "experimental",
     "commercialLaunch": "planned"
   },
   "brand": {
-    "concept": "星桥轨迹",
+    "concept": "创枢轨迹",
     "canonicalSymbol": "brand/starbridge-symbol.svg",
     "generatedAssetSource": "brand/scripts/build-brand-assets.mjs",
     "placeholderLetterIconReplaced": true
   },
   "sourceBoundary": {
-    "communityRepository": "jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software",
+    "communityRepository": "jianbaorui07-dot/CreNexus",
     "communitySource": "public-mit",
     "commercialSource": "private-planned",
-    "suggestedCommercialRepository": "StarBridge-Pro",
+    "suggestedCommercialRepository": "CreNexus-Pro",
     "commercialRepositoryCreated": false,
     "premiumImplementationsAllowedInCommunityRepository": false,
     "communityBuildContainsPrivateProSource": false
@@ -364,9 +364,10 @@
     "officialSignedInstallerAvailable": false,
     "distribution": "github-prerelease",
     "releaseTag": "starbridge-preview-v0.1.0-unsigned.1",
-    "releaseUrl": "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/tag/starbridge-preview-v0.1.0-unsigned.1",
-    "assetUrl": "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe",
+    "releaseUrl": "https://github.com/jianbaorui07-dot/CreNexus/releases/tag/starbridge-preview-v0.1.0-unsigned.1",
+    "assetUrl": "https://github.com/jianbaorui07-dot/CreNexus/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe",
     "assetName": "StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe",
+    "legacyBrandAsset": true,
     "assetBytes": 49341709,
     "sha256": "cb163dcb77ce79cda2e815b8b8ff16760fafcc81f0465d342b37ae1e71bb146d",
     "authenticode": "not-signed",

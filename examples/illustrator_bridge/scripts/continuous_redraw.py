@@ -182,9 +182,7 @@ def _quantize_subject(
     cluster_count = min(colors, len(np.unique(sample, axis=0)))
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 36, 0.55)
     cv2.setRNGSeed(7)
-    _, _, centers = cv2.kmeans(
-        sample, cluster_count, None, criteria, 4, cv2.KMEANS_PP_CENTERS
-    )
+    _, _, centers = cv2.kmeans(sample, cluster_count, None, criteria, 4, cv2.KMEANS_PP_CENTERS)
     centers = np.clip(np.rint(centers), 0, 255).astype(np.uint8)
 
     all_pixels = pixels.astype(np.int16)
@@ -205,9 +203,7 @@ def _quantize_subject(
     return label_map, center_rgb.astype(np.uint8), counts
 
 
-def _points_from_contour(
-    contour: np.ndarray, *, simplify_ratio: float, closed: bool
-) -> np.ndarray:
+def _points_from_contour(contour: np.ndarray, *, simplify_ratio: float, closed: bool) -> np.ndarray:
     perimeter = float(cv2.arcLength(contour, closed))
     epsilon = max(0.45, perimeter * simplify_ratio)
     approximation = cv2.approxPolyDP(contour, epsilon, closed)
@@ -251,9 +247,7 @@ def _compound_path(
     parts: list[str] = []
     points = 0
     for _, contour in candidates:
-        approximation = _points_from_contour(
-            contour, simplify_ratio=simplify_ratio, closed=True
-        )
+        approximation = _points_from_contour(contour, simplify_ratio=simplify_ratio, closed=True)
         path = _closed_path(approximation)
         if path:
             parts.append(path)
@@ -323,11 +317,15 @@ def _build_fill_layers(
         )
 
     layers.sort(key=lambda layer: layer.area, reverse=True)
-    return base_color, layers, {
-        "palette_colors": len(colors),
-        "base_palette_index": base_label,
-        "base_color": _hex(base_color),
-    }
+    return (
+        base_color,
+        layers,
+        {
+            "palette_colors": len(colors),
+            "base_palette_index": base_label,
+            "base_color": _hex(base_color),
+        },
+    )
 
 
 def _build_ink_fill_layers(rgb: np.ndarray, subject: np.ndarray) -> list[FillLayer]:
@@ -350,9 +348,7 @@ def _build_ink_fill_layers(rgb: np.ndarray, subject: np.ndarray) -> list[FillLay
     )
     layers: list[FillLayer] = []
     for name, raw_mask, fallback_color, minimum_area in definitions:
-        mask = cv2.morphologyEx(
-            raw_mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel, iterations=1
-        )
+        mask = cv2.morphologyEx(raw_mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel, iterations=1)
         mask = cv2.GaussianBlur(mask * 255, (3, 3), 0.65) >= 104
         mask = _remove_small_components(mask, minimum_area)
         if not np.any(mask):
@@ -514,11 +510,11 @@ def _build_stroke_layers(
         delta = np.diff(path.astype(np.float32), axis=0)
         return float(np.sqrt(np.sum(delta * delta, axis=1)).sum())
 
-    combined = [
-        ("blue-ink", path_length(path), path) for path in blue_paths
-    ] + [("dark-ink", path_length(path), path) for path in dark_paths] + [
-        ("soft-edges", path_length(path), path) for path in soft_paths
-    ]
+    combined = (
+        [("blue-ink", path_length(path), path) for path in blue_paths]
+        + [("dark-ink", path_length(path), path) for path in dark_paths]
+        + [("soft-edges", path_length(path), path) for path in soft_paths]
+    )
     combined.sort(key=lambda item: item[1], reverse=True)
     selected = combined[:maximum_subpaths]
     groups: dict[str, list[np.ndarray]] = {
@@ -692,9 +688,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "fill_points": subject_points + sum(layer.points for layer in fills),
                 "stroke_path_objects": sum(bool(layer.paths) for layer in strokes),
                 "stroke_subpaths": line_subpaths,
-                "stroke_points": sum(
-                    len(path) for layer in strokes for path in layer.paths
-                ),
+                "stroke_points": sum(len(path) for layer in strokes for path in layer.paths),
                 "svg_bytes": svg_path.stat().st_size,
             },
             "palette": palette_metrics,

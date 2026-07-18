@@ -2,11 +2,11 @@
 
 更新时间：2026-07-14。
 
-这份分析只比较公开仓库已经展示的架构与接口，不复制第三方源码，也不把外部项目能力写成 StarBridge 已验证能力。
+这份分析只比较公开仓库已经展示的架构与接口，不复制第三方源码，也不把外部项目能力写成 CreNexus 已验证能力。
 
 ## 参考项目与先进点
 
-| 一手来源 | 值得吸收的能力 | StarBridge 当前差距 |
+| 一手来源 | 值得吸收的能力 | CreNexus 当前差距 |
 | --- | --- | --- |
 | [ahujasid/blender-mcp](https://github.com/ahujasid/blender-mcp) | Blender addon 与 MCP server 双向 socket；场景检查、对象/材质控制、viewport screenshot | 已有环境探针、scene plan 和 reference reconstruction plan；缺少受控 live sandbox adapter 与视觉回看闭环 |
 | [sandraschi/blender-mcp](https://github.com/sandraschi/blender-mcp) | 按 scene/object/render 等域组织高层工具，并提供 dashboard/telemetry | 已有统一 registry 和前端原型；缺少跨 bridge 的实时 operation telemetry 与状态差异展示 |

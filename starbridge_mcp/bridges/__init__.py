@@ -1,1 +1,1 @@
-"""StarBridge bridge prototypes."""
+"""CreNexus bridge prototypes."""

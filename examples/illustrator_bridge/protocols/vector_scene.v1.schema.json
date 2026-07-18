@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/vector_scene.v1.schema.json",
-  "title": "StarBridge Vector Scene Graph",
+  "title": "CreNexus Vector Scene Graph",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "scene_id", "document", "palette", "layers", "objects"],

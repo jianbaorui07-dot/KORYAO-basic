@@ -11,7 +11,7 @@ $FrontendDir = Join-Path $RepoRoot "examples\starbridge_frontend"
 $BackendUrl = "http://${HostName}:${BackendPort}"
 $FrontendUrl = "http://${HostName}:${FrontendPort}"
 
-Write-Host "Starting StarBridge backend:  $BackendUrl"
+Write-Host "Starting CreNexus backend:  $BackendUrl"
 $backend = Start-Process `
     -FilePath "python" `
     -ArgumentList @("-m", "starbridge_mcp.backend", "--host", $HostName, "--port", "$BackendPort") `
@@ -27,7 +27,7 @@ try {
     }
 
     Write-Host "Backend ready."
-    Write-Host "Starting StarBridge frontend: $FrontendUrl"
+    Write-Host "Starting CreNexus frontend: $FrontendUrl"
     Write-Host "Press Ctrl+C to stop the frontend. Backend pid: $($backend.Id)"
 
     $env:VITE_STARBRIDGE_API_URL = $BackendUrl

@@ -7,7 +7,7 @@ from starbridge_mcp.core.tool_registry import BRIDGE_PROFILES
 from starbridge_mcp.server import normalize_legacy_status
 
 
-class StarBridgeSchemaTests(unittest.TestCase):
+class CreNexusSchemaTests(unittest.TestCase):
     def test_make_result_contains_required_fields(self) -> None:
         result = make_result(ok=True, bridge="comfyui", action="status", message="ready")
         self.assertEqual(tuple(result.keys()), REQUIRED_RESULT_FIELDS)

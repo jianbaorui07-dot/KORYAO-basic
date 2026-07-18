@@ -9,7 +9,7 @@ from starbridge_mcp.core.security import sanitize_result
 
 
 class BaseBridge(ABC):
-    """Base class for StarBridge adapters and bridges.
+    """Base class for CreNexus adapters and bridges.
 
     Provides common patterns for status, safety, evidence, and result handling.
     Subclasses should implement bridge_id and core actions.

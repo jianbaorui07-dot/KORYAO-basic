@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
-  <title id="title">StarBridge Creative Console preview</title>
-  <desc id="desc">A static public-safe preview of the StarBridge visual console showing bridge cards, safety checks, and local verification commands.</desc>
+  <title id="title">CreNexus Creative Console preview</title>
+  <desc id="desc">A static public-safe preview of the CreNexus visual console showing bridge cards, safety checks, and local verification commands.</desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#071317"/>
@@ -32,7 +32,7 @@
   <rect x="110" y="346" width="32" height="32" rx="10" fill="#14262b" stroke="#36545d"/>
 
   <text x="198" y="126" fill="#8be8ff" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="1">WINDOWS-FIRST / LOCAL-FIRST / SAFETY VERIFICATION</text>
-  <text x="198" y="184" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">StarBridge Creative Console</text>
+  <text x="198" y="184" fill="#f4fbff" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">CreNexus Creative Console</text>
   <text x="202" y="228" fill="#b7cbd1" font-family="Segoe UI, Arial, sans-serif" font-size="22">Codex 接入本地创意软件的公开安全面板</text>
 
   <rect x="198" y="270" width="430" height="230" rx="18" fill="url(#panel)" stroke="#28424a"/>

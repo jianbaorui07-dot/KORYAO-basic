@@ -8,7 +8,7 @@ Codex 接入本机创意软件时有三条常见通道：GUI Computer Use、CLI 
 | --- | --- | --- | --- | --- |
 | GUI Computer Use | 观察真实桌面、点击复现、截图验证、处理弱 API 软件 | 能看见用户看到的界面；适合菜单、弹窗、画布、时间线和授权提示排查 | 依赖窗口状态；不适合长期批处理；误点可能造成副作用 | 作为 GUI evidence 和问题复现通道 |
 | CLI / PowerShell | 本机脚本、测试、preflight、probe、文件格式校验 | 可重复、易记录、适合 CI；比 GUI 更稳定 | 平台依赖明显；脚本如果不收敛参数可能泄露路径或误写文件 | 作为开发和验证入口 |
-| MCP stdio tools | Codex / Cursor / Claude Code 可调用的结构化工具 | 参数化、可测试、可声明风险等级；适合稳定生产动作 | 需要先设计 schema、安全边界和错误格式 | 作为 StarBridge 的核心生产通道 |
+| MCP stdio tools | Codex / Cursor / Claude Code 可调用的结构化工具 | 参数化、可测试、可声明风险等级；适合稳定生产动作 | 需要先设计 schema、安全边界和错误格式 | 作为 CreNexus 的核心生产通道 |
 
 ## 分工原则
 

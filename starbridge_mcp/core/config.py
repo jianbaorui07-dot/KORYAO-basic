@@ -18,7 +18,7 @@ BRIDGE_ENV_VARS = {
 
 
 @dataclass(frozen=True)
-class StarBridgeConfig:
+class CreNexusConfig:
     repo_root: Path = REPO_ROOT
     comfy_url: str = (
         os.environ.get("STARBRIDGE_COMFYUI_URL")
@@ -26,6 +26,10 @@ class StarBridgeConfig:
         or "http://127.0.0.1:8188"
     )
     timeout: int = int(os.environ.get("STARBRIDGE_PROBE_TIMEOUT", "8"))
+
+
+# Backward-compatible public name for existing integrations.
+StarBridgeConfig = CreNexusConfig
 
 
 def env_summary() -> dict[str, dict[str, bool]]:

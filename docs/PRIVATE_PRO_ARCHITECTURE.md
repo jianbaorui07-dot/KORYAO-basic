@@ -1,6 +1,6 @@
 # 私有 Pro 架构
 
-状态：**边界设计完成；远程私有仓库未创建。** 建议未来仓库名为 `StarBridge-Pro`，创建前必须得到产品所有者的再次明确确认。
+状态：**边界设计完成；远程私有仓库未创建。** 建议未来仓库名为 `CreNexus-Pro`，创建前必须得到产品所有者的再次明确确认。
 
 ## 组合模型
 
@@ -19,7 +19,7 @@ starbridge-community
 ├─ licensing-verifier  公开验签协议与类型
 └─ desktop-shell        Community UI 与扩展插槽
 
-StarBridge-Pro（未来私有）
+CreNexus-Pro（未来私有）
 ├─ pro-batch-engine
 ├─ pro-project-store
 ├─ pro-workflow-enhancements

@@ -26,6 +26,6 @@ try {
     exit 0
 }
 catch {
-    [Console]::Error.WriteLine("StarBridge bootstrap failed: $($_.Exception.Message)")
+    [Console]::Error.WriteLine("CreNexus bootstrap failed: $($_.Exception.Message)")
     exit 1
 }

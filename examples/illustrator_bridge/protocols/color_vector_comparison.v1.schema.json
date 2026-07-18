@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/color_vector_comparison.v1.schema.json",
-  "title": "StarBridge Color Vector Comparison Evidence",
+  "title": "CreNexus Color Vector Comparison Evidence",
   "type": "object",
   "additionalProperties": false,
   "required": [

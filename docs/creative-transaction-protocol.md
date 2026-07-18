@@ -1,6 +1,6 @@
 # CreativeTransaction 协议
 
-`CreativeTransaction` 是 StarBridge 跨软件 Recipe 的统一执行契约。它先把用户意图、风险、审批点、质量门和恢复策略固化为可审查数据，再允许后续 bridge 请求执行。
+`CreativeTransaction` 是 CreNexus 跨软件 Recipe 的统一执行契约。它先把用户意图、风险、审批点、质量门和恢复策略固化为可审查数据，再允许后续 bridge 请求执行。
 
 ## 安全默认值
 

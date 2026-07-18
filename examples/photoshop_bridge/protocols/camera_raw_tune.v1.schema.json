@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/protocols/photoshop/camera_raw_tune.v1.schema.json",
-  "title": "StarBridge Photoshop Camera Raw Tune Protocol v1",
+  "title": "CreNexus Photoshop Camera Raw Tune Protocol v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["method", "dry_run", "confirm_apply", "preset", "params"],

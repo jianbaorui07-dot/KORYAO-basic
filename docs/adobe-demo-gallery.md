@@ -2,7 +2,7 @@
 
 ## Goal
 
-The Adobe sandbox demos show how StarBridge exposes safe, local-first Photoshop and Illustrator workflows without committing generated assets or private project files.
+The Adobe sandbox demos show how CreNexus exposes safe, local-first Photoshop and Illustrator workflows without committing generated assets or private project files.
 
 The gallery is documentation-first. It explains what the demo creates, where local outputs appear, and why those outputs stay out of Git.
 

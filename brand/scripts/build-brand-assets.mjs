@@ -25,11 +25,17 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
 const brandDir = path.join(repoRoot, "brand");
 const symbolPath = path.join(brandDir, "starbridge-symbol.svg");
+const softwareBrandPath = path.join(brandDir, "assets", "crenexus-software-icon.png");
+const webBrandPath = path.join(brandDir, "assets", "creative-codex-web-brand.png");
 const exportDir = path.join(brandDir, "exports");
 const iconDir = path.join(exportDir, "icons");
 const tauriIconDir = path.join(repoRoot, "apps", "starbridge-desktop", "src-tauri", "icons");
 const desktopAssetDir = path.join(repoRoot, "apps", "starbridge-desktop", "src", "assets");
 const sizes = [16, 24, 32, 48, 64, 128, 256, 512];
+
+// Pixel crops are intentionally pinned to the approved web source image. Keep
+// both approved originals untouched and regenerate every fitted asset here.
+const webSymbolCrop = { left: 280, top: 330, width: 300, height: 300 };
 
 const symbol = await fs.readFile(symbolPath, "utf8");
 const symbolBody = symbol
@@ -47,32 +53,32 @@ const xml = (viewBox, title, body) => `<?xml version="1.0" encoding="UTF-8"?>
 `;
 
 const escapedWordmark = `
-  <text x="4" y="34" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="31" font-weight="720" letter-spacing="-0.7">StarBridge</text>
-  <text x="5" y="51" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.4">本地创意工作台</text>`;
+  <text x="4" y="34" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="31" font-weight="720" letter-spacing="-0.7">CreNexus</text>
+  <text x="5" y="51" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.4">AI 创意软件协同平台</text>`;
 
 const embedSymbol = (x, y, scale = 1) =>
   `<g transform="translate(${x} ${y}) scale(${scale})">${symbolBody}</g>`;
 
-const wordmark = xml("0 0 220 58", "StarBridge 本地创意工作台", escapedWordmark);
+const wordmark = xml("0 0 220 58", "CreNexus AI 创意软件协同平台", escapedWordmark);
 const horizontal = xml(
   "0 0 360 80",
-  "StarBridge 本地创意工作台",
+  "CreNexus AI 创意软件协同平台",
   `${embedSymbol(4, 8, 1)}
-  <text x="84" y="39" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="31" font-weight="720" letter-spacing="-0.7">StarBridge</text>
-  <text x="85" y="58" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">本地创意工作台</text>`,
+  <text x="84" y="39" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="31" font-weight="720" letter-spacing="-0.7">CreNexus</text>
+  <text x="85" y="58" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">AI 创意软件协同平台</text>`,
 );
 const compact = xml(
   "0 0 120 108",
-  "StarBridge",
+  "CreNexus",
   `${embedSymbol(28, 0, 1)}
-  <text x="60" y="88" text-anchor="middle" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="19" font-weight="720" letter-spacing="-0.4">StarBridge</text>
-  <text x="60" y="103" text-anchor="middle" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="8.5" font-weight="600">本地创意工作台</text>`,
+  <text x="60" y="88" text-anchor="middle" fill="#101828" font-family="Segoe UI Variable, Segoe UI, Arial, sans-serif" font-size="19" font-weight="720" letter-spacing="-0.4">CreNexus</text>
+  <text x="60" y="103" text-anchor="middle" fill="#667085" font-family="Microsoft YaHei UI, PingFang SC, sans-serif" font-size="8.5" font-weight="600">AI 创意软件协同平台</text>`,
 );
 const grid = xml(
   "0 0 640 320",
-  "StarBridge icon grid",
+  "CreNexus icon grid",
   `<rect width="640" height="320" fill="#F6F8FC"/>
-  <text x="32" y="38" fill="#101828" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">StarBridge icon grid</text>
+  <text x="32" y="38" fill="#101828" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">CreNexus icon grid</text>
   <text x="32" y="62" fill="#667085" font-family="Segoe UI, sans-serif" font-size="12">single source: starbridge-symbol.svg</text>
   <rect x="32" y="88" width="248" height="184" rx="14" fill="#FFFFFF" stroke="#DDE3EC"/>
   <rect x="304" y="88" width="304" height="184" rx="14" fill="#0B1220"/>
@@ -96,9 +102,24 @@ await fs.writeFile(path.join(brandDir, "starbridge-icon-grid.svg"), grid);
 await fs.writeFile(path.join(brandDir, "starbridge-readme.svg"), horizontal);
 await fs.writeFile(path.join(desktopAssetDir, "starbridge-symbol.svg"), symbol);
 
+const softwareSymbol = await fs.readFile(softwareBrandPath);
+const webSymbol = await sharp(webBrandPath)
+  .extract(webSymbolCrop)
+  .resize(512, 512, { fit: "fill" })
+  .png({ compressionLevel: 9, adaptiveFiltering: true, palette: false })
+  .toBuffer();
+const webFavicon = await sharp(webSymbol)
+  .resize(32, 32, { fit: "fill" })
+  .png({ compressionLevel: 9, adaptiveFiltering: true, palette: false })
+  .toBuffer();
+
+await fs.writeFile(path.join(exportDir, "crenexus-software-icon.png"), softwareSymbol);
+await fs.writeFile(path.join(exportDir, "crenexus-web-symbol.png"), webSymbol);
+await fs.writeFile(path.join(desktopAssetDir, "crenexus-software-icon.png"), softwareSymbol);
+
 const pngs = new Map();
 for (const size of sizes) {
-  const png = await sharp(Buffer.from(symbol))
+  const png = await sharp(softwareSymbol)
     .resize(size, size)
     .png({ compressionLevel: 9, adaptiveFiltering: false, palette: false })
     .toBuffer();
@@ -131,7 +152,7 @@ function makeIco(entries) {
 const icoSizes = [16, 24, 32, 48, 64, 128, 256];
 const ico = makeIco(icoSizes.map((size) => ({ size, png: pngs.get(size) })));
 await fs.writeFile(path.join(exportDir, "starbridge-icon.ico"), ico);
-await fs.writeFile(path.join(exportDir, "favicon-32.png"), pngs.get(32));
+await fs.writeFile(path.join(exportDir, "favicon-32.png"), webFavicon);
 await fs.writeFile(path.join(tauriIconDir, "icon.ico"), ico);
 await fs.writeFile(path.join(tauriIconDir, "icon.png"), pngs.get(512));
 await fs.writeFile(path.join(tauriIconDir, "32x32.png"), pngs.get(32));
@@ -141,7 +162,11 @@ await fs.writeFile(path.join(tauriIconDir, "128x128@2x.png"), pngs.get(256));
 console.log(
   JSON.stringify(
     {
-      source: path.relative(repoRoot, symbolPath),
+      sources: {
+        software: path.relative(repoRoot, softwareBrandPath),
+        web: path.relative(repoRoot, webBrandPath),
+        legacyVector: path.relative(repoRoot, symbolPath),
+      },
       pngSizes: sizes,
       icoSizes,
       output: path.relative(repoRoot, exportDir),

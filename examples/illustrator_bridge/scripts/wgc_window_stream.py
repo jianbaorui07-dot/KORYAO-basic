@@ -87,7 +87,7 @@ def post_frame(proxy_url: str, jpeg: bytes, width: int, height: int) -> None:
         method="POST",
         headers={
             "Content-Type": "image/jpeg",
-            "X-StarBridge-Capture-Target": "illustrator-window",
+            "X-CreNexus-Capture-Target": "illustrator-window",
             "X-Frame-Width": str(width),
             "X-Frame-Height": str(height),
         },

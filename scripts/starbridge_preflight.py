@@ -242,7 +242,7 @@ def write_reports(payload: dict[str, Any], report_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="星桥公开发布前体检：安全、桥元数据、probe 报告和文档链接。"
+        description="创枢公开发布前体检：安全、桥元数据、probe 报告和文档链接。"
     )
     parser.add_argument("--json", action="store_true", help="输出 JSON。")
     parser.add_argument("--markdown", action="store_true", help="输出 Markdown 表格。")

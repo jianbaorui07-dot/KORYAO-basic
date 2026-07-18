@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -129,7 +129,7 @@ def run_public_client_mode_experiment(
             )
     report = {
         "schema_version": PUBLIC_EXPERIMENT_SCHEMA,
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "ok": all(case["ok"] for case in cases),
         "case_count": len(cases),
         "license_verified_inputs": True,

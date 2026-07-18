@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { Project } from "../types/api";
 
 interface PhotoshopProductionPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   runtimeReady: boolean;
   initialProjectId?: string;
   onOpenJob: (jobId: string, projectId: string) => void;
@@ -86,7 +86,7 @@ export function PhotoshopProductionPage({ client, runtimeReady, initialProjectId
 
   return (
     <div className="standard-page">
-      <header className="page-intro"><div><span className="page-kicker">photoshop-production-v1</span><h2>只修改受控副本，再导出真实文件</h2><p>StarBridge 先只读确认 Photoshop UXP 会话；获得任务确认后才复制活动文档、导入项目图片并应用固定参数。原文档和项目源素材不会被覆盖。</p></div><span className="state-label planned">实验性</span></header>
+      <header className="page-intro"><div><span className="page-kicker">photoshop-production-v1</span><h2>只修改受控副本，再导出真实文件</h2><p>CreNexus 先只读确认 Photoshop UXP 会话；获得任务确认后才复制活动文档、导入项目图片并应用固定参数。原文档和项目源素材不会被覆盖。</p></div><span className="state-label planned">实验性</span></header>
       {error ? <div className="error-state" role="alert"><strong>操作未完成</strong><p>{error}</p></div> : null}
       <div className="workflow-builder-grid">
         <section className="record-panel">

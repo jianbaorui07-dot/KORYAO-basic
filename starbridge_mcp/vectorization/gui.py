@@ -244,7 +244,7 @@ class VectorWorker(QObject):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("VectorFlow Studio · StarBridge")
+        self.setWindowTitle("VectorFlow Studio · CreNexus")
         self.resize(1320, 860)
         self.setMinimumSize(1080, 720)
         self._input_path: Path | None = None
@@ -698,7 +698,7 @@ class MainWindow(QMainWindow):
 def run() -> int:
     app = QApplication.instance() or QApplication([])
     app.setApplicationName("VectorFlow Studio")
-    app.setOrganizationName("StarBridge")
+    app.setOrganizationName("CreNexus")
     app.setFont(QFont("Microsoft YaHei UI", 10))
     app.setStyleSheet(APP_STYLE)
     window = MainWindow()

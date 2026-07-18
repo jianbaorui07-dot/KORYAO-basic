@@ -1,4 +1,4 @@
-# StarBridge Illustrator UXP（自定义实验宿主）
+# CreNexus Illustrator UXP（自定义实验宿主）
 
 这是用户自定义 Illustrator UXP 运行时的实验插件，不声明 Adobe 官方 Marketplace 兼容性。插件只连接本机 `ws://127.0.0.1:8972/illustrator`。
 

@@ -13,7 +13,7 @@ $AppDir = Join-Path $RepoRoot "examples\starbridge_canvas"
 $PackageFile = Join-Path $AppDir "package.json"
 
 if (-not (Test-Path -LiteralPath $PackageFile)) {
-    throw "StarBridge Canvas package was not found: $PackageFile"
+    throw "CreNexus Canvas package was not found: $PackageFile"
 }
 
 $ResolvedProjectDir = (Resolve-Path -LiteralPath $ProjectDir).Path
@@ -44,7 +44,7 @@ if (-not $NoInstall -and -not (Test-Path -LiteralPath $TldrawPackage)) {
     }
 }
 
-Write-Host "StarBridge Canvas: $env:STARBRIDGE_CANVAS_URL"
+Write-Host "CreNexus Canvas: $env:STARBRIDGE_CANVAS_URL"
 Write-Host "Canvas data: $ResolvedCanvasDir"
 
 & npm.cmd --prefix $AppDir run dev -- --host 127.0.0.1 --port $Port

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/headless_svg_quality.v1.schema.json",
-  "title": "StarBridge Headless SVG Raster Quality",
+  "title": "CreNexus Headless SVG Raster Quality",
   "type": "object",
   "additionalProperties": false,
   "required": [

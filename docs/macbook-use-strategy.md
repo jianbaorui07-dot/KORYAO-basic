@@ -1,8 +1,8 @@
-# StarBridge MacBook 使用策略
+# CreNexus MacBook 使用策略
 
 ## 定位
 
-StarBridge 当前是 Windows-first，但其 MCP stdio、Recipe Plan、CreativeTransaction、EvidenceManifest、ComfyUI HTTP、Blender 计划和 Adobe UXP / Node Proxy 的大部分协议层可以在 macOS 上运行。
+CreNexus 当前是 Windows-first，但其 MCP stdio、Recipe Plan、CreativeTransaction、EvidenceManifest、ComfyUI HTTP、Blender 计划和 Adobe UXP / Node Proxy 的大部分协议层可以在 macOS 上运行。
 
 MacBook 策略不是模拟 Windows，而是将能力分成三条通道：
 
@@ -28,8 +28,8 @@ MacBook 不应自动打开客户工程、扫描私有目录或把素材上传到
 安装前由用户手动确认 Xcode Command Line Tools、Python 3.11+ 和 Node.js LTS 的来源。不将 Homebrew、管理员密码或系统设置修改放入自动化脚本。
 
 ```bash
-git clone https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git
-cd Codex-Integration-with-Creative-Industry-Software
+git clone https://github.com/jianbaorui07-dot/CreNexus.git
+cd CreNexus
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -52,7 +52,7 @@ macOS 上使用 `/` 路径和 `python3` / venv，不直接复制 README 中的 `
 
 | 软件桥 | MacBook 策略 | 默认风险 | 执行边界 |
 | --- | --- | --- | --- |
-| StarBridge MCP | 本地原生运行 stdio server | `L0–L2` | 优先只读和 dry-run |
+| CreNexus MCP | 本地原生运行 stdio server | `L0–L2` | 优先只读和 dry-run |
 | ComfyUI | 通过 localhost HTTP 连接用户明确启动的 ComfyUI | `L1–L3` | 提交 queue 前必须明示确认；不扫描 checkpoint 目录 |
 | Blender | 优先 scene plan、reference plan 和受限制脚本 | `L1–L3` | 禁止任意 Python；输出仅到 sandbox / ignored output |
 | Photoshop | 优先 UXP + Node Proxy，GUI 只用于观察和确认 | `L1–L3` | 不使用 Windows COM；BatchPlay 只允许 typed allowlist |
@@ -78,12 +78,12 @@ node -p "process.arch"
 
 ## 文件、权限和隐私
 
-macOS 的 Desktop、Documents、Downloads、Photos Library 可能受 TCC 隐私权限管理。StarBridge 不应为了通过探针而要求 Full Disk Access。
+macOS 的 Desktop、Documents、Downloads、Photos Library 可能受 TCC 隐私权限管理。CreNexus 不应为了通过探针而要求 Full Disk Access。
 
 建议工作区：
 
 ```text
-~/StarBridgeWorkspace/
+~/CreNexusWorkspace/
 ├── inbox/       # 用户显式放入的输入
 ├── sandbox/     # 可丢弃预览
 ├── output/      # 已确认输出

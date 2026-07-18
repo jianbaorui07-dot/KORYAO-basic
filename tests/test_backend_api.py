@@ -11,14 +11,14 @@ from threading import Thread
 
 from PIL import Image
 
-from starbridge_mcp.backend import StarBridgeBackend, make_handler
+from starbridge_mcp.backend import CreNexusBackend, make_handler
 
 
 class BackendApiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.backend = StarBridgeBackend(app_data_dir=self.temp_dir.name)
+        self.backend = CreNexusBackend(app_data_dir=self.temp_dir.name)
 
     def test_health_endpoint(self) -> None:
         response = self.backend.route("GET", "/api/health")
@@ -183,7 +183,7 @@ class BackendApiTests(unittest.TestCase):
 
     def test_recipe_actions_are_recorded_in_audit_history(self) -> None:
         with TemporaryDirectory() as temp_dir:
-            backend = StarBridgeBackend(
+            backend = CreNexusBackend(
                 history_path=Path(temp_dir) / "history.json",
                 app_data_dir=Path(temp_dir) / "app-data",
             )
@@ -230,7 +230,7 @@ class BackendApiTests(unittest.TestCase):
 
     def test_recipe_run_records_confirmed_safe_execution_request(self) -> None:
         with TemporaryDirectory() as temp_dir:
-            backend = StarBridgeBackend(
+            backend = CreNexusBackend(
                 history_path=Path(temp_dir) / "history.json",
                 app_data_dir=Path(temp_dir) / "app-data",
             )
@@ -249,7 +249,7 @@ class BackendApiTests(unittest.TestCase):
 
     def test_audit_history_can_be_cleared(self) -> None:
         with TemporaryDirectory() as temp_dir:
-            backend = StarBridgeBackend(
+            backend = CreNexusBackend(
                 history_path=Path(temp_dir) / "history.json",
                 app_data_dir=Path(temp_dir) / "app-data",
             )
@@ -302,7 +302,7 @@ class BackendApiTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             (root / "index.html").write_text("<main>ok</main>", encoding="utf-8")
-            backend = StarBridgeBackend(static_root=root, app_data_dir=root / "app-data")
+            backend = CreNexusBackend(static_root=root, app_data_dir=root / "app-data")
             server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(backend))
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
@@ -321,20 +321,20 @@ class BackendApiTests(unittest.TestCase):
     def test_static_frontend_is_served_when_built(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
-            (root / "index.html").write_text('<div id="root">StarBridge UI</div>', encoding="utf-8")
-            backend = StarBridgeBackend(static_root=root, app_data_dir=root / "app-data")
+            (root / "index.html").write_text('<div id="root">CreNexus UI</div>', encoding="utf-8")
+            backend = CreNexusBackend(static_root=root, app_data_dir=root / "app-data")
 
             response = backend.route("GET", "/")
 
         self.assertEqual(200, response.status)
         self.assertEqual("text/html; charset=utf-8", response.content_type)
-        self.assertIn(b"StarBridge UI", response.body)
+        self.assertIn(b"CreNexus UI", response.body)
 
     def test_spa_unknown_non_api_route_falls_back_to_index(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             (root / "index.html").write_text("fallback", encoding="utf-8")
-            backend = StarBridgeBackend(static_root=root, app_data_dir=root / "app-data")
+            backend = CreNexusBackend(static_root=root, app_data_dir=root / "app-data")
 
             response = backend.route("GET", "/workbench/recipes")
 

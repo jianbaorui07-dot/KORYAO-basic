@@ -14,7 +14,7 @@
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-from-url.ps1 `
-  -RepositoryUrl "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git"
+  -RepositoryUrl "https://github.com/jianbaorui07-dot/CreNexus.git"
 ```
 
 `auto` 会创建隔离的 `.venv`、安装可复用的 Python/MCP 和无桌面矢量依赖、安装本地 Codex MCP 配置，并运行安全自检。检测到本机桌面软件线索时会自动选择 `standard`。`standard` 和 `all` 才会安装 Node 代理和更重的可选包。

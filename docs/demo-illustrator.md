@@ -11,7 +11,7 @@
 - `loonghao/photoshop-python-api-mcp-server`：仅参考 Adobe 桌面软件通过本机自动化暴露 document/session 工具的组织方式。
 - `ie3jp/illustrator-mcp-server`：仅参考 JSX / ExtendScript、MCP tools、导出和文档信息工具的组织方式。
 
-参考仓库保存在本机 `external_references/`，不提交到 Git。实现代码按 StarBridge 的 dry-run、confirm 和 sandbox 输出边界重写。
+参考仓库保存在本机 `external_references/`，不提交到 Git。实现代码按 CreNexus 的 dry-run、confirm 和 sandbox 输出边界重写。
 
 ## 前置条件
 

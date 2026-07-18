@@ -33,8 +33,12 @@ def parser() -> argparse.ArgumentParser:
     value.add_argument("--step-total", type=int, default=1)
     value.add_argument("--message", default="Codex 正在工作")
     value.add_argument("--progress", type=int, default=50)
-    value.add_argument("--publish", action="store_true", help="Send to the active local application bridge")
-    value.add_argument("--soft-exit", action="store_true", help="Return success after printing an error payload")
+    value.add_argument(
+        "--publish", action="store_true", help="Send to the active local application bridge"
+    )
+    value.add_argument(
+        "--soft-exit", action="store_true", help="Return success after printing an error payload"
+    )
     return value
 
 

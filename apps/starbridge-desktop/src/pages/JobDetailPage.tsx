@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { ApprovalRequest, CreativeJob, JobHistoryEvent } from "../types/api";
 
 const STATUS_LABELS: Record<CreativeJob["status"], string> = {
@@ -13,7 +13,7 @@ const STATUS_LABELS: Record<CreativeJob["status"], string> = {
 };
 
 interface JobDetailPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   jobId?: string;
   onOpenDelivery: (projectId: string) => void;
   onBack: () => void;
@@ -96,7 +96,7 @@ export function JobDetailPage({ client, jobId, onOpenDelivery, onBack, onJobChan
           <div className="record-heading"><div><span className="task-kind">当前步骤</span><h3>{job.currentStep}</h3></div><span className={`job-status status-${job.status}`}>{STATUS_LABELS[job.status]}</span></div>
           <div className="progress-row"><progress max={100} value={job.progress} /><span>{job.progress}%</span></div>
           {job.error ? <div className="error-state"><strong>{job.error.message}</strong>{job.error.nextSteps.length ? <ul>{job.error.nextSteps.map((step) => <li key={step}>{step}</li>)}</ul> : null}</div> : null}
-          {approval ? <div className="approval-panel"><strong>此步骤需要写入确认：{approval.stepId}</strong><p>确认范围：{approval.safeRootRef} · 计划修订 {approval.revision} · {new Date(approval.expiresAt).toLocaleString()} 前有效</p><label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />我已核对当前步骤，同意在 StarBridge 项目安全目录内执行这一次写入。</label></div> : null}
+          {approval ? <div className="approval-panel"><strong>此步骤需要写入确认：{approval.stepId}</strong><p>确认范围：{approval.safeRootRef} · 计划修订 {approval.revision} · {new Date(approval.expiresAt).toLocaleString()} 前有效</p><label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />我已核对当前步骤，同意在 CreNexus 项目安全目录内执行这一次写入。</label></div> : null}
           <div className="button-row">
             {job.status === "queued" || job.status === "running" || job.status === "needs_user" ? <button type="button" className="primary" disabled={busy || Boolean(approval && !confirmed)} onClick={() => void run()}>{approval ? "确认并继续" : job.status === "needs_user" ? "只读刷新同一任务" : "运行到下一确认点"}</button> : null}
             {job.status === "completed" ? <button type="button" className="primary" onClick={() => onOpenDelivery(job.projectId)}>查看真实交付物</button> : null}

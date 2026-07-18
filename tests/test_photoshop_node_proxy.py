@@ -118,9 +118,7 @@ class PhotoshopNodeProxyTests(unittest.TestCase):
         self.assertFalse(payload["live_session"]["active"])
 
     def test_live_session_can_be_published_and_read(self) -> None:
-        status, accepted = post_json(
-            f"http://127.0.0.1:{self.port}/session", live_update()
-        )
+        status, accepted = post_json(f"http://127.0.0.1:{self.port}/session", live_update())
         self.assertEqual(202, status)
         self.assertEqual("ps-demo", accepted["update"]["session_id"])
         snapshot = read_json(f"http://127.0.0.1:{self.port}/session")
@@ -352,9 +350,7 @@ class PhotoshopNodeProxyTests(unittest.TestCase):
     def test_uxp_bridge_has_in_app_codex_live_panel(self) -> None:
         plugin = REPO_ROOT / "uxp" / "photoshop-bridge"
         manifest = json.loads((plugin / "manifest.json").read_text(encoding="utf-8"))
-        panel_ids = {
-            entry["id"] for entry in manifest["entrypoints"] if entry["type"] == "panel"
-        }
+        panel_ids = {entry["id"] for entry in manifest["entrypoints"] if entry["type"] == "panel"}
         self.assertEqual("index.html", manifest["main"])
         self.assertIn("starbridgePhotoshopLivePanel", panel_ids)
         html = (plugin / "index.html").read_text(encoding="utf-8")

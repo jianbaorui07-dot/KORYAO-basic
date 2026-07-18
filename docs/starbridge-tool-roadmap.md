@@ -1,6 +1,6 @@
-# StarBridge 工具能力路线图
+# CreNexus 工具能力路线图
 
-本文件只规划 StarBridge 后续工具接口，不代表当前已经实现所有动作。当前已稳定的是统一 `status` / `probe` 状态入口；涉及打开文件、导出、执行脚本的能力必须在安全边界和用户确认策略清楚后再实现。
+本文件只规划 CreNexus 后续工具接口，不代表当前已经实现所有动作。当前已稳定的是统一 `status` / `probe` 状态入口；涉及打开文件、导出、执行脚本的能力必须在安全边界和用户确认策略清楚后再实现。
 
 ## 统一工具分层
 
@@ -13,7 +13,7 @@
 | `export_result` | 导出 PNG/SVG/PDF/DXF/视频草稿等结果 | 只导出到参数指定目录或本机忽略目录 |
 | `run_script` | 执行小型参数化自动化脚本 | 默认关闭；必须限制脚本来源、参数和输出目录 |
 
-所有 status/probe JSON 输出必须经过 StarBridge sanitizer。普通 `--json` 不因本机软件未安装或未启动而失败；`--strict` 才用于失败退出码。当前 MCP stdio server 已把各桥的安全探针挂成直接 tools，写入类动作仍然需要默认 dry-run 或显式确认。
+所有 status/probe JSON 输出必须经过 CreNexus sanitizer。普通 `--json` 不因本机软件未安装或未启动而失败；`--strict` 才用于失败退出码。当前 MCP stdio server 已把各桥的安全探针挂成直接 tools，写入类动作仍然需要默认 dry-run 或显式确认。
 
 ## Bridge 路线图
 

@@ -9,7 +9,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -219,7 +219,7 @@ def acquire_public_dataset(
         )
     report = {
         "schema_version": PUBLIC_DATASET_SCHEMA,
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "provider": "wikimedia_commons",
         "item_count": len(records),
         "license_verified": True,

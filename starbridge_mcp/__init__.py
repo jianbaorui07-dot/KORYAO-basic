@@ -1,4 +1,4 @@
-"""StarBridge local creative software bridge framework."""
+"""CreNexus local creative software bridge framework."""
 
 __all__ = ["__version__"]
 

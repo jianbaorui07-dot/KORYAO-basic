@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Export prompted instance masks as disjoint StarBridge Photoshop layers."""
+"""Export prompted instance masks as disjoint CreNexus Photoshop layers."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ GROUPS_BOTTOM_TO_TOP = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Export local instance masks to a Photoshop-ready StarBridge manifest."
+        description="Export local instance masks to a Photoshop-ready CreNexus manifest."
     )
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--spec", required=True, type=Path)

@@ -63,7 +63,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .app-shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); height: 100vh; background: var(--bg); }
 .sidebar { display: flex; min-height: 0; flex-direction: column; padding: 22px 14px 18px; background: var(--sidebar); color: #f7fbff; }
 .brand-lockup { display: flex; align-items: center; gap: 11px; min-height: 48px; padding: 0 8px; }
-.brand-lockup img { width: 40px; height: 40px; border: 1px solid rgb(255 255 255 / 18%); border-radius: 11px; }
+.brand-lockup img { width: 40px; height: 40px; object-fit: cover; border: 1px solid rgb(255 255 255 / 18%); border-radius: 11px; box-shadow: 0 0 18px rgb(82 106 255 / 28%); }
 .brand-lockup strong, .brand-lockup small { display: block; }
 .brand-lockup strong { font-size: 17px; letter-spacing: -.2px; }
 .brand-lockup small { margin-top: 2px; color: #b9cae2; font-size: 11px; letter-spacing: .08em; }

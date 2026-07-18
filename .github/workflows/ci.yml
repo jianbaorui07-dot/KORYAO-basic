@@ -83,7 +83,7 @@ jobs:
           python -m starbridge_mcp.server evidence --validate --json
           python -m starbridge_mcp.server job-status --json
 
-      - name: Run StarBridge preflight
+      - name: Run CreNexus preflight
         run: python scripts/starbridge_preflight.py --markdown
 
       - name: Run npm scripts
@@ -165,6 +165,14 @@ jobs:
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path apps/starbridge-desktop/src-tauri/Cargo.toml --all -- --check
+
+      - name: Prepare Tauri test resources
+        shell: pwsh
+        run: |
+          $sidecarDir = "apps/starbridge-desktop/src-tauri/binaries"
+          New-Item -ItemType Directory -Force -Path "$sidecarDir/_internal" | Out-Null
+          New-Item -ItemType File -Force -Path "$sidecarDir/_internal/.ci-placeholder" | Out-Null
+          New-Item -ItemType File -Force -Path "$sidecarDir/starbridge-sidecar-x86_64-pc-windows-msvc.exe" | Out-Null
 
       - name: Test Tauri shell
         run: cargo test --manifest-path apps/starbridge-desktop/src-tauri/Cargo.toml

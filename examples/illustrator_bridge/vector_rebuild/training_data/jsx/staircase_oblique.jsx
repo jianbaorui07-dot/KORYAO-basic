@@ -2,7 +2,7 @@
 // line drawing. No image trace: every tread/riser corner is computed by
 // projection and drawn as an individual stroked path.
 //
-// Transport: inject over COM with the StarBridge pattern. The runner prepends a
+// Transport: inject over COM with the CreNexus pattern. The runner prepends a
 // config block, e.g.:  var STARBRIDGE_CONFIG = { strokeWidth:2.0, lineColor:[15,15,18] };
 //
 // Key lesson encoded here (see training_data/forward_line_reconstruction.jsonl):

@@ -1,1 +1,1 @@
-"""Adapter packages for StarBridge MCP."""
+"""Adapter packages for CreNexus MCP."""
