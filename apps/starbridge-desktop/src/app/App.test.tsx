@@ -18,6 +18,23 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeC
     }),
     openLogsDirectory: vi.fn().mockResolvedValue("<LOCAL_APP_DATA>/StarBridge/logs"),
     getVersion: vi.fn().mockResolvedValue({ desktop: "0.1.0" }),
+    getUpdateStatus: vi.fn().mockResolvedValue({
+      configured: false,
+      source: "GitHub Releases",
+      currentVersion: "0.1.0",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: false,
+    }),
+    checkForUpdate: vi.fn().mockResolvedValue({
+      configured: false,
+      source: "GitHub Releases",
+      currentVersion: "0.1.0",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: false,
+    }),
+    installUpdate: vi.fn().mockResolvedValue(undefined),
     getLicenseStatus: vi.fn().mockResolvedValue({
       state: "community",
       edition: "community",
@@ -132,6 +149,44 @@ describe("desktop runtime status", () => {
 
     await waitFor(() => expect(client.restartBackend).toHaveBeenCalledOnce());
     expect(await screen.findByText("运行正常 · 仅本机")).toBeInTheDocument();
+  });
+
+  it("shows a signed GitHub update and requires explicit install confirmation", async () => {
+    const client = makeClient({ state: "connected", message: "connected", recoveryAttempts: 0 });
+    const update = {
+      configured: true,
+      source: "GitHub Releases",
+      currentVersion: "0.1.0",
+      available: true,
+      version: "0.2.0",
+      notes: "稳定性改进",
+      signatureRequired: true,
+      automaticChecksSupported: true,
+    };
+    client.getUpdateStatus = vi.fn().mockResolvedValue(update);
+    client.checkForUpdate = vi.fn().mockResolvedValue(update);
+    render(<App client={client} />);
+
+    expect(await screen.findByRole("button", { name: "可更新至 v0.2.0" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "可更新至 v0.2.0" }));
+    const install = screen.getByRole("button", { name: "更新到 v0.2.0" });
+    expect(install).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /我已保存正在进行的工作/ }));
+    expect(install).toBeEnabled();
+    fireEvent.click(install);
+    await waitFor(() => expect(client.installUpdate).toHaveBeenCalledWith(
+      "0.2.0",
+      true,
+      expect.any(Function),
+    ));
+  });
+
+  it("states that a development build cannot claim public updates", async () => {
+    render(<App client={makeClient({ state: "connected", message: "connected", recoveryAttempts: 0 })} />);
+    fireEvent.click(await screen.findByRole("button", { name: "打开设置与诊断" }));
+    expect(screen.getByText("发布通道未启用")).toBeInTheDocument();
+    expect(screen.getByText(/没有正式更新验签公钥/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "立即检查更新" })).not.toBeInTheDocument();
   });
 
   it("shows the offline Community license flow without claiming Pro is active", async () => {

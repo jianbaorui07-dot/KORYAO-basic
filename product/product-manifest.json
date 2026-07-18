@@ -160,6 +160,16 @@
       "documentation": "docs/COMMERCIAL_FEATURE_BOUNDARY_AUDIT.md"
     },
     {
+      "id": "updates.github_signed_release",
+      "publicName": "GitHub 正式版本检查与签名更新",
+      "edition": "community",
+      "status": "implemented-not-live",
+      "evidenceLevel": "unit-and-build-validation",
+      "requiresUserConfirmation": true,
+      "requiresThirdPartySoftware": false,
+      "documentation": "docs/SOFTWARE_UPDATE_CHANNEL.md"
+    },
+    {
       "id": "updates.offline_signed_packages",
       "publicName": "签名离线更新包",
       "edition": "pro",
@@ -202,7 +212,12 @@
     "licenseFiles": "local-only",
     "telemetry": "disabled",
     "backgroundNetworkService": false,
-    "loopbackOnly": true
+    "loopbackOnly": true,
+    "loopbackOnlyScope": "local-runtime-services",
+    "outboundNetwork": "optional-github-release-metadata-and-confirmed-update-download",
+    "softwareUpdateMetadata": "fixed-github-release-endpoint-only",
+    "automaticUpdateChecks": "signed-build-only-user-controllable",
+    "updateDownloadAndInstall": "explicit-confirmation-only"
   },
   "website": {
     "candidateSource": "apps/starbridge-site",
@@ -223,6 +238,9 @@
       "releaseGateSatisfied": false
     },
     "smartScreenValidated": false,
+    "inAppUpdaterImplemented": true,
+    "updaterProductionPublicKeyConfigured": false,
+    "signedReleaseWorkflow": "configured-fail-closed-not-executed",
     "paidReleaseReady": false
   },
   "download": {

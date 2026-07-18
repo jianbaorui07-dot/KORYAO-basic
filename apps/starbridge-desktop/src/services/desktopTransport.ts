@@ -1,10 +1,12 @@
-import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import { Channel, invoke as tauriInvoke } from "@tauri-apps/api/core";
 
 import type {
   ApiEnvelope,
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
   TransportRequest,
   TransportResponse,
   VersionInfo,
@@ -53,6 +55,25 @@ export class DesktopTransport implements StarBridgeTransport {
     }
   }
 
+  private async callUpdate<T>(
+    command: "update_channel_status" | "check_for_update" | "install_update",
+    args?: Record<string, unknown>,
+  ): Promise<T> {
+    try {
+      return await this.invoke<T>(command, args);
+    } catch (error) {
+      const message =
+        typeof error === "string" && error.length <= 240
+          ? error
+          : "软件更新操作未完成；当前版本可以继续使用。";
+      throw new TransportError(
+        "update_action_failed",
+        message,
+        `Tauri command ${command} rejected the request`,
+      );
+    }
+  }
+
   request<T>(request: TransportRequest): Promise<TransportResponse<T>> {
     return this.call<TransportResponse<T>>("backend_request", { request });
   }
@@ -71,6 +92,28 @@ export class DesktopTransport implements StarBridgeTransport {
 
   getVersion(): Promise<VersionInfo> {
     return this.call<VersionInfo>("version_info");
+  }
+
+  getUpdateStatus(): Promise<SoftwareUpdateStatus> {
+    return this.callUpdate<SoftwareUpdateStatus>("update_channel_status");
+  }
+
+  checkForUpdate(): Promise<SoftwareUpdateStatus> {
+    return this.callUpdate<SoftwareUpdateStatus>("check_for_update");
+  }
+
+  installUpdate(
+    version: string,
+    confirmInstall: boolean,
+    onProgress: (event: SoftwareUpdateProgress) => void,
+  ): Promise<void> {
+    const channel = new Channel<SoftwareUpdateProgress>();
+    channel.onmessage = onProgress;
+    return this.callUpdate<void>("install_update", {
+      expectedVersion: version,
+      confirmInstall,
+      onEvent: channel,
+    });
   }
 
   getLicenseStatus(): Promise<LicenseStatus> {

@@ -14,6 +14,7 @@ use tauri_plugin_shell::{
 use uuid::Uuid;
 
 mod licensing;
+mod updater;
 
 const READY_PREFIX: &str = "STARBRIDGE_READY ";
 const APP_DATA_ENV: &str = "STARBRIDGE_APP_DATA_DIR";
@@ -735,7 +736,9 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(manager.clone())
+        .manage(updater::PendingUpdate::default())
         .invoke_handler(tauri::generate_handler![
             backend_status,
             backend_request,
@@ -749,7 +752,10 @@ pub fn run() {
             version_info,
             license_status,
             create_license_request,
-            import_license_file
+            import_license_file,
+            updater::update_channel_status,
+            updater::check_for_update,
+            updater::install_update
         ])
         .setup({
             let manager = manager.clone();

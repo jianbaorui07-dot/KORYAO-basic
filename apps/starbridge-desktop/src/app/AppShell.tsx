@@ -4,7 +4,7 @@ import { Brand } from "../components/Brand/Brand";
 import { EditionBadge } from "../components/EditionBadge/EditionBadge";
 import { Navigation } from "../components/Navigation/Navigation";
 import { StatusChip } from "../components/StatusChip/StatusChip";
-import type { LicenseStatus, RuntimeStatus, VersionInfo } from "../types/api";
+import type { LicenseStatus, RuntimeStatus, SoftwareUpdateStatus, VersionInfo } from "../types/api";
 import { PAGE_TITLES, type PageId } from "./routes";
 
 interface AppShellProps {
@@ -13,10 +13,11 @@ interface AppShellProps {
   status: RuntimeStatus;
   license: LicenseStatus;
   version: VersionInfo | null;
+  updateStatus: SoftwareUpdateStatus;
   children: ReactNode;
 }
 
-export function AppShell({ currentPage, onNavigate, status, license, version, children }: AppShellProps) {
+export function AppShell({ currentPage, onNavigate, status, license, version, updateStatus, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -34,6 +35,15 @@ export function AppShell({ currentPage, onNavigate, status, license, version, ch
             <h1>{PAGE_TITLES[currentPage]}</h1>
           </div>
           <div className="topbar-actions">
+            {updateStatus.available && updateStatus.version ? (
+              <button
+                type="button"
+                className="update-available-button"
+                onClick={() => onNavigate("diagnostics")}
+              >
+                可更新至 v{updateStatus.version}
+              </button>
+            ) : null}
             <StatusChip state={status.state} />
             <EditionBadge edition={license.edition} />
             <span className="version-copy">v{version?.desktop ?? "—"}</span>

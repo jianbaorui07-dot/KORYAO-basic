@@ -30,7 +30,7 @@ export const pages = {
   "/privacy": {
     eyebrow: "本地处理与隐私", title: "你的素材不需要离开电脑。",
     intro: "核心运算只在本机执行，应用只绑定 loopback，不扫描未授权目录，也不收集遥测。",
-    sections: [["素材", "图片和设计文件不上传到 StarBridge 服务器。"], ["授权", "Community 无需授权；未来 Pro 使用人工交付的离线签名文件，不上传授权文件。"], ["写入", "运行、导出和写入继续要求显式确认，并受安全目录限制。"]]
+    sections: [["素材", "图片和设计文件不上传到 StarBridge 服务器。"], ["授权", "Community 无需授权；未来 Pro 使用人工交付的离线签名文件，不上传授权文件。"], ["软件更新", "正式签名构建只向 GitHub Releases 请求版本信息；可关闭定时检查，下载和安装始终需要确认。"], ["写入", "运行、导出和写入继续要求显式确认，并受安全目录限制。"]]
   },
   "/docs": {
     eyebrow: "文档", title: "从产品事实到开发边界。",
@@ -41,7 +41,7 @@ export const pages = {
   "/download": {
     eyebrow: "下载状态", title: "Windows 版本暂未公开下载。",
     intro: "Windows 版本正在进行代码签名和干净机器验收，暂未公开下载。这里没有不能真正下载的假按钮。",
-    sections: [["当前状态", "本机 NSIS 安装、启动、关闭与卸载已有验证；安装包仍未签名。"], ["开放条件", "完成 Authenticode、干净 Windows、Defender、SmartScreen、条款和下载哈希后再开放。"], ["Community", "免费版不需要授权，但公开安装包仍必须经过同一套安全发布门槛。"]]
+    sections: [["当前状态", "本机 NSIS 安装、启动、关闭与卸载已有验证；安装包仍未签名。"], ["后续更新", "软件内 GitHub Release 检查、确认和强制验签链路已进入源码，但正式更新公钥和首个 Release 尚未配置。"], ["开放条件", "完成 Authenticode、干净 Windows、Defender、SmartScreen、条款和下载哈希后再开放。"], ["Community", "免费版不需要授权，但公开安装包仍必须经过同一套安全发布门槛。"]]
   },
   "/roadmap": {
     eyebrow: "路线图", title: "先把证据做实，再扩大承诺。",

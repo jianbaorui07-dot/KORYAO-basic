@@ -3,6 +3,8 @@ import type {
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
   TransportRequest,
   TransportResponse,
   VersionInfo,
@@ -30,6 +32,13 @@ export interface StarBridgeTransport {
   restartBackend(): Promise<RuntimeStatus>;
   openLogsDirectory(): Promise<string>;
   getVersion(): Promise<VersionInfo>;
+  getUpdateStatus(): Promise<SoftwareUpdateStatus>;
+  checkForUpdate(): Promise<SoftwareUpdateStatus>;
+  installUpdate(
+    version: string,
+    confirmInstall: boolean,
+    onProgress: (event: SoftwareUpdateProgress) => void,
+  ): Promise<void>;
   getLicenseStatus(): Promise<LicenseStatus>;
   createLicenseRequest(): Promise<LicenseRequestReceipt>;
   importLicenseFile(contents: string): Promise<LicenseStatus>;

@@ -3,6 +3,8 @@ import type {
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
   TransportRequest,
   VersionInfo,
   VectorHistory,
@@ -33,6 +35,13 @@ export interface StarBridgeClient {
   restartBackend(): Promise<RuntimeStatus>;
   openLogsDirectory(): Promise<string>;
   getVersion(): Promise<VersionInfo>;
+  getUpdateStatus(): Promise<SoftwareUpdateStatus>;
+  checkForUpdate(): Promise<SoftwareUpdateStatus>;
+  installUpdate(
+    version: string,
+    confirmInstall: boolean,
+    onProgress: (event: SoftwareUpdateProgress) => void,
+  ): Promise<void>;
   getLicenseStatus(): Promise<LicenseStatus>;
   createLicenseRequest(): Promise<LicenseRequestReceipt>;
   importLicenseFile(contents: string): Promise<LicenseStatus>;
@@ -78,11 +87,14 @@ export class StarBridgeApiClient implements StarBridgeClient {
         throw error;
       }
       if (error instanceof TransportError) {
+        const nextSteps = error.code.startsWith("update_")
+          ? ["确认可以访问 GitHub 后重新检查。", "更新失败时保留当前版本继续使用。"]
+          : ["查看诊断信息。", "重新启动本地服务后再试。"];
         throw new UserFacingError(
           error.code,
           error.message,
           error.technicalDetails ?? error.code,
-          ["查看诊断信息。", "重新启动本地服务后再试。"],
+          nextSteps,
         );
       }
       throw new UserFacingError(
@@ -132,6 +144,24 @@ export class StarBridgeApiClient implements StarBridgeClient {
 
   getVersion(): Promise<VersionInfo> {
     return this.transport.getVersion();
+  }
+
+  getUpdateStatus(): Promise<SoftwareUpdateStatus> {
+    return this.execute(() => this.transport.getUpdateStatus());
+  }
+
+  checkForUpdate(): Promise<SoftwareUpdateStatus> {
+    return this.execute(() => this.transport.checkForUpdate());
+  }
+
+  installUpdate(
+    version: string,
+    confirmInstall: boolean,
+    onProgress: (event: SoftwareUpdateProgress) => void,
+  ): Promise<void> {
+    return this.execute(() =>
+      this.transport.installUpdate(version, confirmInstall, onProgress),
+    );
   }
 
   getLicenseStatus(): Promise<LicenseStatus> {

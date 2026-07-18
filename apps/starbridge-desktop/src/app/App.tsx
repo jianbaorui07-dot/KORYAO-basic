@@ -8,7 +8,14 @@ import { LicensePage } from "../pages/LicensePage";
 import { TasksPage } from "../pages/TasksPage";
 import { VectorizationPage } from "../pages/VectorizationPage";
 import { StarBridgeApiClient, UserFacingError, type StarBridgeClient } from "../services/client";
-import type { LicenseStatus, RuntimeStatus, VectorHistoryEvent, VersionInfo } from "../types/api";
+import type {
+  LicenseStatus,
+  RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
+  VectorHistoryEvent,
+  VersionInfo,
+} from "../types/api";
 import { AppShell } from "./AppShell";
 import type { PageId } from "./routes";
 
@@ -26,6 +33,17 @@ const INITIAL_LICENSE: LicenseStatus = {
   features: [],
   commercialVerifierConfigured: false,
 };
+
+const INITIAL_UPDATE_STATUS: SoftwareUpdateStatus = {
+  configured: false,
+  source: "GitHub Releases",
+  currentVersion: "0.1.0",
+  available: false,
+  signatureRequired: true,
+  automaticChecksSupported: false,
+};
+const UPDATE_CHECK_PREFERENCE = "starbridge.update.automaticChecks";
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 interface AppProps {
   client?: StarBridgeClient;
@@ -55,7 +73,17 @@ export function App({ client: providedClient }: AppProps) {
   const [version, setVersion] = useState<VersionInfo | null>(null);
   const [license, setLicense] = useState<LicenseStatus>(INITIAL_LICENSE);
   const [tasks, setTasks] = useState<VectorHistoryEvent[]>([]);
+  const [updateStatus, setUpdateStatus] = useState<SoftwareUpdateStatus>(INITIAL_UPDATE_STATUS);
+  const [automaticUpdateChecks, setAutomaticUpdateChecks] = useState(
+    () => window.localStorage.getItem(UPDATE_CHECK_PREFERENCE) !== "false",
+  );
+  const [checkingForUpdate, setCheckingForUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<SoftwareUpdateProgress | null>(null);
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [updateError, setUpdateError] = useState("");
   const mounted = useRef(true);
+  const updateCheckInFlight = useRef(false);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -65,6 +93,61 @@ export function App({ client: providedClient }: AppProps) {
       if (mounted.current) setStatus(statusFromError(error));
     }
   }, [client]);
+
+  const checkForUpdates = useCallback(async () => {
+    if (updateCheckInFlight.current) return;
+    updateCheckInFlight.current = true;
+    setCheckingForUpdate(true);
+    setUpdateError("");
+    try {
+      const next = await client.checkForUpdate();
+      if (!mounted.current) return;
+      setUpdateStatus(next);
+      setUpdateMessage(
+        next.available && next.version
+          ? `发现 StarBridge v${next.version}，请查看版本说明后确认安装。`
+          : "当前已经是最新正式版本。",
+      );
+    } catch (error) {
+      if (!mounted.current) return;
+      setUpdateError(
+        error instanceof Error
+          ? error.message
+          : "暂时无法检查更新；当前版本可以继续离线使用。",
+      );
+    } finally {
+      updateCheckInFlight.current = false;
+      if (mounted.current) setCheckingForUpdate(false);
+    }
+  }, [client]);
+
+  const changeAutomaticUpdateChecks = useCallback((enabled: boolean) => {
+    setAutomaticUpdateChecks(enabled);
+    window.localStorage.setItem(UPDATE_CHECK_PREFERENCE, String(enabled));
+    setUpdateMessage(enabled ? "已开启定时检查；下载和安装仍需要你确认。" : "已关闭定时检查；仍可手动检查更新。");
+  }, []);
+
+  const installUpdate = useCallback(async () => {
+    if (!updateStatus.version) return;
+    setInstallingUpdate(true);
+    setUpdateProgress(null);
+    setUpdateError("");
+    setUpdateMessage("正在下载并验证更新包。请保持 StarBridge 打开。");
+    try {
+      await client.installUpdate(updateStatus.version, true, (event) => {
+        if (mounted.current) setUpdateProgress(event);
+      });
+    } catch (error) {
+      if (mounted.current) {
+        setInstallingUpdate(false);
+        setUpdateError(
+          error instanceof Error
+            ? error.message
+            : "更新未完成；当前版本已保留，可以继续使用。",
+        );
+      }
+    }
+  }, [client, updateStatus.version]);
 
   const refreshTasks = useCallback(async () => {
     try {
@@ -80,8 +163,19 @@ export function App({ client: providedClient }: AppProps) {
     void refreshStatus();
     void client.getVersion().then((next) => mounted.current && setVersion(next)).catch(() => undefined);
     void client.getLicenseStatus().then((next) => mounted.current && setLicense(next)).catch(() => undefined);
+    void client.getUpdateStatus().then((next) => mounted.current && setUpdateStatus(next)).catch(() => undefined);
     return () => { mounted.current = false; };
   }, [client, refreshStatus]);
+
+  useEffect(() => {
+    if (!automaticUpdateChecks || !updateStatus.configured) return undefined;
+    const initialCheck = window.setTimeout(() => void checkForUpdates(), 2500);
+    const periodicCheck = window.setInterval(() => void checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
+    return () => {
+      window.clearTimeout(initialCheck);
+      window.clearInterval(periodicCheck);
+    };
+  }, [automaticUpdateChecks, checkForUpdates, updateStatus.configured]);
 
   useEffect(() => {
     if (status.state === "starting" || status.state === "recovering") {
@@ -116,12 +210,27 @@ export function App({ client: providedClient }: AppProps) {
       case "license":
         return <LicensePage client={client} license={license} version={version} onLicenseChanged={setLicense} />;
       case "diagnostics":
-        return <DiagnosticsPage status={status} version={version} onRestart={restart} onOpenLogs={() => client.openLogsDirectory()} />;
+        return <DiagnosticsPage
+          status={status}
+          version={version}
+          onRestart={restart}
+          onOpenLogs={() => client.openLogsDirectory()}
+          updateStatus={updateStatus}
+          automaticUpdateChecks={automaticUpdateChecks}
+          checkingForUpdate={checkingForUpdate}
+          installingUpdate={installingUpdate}
+          updateProgress={updateProgress}
+          updateMessage={updateMessage}
+          updateError={updateError}
+          onAutomaticUpdateChecksChange={changeAutomaticUpdateChecks}
+          onCheckForUpdate={checkForUpdates}
+          onInstallUpdate={installUpdate}
+        />;
     }
   };
 
   return (
-    <AppShell currentPage={page} onNavigate={setPage} status={status} license={license} version={version}>
+    <AppShell currentPage={page} onNavigate={setPage} status={status} license={license} version={version} updateStatus={updateStatus}>
       {renderPage()}
     </AppShell>
   );

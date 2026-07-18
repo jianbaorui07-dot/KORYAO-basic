@@ -267,6 +267,28 @@ button:disabled, .file-button.is-disabled { cursor: not-allowed; opacity: .5; }
 .diagnostic-card { padding: 18px; }
 .diagnostic-card h3 { margin: 0 0 5px; font-size: 14px; }
 .diagnostic-card p { margin: 0 0 14px; color: var(--text-muted); font-size: 11.5px; line-height: 1.6; }
+.update-available-button { min-height: 30px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border)); border-radius: 8px; background: color-mix(in srgb, var(--primary) 8%, var(--surface)); color: var(--primary); font-size: 10.5px; font-weight: 750; }
+.update-available-button:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+.software-update-card { min-width: 0; }
+.update-card-heading, .update-version-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.update-card-heading > div { min-width: 0; }
+.update-card-heading p { margin-bottom: 10px; }
+.update-readiness-note { margin: 9px 0 0 !important; padding: 10px 11px; border-radius: 8px; background: var(--surface-subtle); }
+.update-toggle { margin: 10px 0 12px; }
+.update-available { margin-top: 14px; padding: 13px; border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border)); border-radius: 10px; background: color-mix(in srgb, var(--primary) 4%, var(--surface)); }
+.update-version-row span, .update-version-row strong { display: block; }
+.update-version-row span { color: var(--primary); font-size: 9.5px; font-weight: 750; }
+.update-version-row strong { margin-top: 3px; font-size: 14px; }
+.update-version-row small { color: var(--text-muted); font-size: 10px; white-space: nowrap; }
+.update-notes { max-height: 90px; overflow: auto; margin: 10px 0 0 !important; padding: 9px 10px; border-radius: 8px; background: var(--surface); white-space: pre-wrap; }
+.update-date { margin: 7px 0 0 !important; font-size: 9.5px !important; }
+.update-progress { display: grid; grid-template-columns: minmax(90px, 1fr) auto; align-items: center; gap: 10px; margin-top: 12px; }
+.update-progress progress { width: 100%; height: 6px; accent-color: var(--primary); }
+.update-progress span, .update-source { color: var(--text-muted); font-size: 9.5px; }
+.update-message, .update-error { margin: 10px 0 0 !important; padding: 8px 9px; border-radius: 8px; }
+.update-message { background: var(--surface-subtle); }
+.update-error { background: color-mix(in srgb, var(--danger) 8%, var(--surface)); color: var(--danger) !important; }
+.update-source { margin: 10px 0 0 !important; }
 .diagnostic-heading { display: flex; gap: 11px; }
 .diagnostic-dot { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--warning); }
 .diagnostic-dot.state-connected { background: var(--success); }

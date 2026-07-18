@@ -16,6 +16,33 @@ describe("desktop license transport", () => {
     });
   });
 
+  it("uses only the fixed Rust updater command boundary", async () => {
+    const invoke = vi.fn().mockResolvedValue({
+      configured: true,
+      source: "GitHub Releases",
+      currentVersion: "0.1.0",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: true,
+    });
+    const transport = new DesktopTransport(invoke);
+
+    await transport.checkForUpdate();
+    expect(invoke).toHaveBeenCalledWith("check_for_update", undefined);
+  });
+
+  it("preserves a safe updater recovery message", async () => {
+    const invoke = vi.fn().mockRejectedValue(
+      "暂时无法连接 GitHub 检查更新；当前版本可以继续离线使用。",
+    );
+    const transport = new DesktopTransport(invoke);
+
+    await expect(transport.checkForUpdate()).rejects.toMatchObject({
+      code: "update_action_failed",
+      message: "暂时无法连接 GitHub 检查更新；当前版本可以继续离线使用。",
+    });
+  });
+
   it("does not expose unexpected objects returned by the invoke boundary", async () => {
     const invoke = vi.fn().mockRejectedValue({ localPath: "private" });
     const transport = new DesktopTransport(invoke);

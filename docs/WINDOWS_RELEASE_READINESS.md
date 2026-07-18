@@ -2,6 +2,8 @@
 
 状态：**未达到收费发布条件。** 当前 NSIS 安装包未签名；本机安装验证不能替代干净机器、Defender 或 SmartScreen 验收。
 
+软件内 GitHub Release 检查、显式确认、下载进度、Tauri 强制验签和 sidecar 安全关闭链路已经进入源码，但开发构建未配置正式更新公钥，当前没有可消费的 `latest.json`。详见 [SOFTWARE_UPDATE_CHANNEL.md](SOFTWARE_UPDATE_CHANNEL.md)。
+
 ## 分发与签名方案比较
 
 | 方案 | 签名责任 | 适合场景 | 当前结论 |
@@ -49,6 +51,9 @@ Microsoft 官方说明：Store 分发的 MSIX 由 Store 重签，但 MSI/EXE 不
 | 当前用户 NSIS 本机安装/首次与二次启动/关闭/卸载 | 2026-07-18 当前候选通过；用户数据保留，进程和端口无残留 |
 | Authenticode | 未完成（`NotSigned`） |
 | 安装器、主程序、sidecar、DLL 全签名 | 未完成 |
+| 软件内更新代码与固定 GitHub Release 地址 | 已实现并通过前端/Rust 构建测试；正式签名通道未启用 |
+| Tauri 更新私钥、公钥、`.sig` 与 `latest.json` | 未完成；私钥未创建、未进入仓库 |
+| 签名发布 GitHub Actions | 已建立 fail-closed 工作流；因签名身份和受保护配置缺失而不可发布 |
 | Windows 11 干净虚拟机 | 未完成 |
 | Defender | 当前未签名 NSIS 候选已完成本机自定义扫描且检出 0；干净机完整矩阵仍未完成 |
 | SmartScreen | 未完成 |

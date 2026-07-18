@@ -19,6 +19,31 @@ export interface VersionInfo {
   backend?: string;
 }
 
+export interface SoftwareUpdateStatus {
+  configured: boolean;
+  source: string;
+  currentVersion: string;
+  available: boolean;
+  version?: string;
+  notes?: string;
+  publishedAt?: string;
+  signatureRequired: boolean;
+  automaticChecksSupported: boolean;
+}
+
+export type SoftwareUpdateProgress =
+  | { event: "started"; data: { contentLength?: number } }
+  | {
+      event: "progress";
+      data: {
+        chunkLength: number;
+        downloadedBytes: number;
+        contentLength?: number;
+      };
+    }
+  | { event: "verified" }
+  | { event: "installing" };
+
 export type LicenseState = "community" | "active" | "invalid";
 export type LicenseEdition = "community" | "pro" | "enterprise";
 

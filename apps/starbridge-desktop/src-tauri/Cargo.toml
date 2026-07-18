@@ -26,7 +26,9 @@ sha2 = "0.10"
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-single-instance = "2"
-tokio = { version = "1", features = ["time"] }
+tauri-plugin-updater = "2.10"
+tokio = { version = "1", features = ["sync", "time"] }
+url = "2"
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(windows)'.dependencies]

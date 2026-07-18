@@ -3,6 +3,8 @@ import type {
   LicenseRequestReceipt,
   LicenseStatus,
   RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
   TransportRequest,
   TransportResponse,
   VersionInfo,
@@ -101,6 +103,35 @@ export class HttpTransport implements StarBridgeTransport {
 
   async getVersion(): Promise<VersionInfo> {
     return { desktop: "web-development" };
+  }
+
+  async getUpdateStatus(): Promise<SoftwareUpdateStatus> {
+    return {
+      configured: false,
+      source: "GitHub Releases",
+      currentVersion: "web-development",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: false,
+    };
+  }
+
+  async checkForUpdate(): Promise<SoftwareUpdateStatus> {
+    throw new TransportError(
+      "update_desktop_required",
+      "请在安装后的 StarBridge Windows 桌面版中检查更新。",
+    );
+  }
+
+  async installUpdate(
+    _version: string,
+    _confirmInstall: boolean,
+    _onProgress: (event: SoftwareUpdateProgress) => void,
+  ): Promise<void> {
+    throw new TransportError(
+      "update_desktop_required",
+      "浏览器预览不能安装桌面软件更新。",
+    );
   }
 
   async getLicenseStatus(): Promise<LicenseStatus> {

@@ -19,6 +19,23 @@ function transportReturning(status: number, body: Record<string, unknown>): Star
     }),
     openLogsDirectory: async () => "logs",
     getVersion: async () => ({ desktop: "test" }),
+    getUpdateStatus: async () => ({
+      configured: false,
+      source: "GitHub Releases",
+      currentVersion: "test",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: false,
+    }),
+    checkForUpdate: async () => ({
+      configured: false,
+      source: "GitHub Releases",
+      currentVersion: "test",
+      available: false,
+      signatureRequired: true,
+      automaticChecksSupported: false,
+    }),
+    installUpdate: async () => undefined,
     getLicenseStatus: async () => ({
       state: "community",
       edition: "community",

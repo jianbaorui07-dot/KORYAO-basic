@@ -16,6 +16,7 @@
 | Pro 商业条款待决策 | [PRO_COMMERCIAL_TERMS_DRAFT.md](PRO_COMMERCIAL_TERMS_DRAFT.md) |
 | 私有 Pro 编译期架构 | [PRIVATE_PRO_ARCHITECTURE.md](PRIVATE_PRO_ARCHITECTURE.md) |
 | Windows 收费发布门槛 | [WINDOWS_RELEASE_READINESS.md](WINDOWS_RELEASE_READINESS.md) |
+| GitHub Release 软件更新通道 | [SOFTWARE_UPDATE_CHANNEL.md](SOFTWARE_UPDATE_CHANNEL.md) |
 | 官网源码与部署关系 | [WEBSITE_SOURCE_AND_DEPLOYMENT.md](WEBSITE_SOURCE_AND_DEPLOYMENT.md) |
 | 机器可读产品事实 | [../product/product-manifest.json](../product/product-manifest.json) |
 | 矢量化模式 | [vectorization-modes.md](vectorization-modes.md) |

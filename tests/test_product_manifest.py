@@ -6,7 +6,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "product" / "product-manifest.json"
-ALLOWED_STATUSES = {"available-local", "experimental", "planned", "unsupported"}
+ALLOWED_STATUSES = {
+    "available-local",
+    "experimental",
+    "implemented-not-live",
+    "planned",
+    "unsupported",
+}
 
 
 class ProductManifestTests(unittest.TestCase):
@@ -70,6 +76,17 @@ class ProductManifestTests(unittest.TestCase):
         self.assertFalse(self.manifest["releaseReadiness"]["authenticodeSigned"])
         self.assertFalse(self.manifest["releaseReadiness"]["paidReleaseReady"])
         self.assertFalse(self.manifest["website"]["published"])
+
+    def test_updater_is_implemented_without_claiming_a_live_release_channel(self) -> None:
+        features = {feature["id"]: feature for feature in self.manifest["features"]}
+        updater = features["updates.github_signed_release"]
+        self.assertEqual(updater["edition"], "community")
+        self.assertEqual(updater["status"], "implemented-not-live")
+        self.assertTrue(updater["requiresUserConfirmation"])
+        readiness = self.manifest["releaseReadiness"]
+        self.assertTrue(readiness["inAppUpdaterImplemented"])
+        self.assertFalse(readiness["updaterProductionPublicKeyConfigured"])
+        self.assertFalse(self.manifest["download"]["publicInstallerAvailable"])
 
 
 if __name__ == "__main__":

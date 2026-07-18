@@ -41,6 +41,7 @@ flowchart LR
 - 官网候选位于 [`apps/starbridge-site`](apps/starbridge-site)，目前只在本地构建，未与任何线上 `chatgpt.site` 建立可验证部署关系。
 - Community：`¥0`，无需激活；Pro 早鸟永久版：建议 `¥399`，**尚未开售**；Enterprise：按项目报价。
 - 当前 NSIS 安装包未完成 Authenticode、干净 Windows、Defender 和 SmartScreen 验收，因此没有公开下载或收费 Release。
+- 软件内已实现固定 GitHub Release 地址的启动/定时/手动检查、用户确认、强制验签和安全安装链路；当前没有生产更新公钥和签名 Release，因此开发构建不会联网检查，也不能冒充公开更新。
 - 机器可读事实以 [`product/product-manifest.json`](product/product-manifest.json) 为准；MIT / Pro 边界见 [`docs/COMMERCIAL_FEATURE_BOUNDARY_AUDIT.md`](docs/COMMERCIAL_FEATURE_BOUNDARY_AUDIT.md)。
 
 ## Codex 快速版本协同

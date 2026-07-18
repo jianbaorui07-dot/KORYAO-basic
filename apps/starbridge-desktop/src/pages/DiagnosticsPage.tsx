@@ -1,22 +1,64 @@
 import { useState } from "react";
 
-import type { RuntimeStatus, VersionInfo } from "../types/api";
+import { SoftwareUpdatePanel } from "../components/SoftwareUpdatePanel/SoftwareUpdatePanel";
+import type {
+  RuntimeStatus,
+  SoftwareUpdateProgress,
+  SoftwareUpdateStatus,
+  VersionInfo,
+} from "../types/api";
 
 interface DiagnosticsPageProps {
   status: RuntimeStatus;
   version: VersionInfo | null;
   onRestart: () => Promise<void>;
   onOpenLogs: () => Promise<string>;
+  updateStatus: SoftwareUpdateStatus;
+  automaticUpdateChecks: boolean;
+  checkingForUpdate: boolean;
+  installingUpdate: boolean;
+  updateProgress: SoftwareUpdateProgress | null;
+  updateMessage: string;
+  updateError: string;
+  onAutomaticUpdateChecksChange: (enabled: boolean) => void;
+  onCheckForUpdate: () => Promise<void>;
+  onInstallUpdate: () => Promise<void>;
 }
 
-export function DiagnosticsPage({ status, version, onRestart, onOpenLogs }: DiagnosticsPageProps) {
+export function DiagnosticsPage({
+  status,
+  version,
+  onRestart,
+  onOpenLogs,
+  updateStatus,
+  automaticUpdateChecks,
+  checkingForUpdate,
+  installingUpdate,
+  updateProgress,
+  updateMessage,
+  updateError,
+  onAutomaticUpdateChecksChange,
+  onCheckForUpdate,
+  onInstallUpdate,
+}: DiagnosticsPageProps) {
   const [message, setMessage] = useState("");
   return (
     <div className="standard-page diagnostics-page">
       <header className="page-intro"><div><span className="page-kicker">设置与诊断</span><h2>检查本机运行状态</h2><p>普通创作页面只显示必要信息；端口、自动恢复和构建说明集中在这里。</p></div></header>
       <div className="diagnostic-grid">
         <section className="diagnostic-card"><div className="diagnostic-heading"><span className={`diagnostic-dot state-${status.state}`} /><div><h3>{status.state === "connected" ? "运行正常" : "本地服务需要处理"}</h3><p>{status.message}</p></div></div><div className="actions"><button type="button" className="primary" onClick={() => void onRestart().then(() => setMessage("已请求重新启动本地服务。"))}>重新启动本地服务</button><button type="button" className="secondary" onClick={() => void onOpenLogs().then((path) => setMessage(`已打开日志目录：${path}`)).catch((error: unknown) => setMessage(error instanceof Error ? error.message : "无法打开日志目录。"))}>打开日志目录</button></div></section>
-        <section className="diagnostic-card"><h3>离线更新包</h3><p>当前未启用自动更新。未来只接受签名更新包，并在展示版本、更新说明和备份选项后由用户明确确认。</p><span className="inactive-action">架构规划中 · 未启用</span></section>
+        <SoftwareUpdatePanel
+          status={updateStatus}
+          automaticChecksEnabled={automaticUpdateChecks}
+          checking={checkingForUpdate}
+          installing={installingUpdate}
+          progress={updateProgress}
+          message={updateMessage}
+          error={updateError}
+          onAutomaticChecksChange={onAutomaticUpdateChecksChange}
+          onCheck={onCheckForUpdate}
+          onInstall={onInstallUpdate}
+        />
       </div>
       {message ? <p className="page-message" role="status">{message}</p> : null}
       <details className="technical-panel" open>

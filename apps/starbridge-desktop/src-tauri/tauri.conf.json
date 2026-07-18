@@ -28,6 +28,14 @@
       "capabilities": ["main"]
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
