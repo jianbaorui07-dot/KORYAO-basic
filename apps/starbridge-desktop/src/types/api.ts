@@ -222,6 +222,14 @@ export interface CreativeJobCreateRequest {
   sampler?: string;
   scheduler?: string;
   waitSeconds?: number;
+  outputFormats?: string[];
+  resizeCanvas?: boolean;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  exportSubject?: boolean;
 }
 
 export interface Project {
