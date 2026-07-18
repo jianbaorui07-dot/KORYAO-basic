@@ -40,7 +40,8 @@ flowchart LR
 - 桌面源码位于 [`apps/starbridge-desktop`](apps/starbridge-desktop)，包含稳定左侧导航、独立授权页、诊断页和真实 Community 图片矢量化流程。
 - 官网候选位于 [`apps/starbridge-site`](apps/starbridge-site)，目前只在本地构建，未与任何线上 `chatgpt.site` 建立可验证部署关系。
 - Community：`¥0`，无需激活；Pro 早鸟永久版：建议 `¥399`，**尚未开售**；Enterprise：按项目报价。
-- 当前 NSIS 安装包未完成 Authenticode、干净 Windows、Defender 和 SmartScreen 验收，因此没有公开下载或收费 Release。
+- [Windows x64 未签名内部预览安装包](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe) 已通过 GitHub prerelease 提供给团队直接安装测试；无需 Git、Python 或 Node.js。对应的 [GitHub 上传记录与说明](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/tag/starbridge-preview-v0.1.0-unsigned.1) 保留安装包大小、SHA-256 和未签名提示。
+- 当前 NSIS 内部预览包仍为 `NotSigned`；公开 GitHub 资产经重新下载后完成本机 Defender 自定义扫描且检出 0，但尚未完成 Authenticode、干净 Windows 和 SmartScreen 验收，因此不是正式签名版或收费 Release。
 - 软件内已实现固定 GitHub Release 地址的启动/定时/手动检查、用户确认、强制验签和安全安装链路；当前没有生产更新公钥和签名 Release，因此开发构建不会联网检查，也不能冒充公开更新。
 - 机器可读事实以 [`product/product-manifest.json`](product/product-manifest.json) 为准；MIT / Pro 边界见 [`docs/COMMERCIAL_FEATURE_BOUNDARY_AUDIT.md`](docs/COMMERCIAL_FEATURE_BOUNDARY_AUDIT.md)。
 

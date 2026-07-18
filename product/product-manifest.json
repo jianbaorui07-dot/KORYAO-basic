@@ -223,7 +223,8 @@
     "candidateSource": "apps/starbridge-site",
     "editableChatgptSiteSourceLocated": false,
     "published": false,
-    "downloadRouteOpen": false
+    "downloadRouteOpen": true,
+    "downloadRouteScope": "unsigned-internal-preview-only"
   },
   "releaseReadiness": {
     "nsisBuiltLocally": true,
@@ -233,7 +234,7 @@
     "defenderLocalCustomScan": {
       "status": "passed",
       "date": "2026-07-18",
-      "target": "unsigned-local-nsis-candidate",
+      "target": "public-github-prerelease-asset",
       "detections": 0,
       "releaseGateSatisfied": false
     },
@@ -244,8 +245,18 @@
     "paidReleaseReady": false
   },
   "download": {
-    "status": "planned",
-    "publicInstallerAvailable": false,
-    "reason": "本机 NSIS 安装、启动、关闭与卸载曾通过，但 Authenticode、干净 Windows、Defender 与 SmartScreen 验收尚未完成。"
+    "status": "public-unsigned-internal-preview",
+    "publicInstallerAvailable": true,
+    "officialSignedInstallerAvailable": false,
+    "distribution": "github-prerelease",
+    "releaseTag": "starbridge-preview-v0.1.0-unsigned.1",
+    "releaseUrl": "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/tag/starbridge-preview-v0.1.0-unsigned.1",
+    "assetUrl": "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe",
+    "assetName": "StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe",
+    "assetBytes": 49341709,
+    "sha256": "cb163dcb77ce79cda2e815b8b8ff16760fafcc81f0465d342b37ae1e71bb146d",
+    "authenticode": "not-signed",
+    "audience": "team-internal-preview",
+    "reason": "团队可直接下载并安装内部预览；正式签名版仍需 Authenticode、干净 Windows 与 SmartScreen 验收。"
   }
 }

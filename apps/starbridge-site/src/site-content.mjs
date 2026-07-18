@@ -39,9 +39,10 @@ export const pages = {
     sections: [["产品 Manifest", "机器可读事实源区分可用、实验、规划和未支持状态。"], ["商业边界审计", "已经公开的能力继续受 MIT 许可，不改写历史。"], ["发布准备", "签名、干净机器、Defender、SmartScreen 和正式条款全部设为收费门槛。"]]
   },
   "/download": {
-    eyebrow: "下载状态", title: "Windows 版本暂未公开下载。",
-    intro: "Windows 版本正在进行代码签名和干净机器验收，暂未公开下载。这里没有不能真正下载的假按钮。",
-    sections: [["当前状态", "本机 NSIS 安装、启动、关闭与卸载已有验证；安装包仍未签名。"], ["后续更新", "软件内 GitHub Release 检查、确认和强制验签链路已进入源码，但正式更新公钥和首个 Release 尚未配置。"], ["开放条件", "完成 Authenticode、干净 Windows、Defender、SmartScreen、条款和下载哈希后再开放。"], ["Community", "免费版不需要授权，但公开安装包仍必须经过同一套安全发布门槛。"]]
+    eyebrow: "下载", title: "Windows 内部预览版可以直接下载。",
+    intro: "StarBridge Community 0.1.0 未签名内部预览版已通过 GitHub prerelease 提供给团队测试。无需 Git、Python 或 Node.js；由于尚未完成 Authenticode，Windows 可能显示“未知发布者”。",
+    actions: [["https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe", "下载 Windows x64 内部预览版"], ["https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/tag/starbridge-preview-v0.1.0-unsigned.1", "查看 GitHub 上传记录"]],
+    sections: [["当前状态", "GitHub 公开资产可直接下载；公网重新下载后的文件已在本机完成安装、启动和 Defender 自定义扫描，检出 0。"], ["文件校验", "SHA-256：CB163DCB77CE79CDA2E815B8B8FF16760FAFCC81F0465D342B37AE1E71BB146D。"], ["版本边界", "这是团队内部预览版，不是 Authenticode 签名稳定版，也不是收费 Release。"], ["正式开放条件", "仍需完成受信任代码签名、干净 Windows、SmartScreen、升级回滚和正式条款验收。"]]
   },
   "/roadmap": {
     eyebrow: "路线图", title: "先把证据做实，再扩大承诺。",

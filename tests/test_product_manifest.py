@@ -66,16 +66,22 @@ class ProductManifestTests(unittest.TestCase):
             documentation = ROOT / feature["documentation"]
             self.assertTrue(documentation.is_file(), feature["id"])
 
-    def test_no_production_key_or_public_installer_is_claimed(self) -> None:
+    def test_no_production_key_or_official_signed_installer_is_claimed(self) -> None:
         licensing = self.manifest["licensing"]
         self.assertFalse(licensing["networkActivation"])
         self.assertFalse(licensing["productionPrivateKeyInRepository"])
         self.assertFalse(licensing["productionPrivateKeyInApplication"])
         self.assertFalse(licensing["productionPublicKeyConfigured"])
-        self.assertFalse(self.manifest["download"]["publicInstallerAvailable"])
+        download = self.manifest["download"]
+        self.assertTrue(download["publicInstallerAvailable"])
+        self.assertFalse(download["officialSignedInstallerAvailable"])
+        self.assertEqual(download["status"], "public-unsigned-internal-preview")
+        self.assertEqual(download["authenticode"], "not-signed")
+        self.assertEqual(len(download["sha256"]), 64)
         self.assertFalse(self.manifest["releaseReadiness"]["authenticodeSigned"])
         self.assertFalse(self.manifest["releaseReadiness"]["paidReleaseReady"])
         self.assertFalse(self.manifest["website"]["published"])
+        self.assertTrue(self.manifest["website"]["downloadRouteOpen"])
 
     def test_updater_is_implemented_without_claiming_a_live_release_channel(self) -> None:
         features = {feature["id"]: feature for feature in self.manifest["features"]}
@@ -86,7 +92,8 @@ class ProductManifestTests(unittest.TestCase):
         readiness = self.manifest["releaseReadiness"]
         self.assertTrue(readiness["inAppUpdaterImplemented"])
         self.assertFalse(readiness["updaterProductionPublicKeyConfigured"])
-        self.assertFalse(self.manifest["download"]["publicInstallerAvailable"])
+        self.assertTrue(self.manifest["download"]["publicInstallerAvailable"])
+        self.assertFalse(self.manifest["download"]["officialSignedInstallerAvailable"])
 
 
 if __name__ == "__main__":
