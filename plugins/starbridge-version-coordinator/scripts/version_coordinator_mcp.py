@@ -388,7 +388,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
                 },
             },
             "starter_prompt": (
-                f"请用 StarBridge Version Coordinator 按 {generation} 和 {version_summary} "
+                f"请用 CreNexus Version Coordinator 按 {generation} 和 {version_summary} "
                 f"生成 {safety_mode} 配置；先探针，未确认不写入。"
             ),
             "compatibility_policy": "capability-probe-not-version-whitelist",
@@ -396,7 +396,7 @@ def build_plan(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         "next_steps": [
             "客户任务先完成像素级打印/精确重建，再进入绘制型矢量。",
             "先执行每个软件计划中的 probe_tool。",
-            "探针通过后，再把对应 full_mcp_tools 交给完整 StarBridge MCP。",
+            "探针通过后，再把对应 full_mcp_tools 交给完整 CreNexus MCP。",
             "涉及桌面写入时重新请求用户确认，并限制在 sandbox/output。",
         ],
         "safety": {
@@ -457,16 +457,16 @@ OUTPUT_SCHEMA = {"type": "object", "additionalProperties": True}
 TOOLS = [
     {
         "name": "starbridge_config.catalog",
-        "title": "StarBridge Version Catalog",
-        "description": "列出可协同的软件、能力探针和 StarBridge v5-v9 能力档位；只读。",
+        "title": "CreNexus Version Catalog",
+        "description": "列出可协同的软件、能力探针和 CreNexus v5-v9 能力档位；只读。",
         "inputSchema": _object_schema({}),
         "outputSchema": OUTPUT_SCHEMA,
         "annotations": READ_ONLY_ANNOTATIONS,
     },
     {
         "name": "starbridge_config.plan",
-        "title": "Plan StarBridge Configuration",
-        "description": "根据软件版本、StarBridge 代际和安全模式生成 Codex 配置协同计划；不探测路径、不写配置。",
+        "title": "Plan CreNexus Configuration",
+        "description": "根据软件版本、CreNexus 代际和安全模式生成 Codex 配置协同计划；不探测路径、不写配置。",
         "inputSchema": _object_schema(
             {
                 "software_versions": {
@@ -496,7 +496,7 @@ TOOLS = [
     },
     {
         "name": "starbridge_config.migrate",
-        "title": "Migrate StarBridge Generation",
+        "title": "Migrate CreNexus Generation",
         "description": "生成 v5-v9 之间的增量迁移计划，保留旧引用与产物；只读。",
         "inputSchema": _object_schema(
             {
@@ -569,7 +569,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any] | None:
                 "instructions": (
                     "先用 starbridge_config.plan 按软件版本选择安全桥接路由。"
                     "版本未知时先探针；本协调器永不读取客户素材、扫描安装目录、启动桌面软件或写配置。"
-                    "真实动作转交完整 StarBridge MCP，默认 dry-run，写入必须显式确认。"
+                    "真实动作转交完整 CreNexus MCP，默认 dry-run，写入必须显式确认。"
                 ),
             },
         }
@@ -621,7 +621,7 @@ def _parse_software_args(values: list[str]) -> dict[str, str | None]:
 
 def cli(argv: list[str] | None = None) -> int:
     configure_utf8_stdio()
-    parser = argparse.ArgumentParser(description="StarBridge Codex 版本配置协同器")
+    parser = argparse.ArgumentParser(description="CreNexus Codex 版本配置协同器")
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("catalog", help="列出支持的软件和项目代际")
     plan_parser = subparsers.add_parser("plan", help="生成只读配置计划")

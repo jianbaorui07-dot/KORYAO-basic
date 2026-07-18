@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="StarBridge icon grid">
-  <title>StarBridge icon grid</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="CreNexus icon grid">
+  <title>CreNexus icon grid</title>
   <rect width="640" height="320" fill="#F6F8FC"/>
-  <text x="32" y="38" fill="#101828" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">StarBridge icon grid</text>
+  <text x="32" y="38" fill="#101828" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">CreNexus icon grid</text>
   <text x="32" y="62" fill="#667085" font-family="Segoe UI, sans-serif" font-size="12">single source: starbridge-symbol.svg</text>
   <rect x="32" y="88" width="248" height="184" rx="14" fill="#FFFFFF" stroke="#DDE3EC"/>
   <rect x="304" y="88" width="304" height="184" rx="14" fill="#0B1220"/>

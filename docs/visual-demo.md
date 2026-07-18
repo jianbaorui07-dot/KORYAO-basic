@@ -1,8 +1,8 @@
 # 可视化 demo
 
-StarBridge 现在提供两个公开安全的可视化入口：一个静态预览图和一个本地 React / Three.js 控制台。它们只展示能力矩阵、验证命令和安全边界，不包含真实 PSD、AI、DWG、模型、生成图、客户素材或本机路径。
+CreNexus 现在提供两个公开安全的可视化入口：一个静态预览图和一个本地 React / Three.js 控制台。它们只展示能力矩阵、验证命令和安全边界，不包含真实 PSD、AI、DWG、模型、生成图、客户素材或本机路径。
 
-![StarBridge Creative Console preview](assets/starbridge-console-preview.svg)
+![CreNexus Creative Console preview](assets/starbridge-console-preview.svg)
 
 ## 静态预览
 

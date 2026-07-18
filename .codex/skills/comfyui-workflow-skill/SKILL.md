@@ -1,6 +1,6 @@
 ---
 name: comfyui-workflow-skill
-description: Work safely with StarBridge ComfyUI workflow validation, dry-run planning, workflow draft generation, and graph composition. Use when building, composing, repairing, validating, or reviewing ComfyUI API workflow JSON, ComfyUI probe output, txt2img dry-run flows, img2img/inpaint/upscale draft workflows, composed workflow graphs, or redacted ComfyUI job lifecycle summaries in this repository.
+description: Work safely with CreNexus ComfyUI workflow validation, dry-run planning, workflow draft generation, and graph composition. Use when building, composing, repairing, validating, or reviewing ComfyUI API workflow JSON, ComfyUI probe output, txt2img dry-run flows, img2img/inpaint/upscale draft workflows, composed workflow graphs, or redacted ComfyUI job lifecycle summaries in this repository.
 ---
 
 # ComfyUI Workflow
@@ -54,7 +54,7 @@ Do not discover real model names by scanning disks. Do not write generated image
 3. Return structured validation details: `valid`, `errors`, `warnings`, `node_count`, `detected_models`, and `missing_or_suspicious_fields`.
 4. Use `workflow_build_plan` for planning, `comfy.workflow_draft` for API-like draft JSON, and `comfy.workflow_compose` when the user asks for modular graph composition.
 5. Composer modules must stay placeholder-only: checkpoint loader, positive prompt encode, negative prompt encode, empty latent, load image, VAE encode, KSampler, VAE decode, save image, upscale, and inpaint mask.
-6. Drafts and composed graphs must include `StarBridgeDraftMetadata`, `draft=true` or `safe_placeholder=true`, and `production_ready=false`.
+6. Drafts and composed graphs must include `CreNexusDraftMetadata`, `draft=true` or `safe_placeholder=true`, and `production_ready=false`.
 7. For `txt2img`, `img2img`, `inpaint`, and `upscale`, generate placeholder-only graph nodes and validate them immediately.
 8. Keep checkpoint, source image, mask image, model, LoRA, VAE, ControlNet, upscale model, and output fields as placeholders unless the user explicitly confirms a local run in a later task.
 9. Redact prompt text in lifecycle summaries when it may reveal private project content; prefer hashes and basenames.

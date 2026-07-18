@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 
 import { ErrorState } from "../components/ErrorState/ErrorState";
 import { VECTOR_MODES } from "../content/vectorModes";
-import { UserFacingError, type StarBridgeClient } from "../services/client";
+import { UserFacingError, type CreNexusClient } from "../services/client";
 import type { VectorJob, VectorMode, VectorSelection } from "../types/api";
 
 interface VectorizationPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   runtimeReady: boolean;
   codexConnected: boolean;
   onOpenConnections: () => void;
@@ -102,7 +102,7 @@ export function VectorizationPage({
   return (
     <div className="workflow-page">
       <header className="page-intro">
-        <div><span className="page-kicker">Community 真实工作流</span><h2>把图片转换为可交付的矢量文件</h2><p>选择图片与模式后，StarBridge 会在本机生成 SVG、预览和质量报告。原图不会被修改。</p></div>
+        <div><span className="page-kicker">Community 真实工作流</span><h2>把图片转换为可交付的矢量文件</h2><p>选择图片与模式后，CreNexus 会在本机生成 SVG、预览和质量报告。原图不会被修改。</p></div>
         <span className="local-badge">不上传文件</span>
       </header>
 
@@ -130,7 +130,7 @@ export function VectorizationPage({
           </div>
           <div className="workflow-step">
             <span className="step-number">3</span><div className="step-content"><h3>确认参数并执行</h3><div className="parameter-row"><label>目标颜色<input type="number" min="2" max="32" value={colors} disabled={mode === "exact"} onChange={(event) => setColors(Number(event.currentTarget.value))} /></label><label>最大边长<input type="number" min="256" max="8192" step="128" value={maxDimension} onChange={(event) => setMaxDimension(Number(event.currentTarget.value))} /></label></div>
-              <label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} /><span>确认在 StarBridge 应用数据目录执行、写入并导出本次结果。</span></label>
+              <label className="confirmation"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.currentTarget.checked)} /><span>确认在 CreNexus 应用数据目录执行、写入并导出本次结果。</span></label>
               <button type="button" className="primary" disabled={!runtimeReady || !codexConnected || !selection || busy || running} onClick={() => void run()}>{running ? "正在本机处理" : "开始本机矢量化"}</button>
             </div>
           </div>
@@ -144,7 +144,7 @@ export function VectorizationPage({
           {job?.status === "completed" && job.result ? <div className="completed-result">
             <div className="preview-compare"><figure><img src={job.result.sourcePreviewDataUrl} alt="原图预览" /><figcaption>原图</figcaption></figure><figure><img src={job.result.resultPreviewDataUrl} alt="矢量化结果预览" /><figcaption>结果</figcaption></figure></div>
             <dl className="metrics-grid"><div><dt>颜色</dt><dd>{job.result.metrics.colors}</dd></div><div><dt>路径</dt><dd>{job.result.metrics.subpaths}</dd></div><div><dt>锚点</dt><dd>{job.result.metrics.points}</dd></div><div><dt>耗时</dt><dd>{job.result.metrics.elapsedSeconds.toFixed(1)} 秒</dd></div>{job.result.metrics.pixelMatch != null ? <div><dt>像素核对</dt><dd>{job.result.metrics.pixelMatch ? "一致" : "有差异"}</dd></div> : null}</dl>
-            <p className="saved-note">任务记录已保存，输出位于 StarBridge 本机应用数据目录。</p>
+            <p className="saved-note">任务记录已保存，输出位于 CreNexus 本机应用数据目录。</p>
             <button type="button" className="secondary" onClick={() => void openOutput()}>打开输出文件夹</button>
           </div> : null}
         </aside>

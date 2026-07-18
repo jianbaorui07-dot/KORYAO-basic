@@ -581,7 +581,7 @@ function canvasStoragePlugin() {
           const body = await readRequestBody(req)
           const eventPayload = sanitizeLiveEvent(JSON.parse(body))
           if (!eventPayload) {
-            sendJson(res, 400, { error: 'Expected a StarBridge Canvas live event.' })
+            sendJson(res, 400, { error: 'Expected a CreNexus Canvas live event.' })
             return
           }
 
@@ -617,7 +617,7 @@ function canvasStoragePlugin() {
             const body = await readRequestBody(req)
             const selection = JSON.parse(body)
             if (!isSelectionState(selection)) {
-              sendJson(res, 400, { error: 'Expected a StarBridge Canvas selection state.' })
+              sendJson(res, 400, { error: 'Expected a CreNexus Canvas selection state.' })
               return
             }
 
@@ -664,7 +664,7 @@ function canvasStoragePlugin() {
             const body = await readRequestBody(req)
             const viewState = JSON.parse(body)
             if (!isViewState(viewState)) {
-              sendJson(res, 400, { error: 'Expected a StarBridge Canvas view state.' })
+              sendJson(res, 400, { error: 'Expected a CreNexus Canvas view state.' })
               return
             }
 

@@ -52,7 +52,7 @@ def make_result(
 def validate_result(result: dict[str, Any]) -> None:
     missing = [field for field in REQUIRED_RESULT_FIELDS if field not in result]
     if missing:
-        raise ValueError(f"missing StarBridge result fields: {', '.join(missing)}")
+        raise ValueError(f"missing CreNexus result fields: {', '.join(missing)}")
     if not isinstance(result["ok"], bool):
         raise TypeError("ok must be bool")
     for field_name in ("bridge", "action", "message"):

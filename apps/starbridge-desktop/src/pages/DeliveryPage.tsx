@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { EmptyState } from "../components/EmptyState/EmptyState";
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { Project, ProjectDelivery } from "../types/api";
 
 interface DeliveryPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   initialProjectId?: string;
 }
 

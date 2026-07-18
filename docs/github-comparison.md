@@ -1,6 +1,6 @@
 # GitHub Comparison Notes
 
-This note tracks ideas from comparable public creative-software MCP projects that can be adopted into StarBridge without copying implementation code.
+This note tracks ideas from comparable public creative-software MCP projects that can be adopted into CreNexus without copying implementation code.
 
 ## Compared Projects
 
@@ -66,8 +66,8 @@ This note tracks ideas from comparable public creative-software MCP projects tha
 ## Not Directly Pulled Yet
 
 - External source code was not copied.
-- StarBridge只学习公开架构模式、schema 设计、tool grouping 和安全边界，不复制第三方实现代码、桌面脚本或私有素材假设。
-- Node.js/TypeScript tool implementations were not ported into the Python StarBridge server.
+- CreNexus只学习公开架构模式、schema 设计、tool grouping 和安全边界，不复制第三方实现代码、桌面脚本或私有素材假设。
+- Node.js/TypeScript tool implementations were not ported into the Python CreNexus server.
 - Blender addon server patterns were not added because this repository keeps real desktop automation behind probes, sandbox plans, and explicit user approval.
 - Model download, registry search, and custom node installation were not added because they need stricter token, license, cache, and path policies first.
 - Adobe third-party plugin code, arbitrary JSX/ExtendScript executors, cloud API calls, and generated project files were not copied or enabled.
@@ -81,5 +81,5 @@ Implement `EvidenceManifest` and `JobStatus` dataclasses, then expose:
 - `starbridge evidence validate`
 - `starbridge job-status`
 
-Those additions would reuse the Computer Use planning layer added in PR #6 while preserving StarBridge's local-first safety boundary.
+Those additions would reuse the Computer Use planning layer added in PR #6 while preserving CreNexus's local-first safety boundary.
 

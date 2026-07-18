@@ -1,9 +1,9 @@
 ---
 name: starbridge-cad-mcp
-description: Use StarBridge CAD and AutoCAD MCP safely from Codex. Use when the user mentions CAD, AutoCAD, DXF, DWG, CAD plan JSON, engineering drawing, layer validation, AutoCAD COM, cad-mcp-autocad, or asks Codex to inspect, validate, generate, or extend CAD-related StarBridge MCP tools.
+description: Use CreNexus CAD and AutoCAD MCP safely from Codex. Use when the user mentions CAD, AutoCAD, DXF, DWG, CAD plan JSON, engineering drawing, layer validation, AutoCAD COM, cad-mcp-autocad, or asks Codex to inspect, validate, generate, or extend CAD-related CreNexus MCP tools.
 ---
 
-# StarBridge CAD MCP
+# CreNexus CAD MCP
 
 ## Core Rule
 

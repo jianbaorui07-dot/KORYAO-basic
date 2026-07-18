@@ -1,30 +1,30 @@
-# Codex / Claude 接入 StarBridge MCP 本机落地
+# Codex / Claude 接入 CreNexus MCP 本机落地
 
-这份记录用于把 StarBridge 接到本机 AI 客户端，重点是 Codex 和 Claude Code。结论按“需要做什么”和“不需要做什么”区分，避免把 ChatGPT 远程 MCP、桌面软件授权、真实素材路径混进公开仓库。
+这份记录用于把 CreNexus 接到本机 AI 客户端，重点是 Codex 和 Claude Code。结论按“需要做什么”和“不需要做什么”区分，避免把 ChatGPT 远程 MCP、桌面软件授权、真实素材路径混进公开仓库。
 
 ## 搜集到的资料
 
-| 来源 | 对 StarBridge 的意义 |
+| 来源 | 对 CreNexus 的意义 |
 | --- | --- |
 | OpenAI Codex MCP 文档：<https://developers.openai.com/codex/mcp> | Codex 支持本地 stdio MCP 和 streamable HTTP MCP；配置放在 `~/.codex/config.toml` 或受信任项目的 `.codex/config.toml`；可用 `codex mcp add` 管理。 |
 | OpenAI Codex 配置说明：<https://developers.openai.com/codex/config-reference> | Codex 的 MCP server 配置使用 `[mcp_servers.<name>]` 表，支持 `command`、`args`、`env`、`cwd`、tool allow/deny 和审批模式。 |
 | Anthropic Claude Code MCP 文档：<https://docs.anthropic.com/en/docs/claude-code/mcp> | Claude Code 支持远程 HTTP、本地 stdio、SSE、WebSocket；项目级共享配置写入 `.mcp.json`，本机私有配置写入 `~/.claude.json`；项目级 server 首次使用需要用户批准。 |
 | MCP 官方介绍：<https://modelcontextprotocol.io/docs/getting-started/intro> | MCP 是让 AI 应用连接外部系统的开放标准；Claude、ChatGPT、开发工具和自建客户端都可复用同一类 server。 |
-| OpenAI ChatGPT MCP 文档：<https://developers.openai.com/api/docs/mcp> | ChatGPT 接 MCP 走远程 HTTPS server / Apps / Connectors，不适合直接接这个本地 stdio 原型，除非以后给 StarBridge 包一层远程 HTTP server。 |
+| OpenAI ChatGPT MCP 文档：<https://developers.openai.com/api/docs/mcp> | ChatGPT 接 MCP 走远程 HTTPS server / Apps / Connectors，不适合直接接这个本地 stdio 原型，除非以后给 CreNexus 包一层远程 HTTP server。 |
 
 ## 这台电脑现在需要什么
 
 | 目标 | 需要 | 当前处理 |
 | --- | --- | --- |
-| Claude Code 调 StarBridge | 项目根目录 `.mcp.json`，stdio 启动 `python -m starbridge_mcp.mcp_server` | 已新增 `.mcp.json`，可提交到 GitHub。 |
-| Codex 调 StarBridge | 本机 `.codex/config.toml` 或全局 `~/.codex/config.toml` | 公开模板保留在 `.codex/config.example.toml`；真实 `.codex/config.toml` 被 `.gitignore` 忽略，只留本机。 |
+| Claude Code 调 CreNexus | 项目根目录 `.mcp.json`，stdio 启动 `python -m starbridge_mcp.mcp_server` | 已新增 `.mcp.json`，可提交到 GitHub。 |
+| Codex 调 CreNexus | 本机 `.codex/config.toml` 或全局 `~/.codex/config.toml` | 公开模板保留在 `.codex/config.example.toml`；真实 `.codex/config.toml` 被 `.gitignore` 忽略，只留本机。 |
 | 基础 MCP smoke test | Python 能从项目根目录启动 `starbridge_mcp.mcp_server` | 不需要 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI 或 CapCut。 |
 | 本机桥状态检查 | `python -m starbridge_mcp.server tools --json --safe-only` 和 `python examples/bridge_status.py --json --redact-paths --soft-exit` | 可在没有桌面软件时 soft-exit，输出应脱敏。 |
 | 上传 GitHub | 只提交文档、共享配置、测试结果相关的安全内容 | 不提交 `.codex/config.toml`、`.env`、私有路径、真实素材和输出。 |
 
 ## 现在不需要什么
 
-- 不需要把 StarBridge 暴露成公网 HTTPS MCP，除非目标是 ChatGPT Apps / Connectors。
+- 不需要把 CreNexus 暴露成公网 HTTPS MCP，除非目标是 ChatGPT Apps / Connectors。
 - 不需要 OAuth、ngrok、Cloudflare Tunnel 或远程服务器。
 - 不需要真实打开 PSD、AI、DWG、剪映草稿或客户素材来证明基础 MCP 可用。
 - 不需要把 `PHOTOSHOP_EXE`、`ILLUSTRATOR_EXE`、`COMFY_ROOT`、`CAPCUT_DRAFTS_DIR` 等真实路径写入 GitHub。
@@ -59,10 +59,10 @@ claude
 /mcp
 ```
 
-第一次看到 project-scoped server 时，Claude Code 会要求批准。批准后可以在 Claude Code 里让它列出 StarBridge tools，或直接问：
+第一次看到 project-scoped server 时，Claude Code 会要求批准。批准后可以在 Claude Code 里让它列出 CreNexus tools，或直接问：
 
 ```text
-用 StarBridge MCP 检查当前本机 creative software bridge 状态，只读，不写入。
+用 CreNexus MCP 检查当前本机 creative software bridge 状态，只读，不写入。
 ```
 
 如果不用 `.mcp.json`，也可以用命令写入项目级配置：

@@ -233,7 +233,7 @@ class IllustratorRealtimeProxyTests(unittest.TestCase):
             request(
                 "http://127.0.0.1:8976/capture/frame",
                 b"fake",
-                {"Content-Type": "image/jpeg", "X-StarBridge-Capture-Target": "desktop"},
+                {"Content-Type": "image/jpeg", "X-CreNexus-Capture-Target": "desktop"},
             )
         self.assertEqual(400, caught.exception.code)
 

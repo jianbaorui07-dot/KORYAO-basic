@@ -1,8 +1,8 @@
-# 同类项目核心内容与 StarBridge 升级结论
+# 同类项目核心内容与 CreNexus 升级结论
 
 更新时间：2026-06-12
 
-这份说明只总结公开项目里值得借鉴的核心模式，不复制第三方源代码，也不把第三方私有假设带进 StarBridge。
+这份说明只总结公开项目里值得借鉴的核心模式，不复制第三方源代码，也不把第三方私有假设带进 CreNexus。
 
 ## 同类项目的核心内容
 
@@ -21,7 +21,7 @@
 - 区分 `API workflow` 和 `UI workflow`，避免格式混用。
 - 更成熟的项目会进一步做模型发现、节点发现、VRAM 监控和自动化工作流组合。
 
-对 StarBridge 的启发：
+对 CreNexus 的启发：
 
 - 应该保留当前 `validate first` 的保守路线。
 - 但要把“输出边界、状态边界、证据边界”表达得更标准，而不是只靠文档口头约定。
@@ -42,7 +42,7 @@
 - 真正先进的路线正在从简单 COM/脚本调用，走向应用内桥接，例如 `UXP + WebSocket/HTTP adapter`。
 - 安装方式更产品化，常见形态是 `npx`、扩展包、发布版二进制或远程 MCP 端点。
 
-对 StarBridge 的启发：
+对 CreNexus 的启发：
 
 - 公开仓库更适合保留“受控 recipe 层”，而不是扩大任意写工具。
 - `session -> plan -> validate -> run -> evidence` 比“再加十几个底层命令”更稳。
@@ -60,9 +60,9 @@
 - 用统一 adapter 包不同 CAD 端。
 - 先让没有桌面软件的环境也能做 plan/validate，再把真实写入作为受控分支。
 
-对 StarBridge 的启发：
+对 CreNexus 的启发：
 
-- 这条路线已经和 StarBridge 当前方向一致，应该继续强化，不要把离线 plan 和真实桌面控制混成一个口子。
+- 这条路线已经和 CreNexus 当前方向一致，应该继续强化，不要把离线 plan 和真实桌面控制混成一个口子。
 
 ### 4. 官方 MCP 新能力
 
@@ -80,18 +80,18 @@
 - `Elicitation` 负责正式表达需要用户确认或补充信息的交互。
 - `Sampling` 负责让 server 在不自带模型 key 的情况下，向 client 请求模型推理。
 
-对 StarBridge 的启发：
+对 CreNexus 的启发：
 
 - 你的仓库最该跟进的不是“更多工具”，而是“更标准地表达安全边界”。
 - `Resources` 与本仓库“安全优先、只读默认”的定位高度契合：把能力矩阵、安全根目录、bridge 元信息和安全策略做成只读资源，比继续堆工具更稳。
 
-## 这次落地到 StarBridge 的升级
+## 这次落地到 CreNexus 的升级
 
 ### -1. 补齐 MCP `Prompts` 能力（2026-06-27）
 
 继 Resources 之后补齐 MCP 第三个标准原语 Prompts。stdio server 实现 `prompts/list` / `prompts/get`，`initialize` 声明 `prompts` 能力，暴露 5 个可复用、参数化、把安全协议（validate-first / dry-run / 显式确认 / sandbox-only）固化进去的提示模板：`bridge_status_check`、`comfyui_safe_workflow`、`cad_dxf_from_spec`、`photoshop_recipe_run`、`safe_write_protocol`。实现见 `starbridge_mcp/core/prompts.py`，测试见 `tests/test_mcp_prompts.py`。
 
-至此 StarBridge 完整暴露 MCP 三大原语：Tools（能做什么）+ Resources（该知道什么）+ Prompts（怎样安全地做）。
+至此 CreNexus 完整暴露 MCP 三大原语：Tools（能做什么）+ Resources（该知道什么）+ Prompts（怎样安全地做）。
 
 ### 0. 新增 MCP `Resources` 能力（2026-06-27）
 
@@ -112,7 +112,7 @@ stdio server 现在按 MCP 规范暴露只读资源，客户端可用 `resources
 - 哪些目录是本地可写 sandbox / ignored output 根
 - 哪些根适合映射为 MCP roots
 
-这让 StarBridge 的“只能写哪些目录”第一次变成了正式能力，而不只是 README 里的约定。
+这让 CreNexus 的“只能写哪些目录”第一次变成了正式能力，而不只是 README 里的约定。
 
 ### 2. 补齐 Photoshop recipe 层的最小可调用面
 

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { Project } from "../types/api";
 
 interface ComfyUiGenerationPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   runtimeReady: boolean;
   initialProjectId?: string;
   onOpenJob: (jobId: string, projectId: string) => void;
@@ -87,7 +87,7 @@ export function ComfyUiGenerationPage({ client, runtimeReady, initialProjectId, 
 
   return (
     <div className="standard-page">
-      <header className="page-intro"><div><span className="page-kicker">comfyui-generation-v1</span><h2>验证后再提交到本机 ComfyUI</h2><p>StarBridge 先构建并校验 API workflow，再只读探测回环服务。真正请求 /prompt 前会在任务详情页等待你的明确确认。</p></div><span className="state-label planned">实验性</span></header>
+      <header className="page-intro"><div><span className="page-kicker">comfyui-generation-v1</span><h2>验证后再提交到本机 ComfyUI</h2><p>CreNexus 先构建并校验 API workflow，再只读探测回环服务。真正请求 /prompt 前会在任务详情页等待你的明确确认。</p></div><span className="state-label planned">实验性</span></header>
       {error ? <div className="error-state" role="alert"><strong>操作未完成</strong><p>{error}</p></div> : null}
       <div className="workflow-builder-grid">
         <section className="record-panel">

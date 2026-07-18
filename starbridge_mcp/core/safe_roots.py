@@ -113,7 +113,7 @@ def safe_roots_summary(*, bridge: str = "all") -> dict[str, Any]:
     return sanitize(
         {
             "ok": True,
-            "framework": "StarBridge",
+            "framework": "CreNexus",
             "action": "safe_roots",
             "bridge": bridge,
             "root_count": len(roots),

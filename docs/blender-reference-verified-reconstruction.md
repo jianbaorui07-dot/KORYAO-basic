@@ -1,6 +1,6 @@
 # Blender reference-verified reconstruction
 
-This note collects the GitHub research and the StarBridge design direction for
+This note collects the GitHub research and the CreNexus design direction for
 turning a user-provided reference image into a Blender reconstruction workflow
 that is checked against the original view before handoff.
 
@@ -31,7 +31,7 @@ Generated completion can still be useful, but it must be labeled as an
 assumption. For example, "back side completion is inferred by symmetry" is
 acceptable; "this is the true back side" is not.
 
-## Current StarBridge landing point
+## Current CreNexus landing point
 
 The repository now exposes a safe planning layer:
 
@@ -49,7 +49,7 @@ execution path must pass.
 
 | Stage | Purpose | Candidate projects |
 | --- | --- | --- |
-| Input gate | Accept only user-provided references, view count, licensing status, and optional scale anchors. | StarBridge `EvidenceManifest` |
+| Input gate | Accept only user-provided references, view count, licensing status, and optional scale anchors. | CreNexus `EvidenceManifest` |
 | Visual decomposition | Extract object masks, part masks, material regions, edges, and dominant lines before modeling. | [SAM 2](https://github.com/facebookresearch/sam2), [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO), [Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything), Photoshop masks |
 | Edge and line evidence | Recover clean silhouettes, hard-surface edges, facade lines, and candidate vanishing directions. | [DeepLSD](https://github.com/cvg/DeepLSD), [DexiNed](https://github.com/xavysp/DexiNed), [XiaohuLuVPDetection](https://github.com/rayryeng/XiaohuLuVPDetection) |
 | Camera and scale recovery | Match the camera to the reference image and recover metric scale where anchors exist. | [fSpy](https://github.com/stuffmatic/fSpy), [fSpy-Blender](https://github.com/stuffmatic/fSpy-Blender), [EyeLib](https://github.com/carlosbeltran/EyeLib), [Single-View-Metrology](https://github.com/bliuag/Single-View-Metrology) |

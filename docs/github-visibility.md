@@ -13,7 +13,7 @@ Windows-first local MCP stdio server and safety bridge for AI agents connecting 
 如果想保留中文，可以使用：
 
 ```text
-StarBridge: Codex/AI agent 接入 ComfyUI、Blender、AutoCAD、Photoshop、Illustrator、剪映的本地 MCP stdio 安全桥。
+CreNexus: Codex/AI agent 接入 ComfyUI、Blender、AutoCAD、Photoshop、Illustrator、剪映的本地 MCP stdio 安全桥。
 ```
 
 ## 推荐 Topics
@@ -68,8 +68,8 @@ README 首屏应该让陌生访问者在 10 秒内看懂三件事：
 如果 GitHub CLI 已登录，可以用下面命令设置公开元数据：
 
 ```powershell
-gh repo edit jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software --description "Windows-first local MCP stdio server and safety bridge for AI agents connecting to ComfyUI, Blender, AutoCAD/DXF, Photoshop, Illustrator, and CapCut/Jianying."
-gh repo edit jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software --add-topic mcp --add-topic model-context-protocol --add-topic codex --add-topic ai-agent --add-topic local-first --add-topic creative-tools --add-topic creative-software --add-topic comfyui --add-topic blender --add-topic autocad --add-topic dxf --add-topic photoshop --add-topic illustrator --add-topic capcut --add-topic jianying --add-topic windows --add-topic workflow-validation --add-topic automation
+gh repo edit jianbaorui07-dot/CreNexus --description "Windows-first local MCP stdio server and safety bridge for AI agents connecting to ComfyUI, Blender, AutoCAD/DXF, Photoshop, Illustrator, and CapCut/Jianying."
+gh repo edit jianbaorui07-dot/CreNexus --add-topic mcp --add-topic model-context-protocol --add-topic codex --add-topic ai-agent --add-topic local-first --add-topic creative-tools --add-topic creative-software --add-topic comfyui --add-topic blender --add-topic autocad --add-topic dxf --add-topic photoshop --add-topic illustrator --add-topic capcut --add-topic jianying --add-topic windows --add-topic workflow-validation --add-topic automation
 ```
 
 当前机器如果 `gh auth status` 显示未登录，需要先由仓库所有者手动运行：

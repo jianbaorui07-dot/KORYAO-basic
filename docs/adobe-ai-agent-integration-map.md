@@ -1,10 +1,10 @@
 # Codex + Adobe AI / Creative Software Integration Map
 
-This note collects practical reference cases for connecting Codex or other AI agents to Adobe creative tools. It is a research and architecture map for StarBridge, not a claim that every integration is production-ready in this repository.
+This note collects practical reference cases for connecting Codex or other AI agents to Adobe creative tools. It is a research and architecture map for CreNexus, not a claim that every integration is production-ready in this repository.
 
 ## Reference Cases
 
-| Reference | What it shows | Relevance to StarBridge |
+| Reference | What it shows | Relevance to CreNexus |
 | --- | --- | --- |
 | [Adobe Illustrator official MCP / Codex support](https://helpx.adobe.com/in/illustrator/desktop/connect-with-other-apps-and-tools/connect-illustrator-to-ai-tools.html) | Adobe documents a direct Illustrator Beta MCP path for Claude Code, Codex, and other AI tools. | Most direct official route for Codex to control Illustrator through MCP. |
 | [mikechambers/adb-mcp](https://github.com/mikechambers/adb-mcp) | MCP proof of concept for controlling Photoshop and Premiere through a Node proxy and Adobe UXP plugin. | Useful reference for the agent -> MCP -> proxy -> UXP -> Adobe app architecture. |
@@ -74,9 +74,9 @@ Agent client
   -> audited result handoff
 ```
 
-## StarBridge Position
+## CreNexus Position
 
-StarBridge should treat Adobe integrations as layered capabilities:
+CreNexus should treat Adobe integrations as layered capabilities:
 
 1. `stable`: local-safe status, probes, metadata-only inspection, dry-run plans.
 2. `experimental`: sandbox file generation, local editable vector export, reviewed screenshot evidence.

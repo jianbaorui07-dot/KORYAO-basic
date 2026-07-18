@@ -23,7 +23,7 @@
 ```mermaid
 flowchart LR
   User["用户需求"] --> Skill["Codex skill 选择路线"]
-  Skill --> MCP["StarBridge MCP tools"]
+  Skill --> MCP["CreNexus MCP tools"]
   MCP --> Probe["status / probe / preflight / dry-run"]
   MCP --> Proxy["Node Proxy"]
   Proxy --> UXP["Adobe UXP plugin"]

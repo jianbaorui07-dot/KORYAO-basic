@@ -13,7 +13,7 @@ from starbridge_mcp.adapters.base import (
 
 class _AlwaysLocalAdapter(CreativeAdapter):
     def probe(self, context: AdapterContext) -> ProbeResult:
-        return ProbeResult(True, "available", "StarBridge 本地能力可用。")
+        return ProbeResult(True, "available", "CreNexus 本地能力可用。")
 
     def plan(self, context: AdapterContext) -> dict[str, Any]:
         return {

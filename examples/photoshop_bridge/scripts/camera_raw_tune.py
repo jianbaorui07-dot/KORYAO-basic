@@ -111,7 +111,7 @@ def write_xmp(payload: dict[str, Any], basename: str) -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build a StarBridge Photoshop Camera Raw tuning protocol plan."
+        description="Build a CreNexus Photoshop Camera Raw tuning protocol plan."
     )
     parser.add_argument(
         "--source-path",

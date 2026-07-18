@@ -1,6 +1,6 @@
 # Windows 安装说明
 
-StarBridge v0.1.0-alpha 面向 Windows-first / local-first 工作站。最小开发环境不需要安装 Adobe、AutoCAD、Blender、ComfyUI 或 CapCut；缺少这些软件时，探针应返回结构化 warning 或 unavailable，而不是让 CI 失败。
+CreNexus v0.1.0-alpha 面向 Windows-first / local-first 工作站。最小开发环境不需要安装 Adobe、AutoCAD、Blender、ComfyUI 或 CapCut；缺少这些软件时，探针应返回结构化 warning 或 unavailable，而不是让 CI 失败。
 
 ## 基础环境
 

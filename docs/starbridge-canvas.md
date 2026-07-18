@@ -1,6 +1,6 @@
-# StarBridge Canvas 实时画布
+# CreNexus Canvas 实时画布
 
-StarBridge Canvas 把 `codexhuabu` 的本地无限画布迁入 StarBridge 项目，用作 Codex 和创意软件之间的可视化协作层。它不是素材仓库；真实项目画布、截图、生成图和页面资产默认保存在本机忽略目录。
+CreNexus Canvas 把 `codexhuabu` 的本地无限画布迁入 CreNexus 项目，用作 Codex 和创意软件之间的可视化协作层。它不是素材仓库；真实项目画布、截图、生成图和页面资产默认保存在本机忽略目录。
 
 ## 运行
 
@@ -22,7 +22,7 @@ npm.cmd run canvas:dev -- -ProjectDir "C:\path\to\project" -Port 43218
 
 ## 实时机制
 
-StarBridge Canvas 使用三条本地接口：
+CreNexus Canvas 使用三条本地接口：
 
 | 接口 | 用途 |
 | --- | --- |

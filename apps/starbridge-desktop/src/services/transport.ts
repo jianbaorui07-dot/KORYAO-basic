@@ -29,7 +29,7 @@ export class TransportError extends Error {
   }
 }
 
-export interface StarBridgeTransport {
+export interface CreNexusTransport {
   readonly kind: "http" | "desktop";
   request<T>(request: TransportRequest): Promise<TransportResponse<T>>;
   getRuntimeStatus(): Promise<RuntimeStatus>;

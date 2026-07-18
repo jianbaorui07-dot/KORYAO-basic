@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/capability-status.v1.json",
-  "title": "StarBridge Capability Record",
+  "title": "CreNexus Capability Record",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,6 +1,6 @@
-# StarBridge maintenance closeout - 2026-05-31
+# CreNexus maintenance closeout - 2026-05-31
 
-This note records the current public-safe maintenance status for the StarBridge Creative Software MCP repository.
+This note records the current public-safe maintenance status for the CreNexus Creative Software MCP repository.
 
 ## Scope
 
@@ -14,7 +14,7 @@ This note records the current public-safe maintenance status for the StarBridge 
 The local working tree currently contains these verified changes:
 
 - Public-boundary docs: SECURITY.md, CONTRIBUTING.md, ROADMAP.md.
-- StarBridge preflight: scripts/starbridge_preflight.py.
+- CreNexus preflight: scripts/starbridge_preflight.py.
 - MCP stdio registry: starbridge_mcp/server.py and starbridge_mcp/mcp_server.py.
 - Read-only bridge tools for Adobe, Blender, CAD/AutoCAD, ComfyUI, Jianying/CapCut.
 - CAD/DXF plan tools:

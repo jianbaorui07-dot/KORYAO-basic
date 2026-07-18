@@ -9,7 +9,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repository = "jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software"
+$repository = "jianbaorui07-dot/CreNexus"
 $installer = Get-Item -LiteralPath $InstallerPath -ErrorAction Stop
 $signatureFile = Get-Item -LiteralPath $SignaturePath -ErrorAction Stop
 $manifestFile = Get-Item -LiteralPath $ManifestPath -ErrorAction Stop

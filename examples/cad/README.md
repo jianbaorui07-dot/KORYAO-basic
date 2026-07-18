@@ -1,6 +1,6 @@
 # CAD / DXF Bridge 原型
 
-这个目录是 StarBridge 的安全 CAD / DXF bridge 原型示例。它先做无头 DXF plan 验证和 dry-run 汇总，不直接控制真实 AutoCAD，不打开 DWG，不写客户项目文件。
+这个目录是 CreNexus 的安全 CAD / DXF bridge 原型示例。它先做无头 DXF plan 验证和 dry-run 汇总，不直接控制真实 AutoCAD，不打开 DWG，不写客户项目文件。
 
 ## 当前能力
 

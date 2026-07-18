@@ -118,11 +118,11 @@ python -m unittest tests.test_illustrator_color_trace -v
 
 ## 同类项目对比与差距（2026-07-17）
 
-| 项目 | 可借鉴能力 | StarBridge 当前差距 |
+| 项目 | 可借鉴能力 | CreNexus 当前差距 |
 | --- | --- | --- |
 | [VTracer @ `fd9cdb0`](https://github.com/visioncortex/vtracer/commit/fd9cdb08e622f237eb05be553a020ddc9e4c47a1) | MIT、无 GUI、彩色高分辨率、stacked/cutout、polygon/spline、poster/photo 预设 | 智能曲线精修 Skill 已把 stacked-spline 接为显式可选候选后端，并强制展开 translate、限制安全属性、经过同一 verifier 和最终 SVG 实际渲染评分；它尚未成为四模式默认后端，也不等于设计师语义分层。 |
 | [ImageTracerJS @ `cb0c84a`](https://github.com/jankovicsandras/imagetracerjs/commit/cb0c84a309df5e75614d3b5166cdc77a56f12a98) | 浏览器/Node 彩色 tracing；测试会统计 SVG bytes、路径数和像素差异 | headless fallback 已补 bytes/hash/path/color 与最终 SVG→量化目标的像素差异证据；它仍不是原始参考图↔最终 SVG 的视觉等价证明，不能与原生 PNG compare 混作同一证据。 |
-| [Inkscape @ `e76072a`](https://gitlab.com/inkscape/inkscape/-/commit/e76072ae5ae7d2ab77886450102d4d5e245834ac) | Potrace/Autotrace/libdepixelize、彩色多扫描、中心线与编辑器内结果 | 适合作为已安装编辑器的 fallback；`object-trace` 的完成文本不能证明有路径，仍须解析最终 SVG。StarBridge 尚未接入。 |
+| [Inkscape @ `e76072a`](https://gitlab.com/inkscape/inkscape/-/commit/e76072ae5ae7d2ab77886450102d4d5e245834ac) | Potrace/Autotrace/libdepixelize、彩色多扫描、中心线与编辑器内结果 | 适合作为已安装编辑器的 fallback；`object-trace` 的完成文本不能证明有路径，仍须解析最终 SVG。CreNexus 尚未接入。 |
 
 原有 headless 小闭环继续固定 K-means 随机种子、用 `evenodd` 复合路径保留超过最小面积阈值的孔洞、验证真实 SVG 并提供事务式发布恢复。新增的智能曲线精修 Skill 不替换四模式：它只在普通结果破碎或差异超限时生成 bounded VTracer 候选，规范化为仓库允许的 `M/L/C/Z` 纯路径，再把最终 SVG 的实际渲染图与明确参考图比较。原生 Image Trace 的 plan / validate / compare / repair_plan / execute 保持兼容/研究用途，不进入普通客户交付。
 

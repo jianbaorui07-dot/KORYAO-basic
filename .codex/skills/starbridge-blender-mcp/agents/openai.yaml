@@ -1,4 +1,4 @@
 interface:
-  display_name: "StarBridge Blender MCP"
+  display_name: "CreNexus Blender MCP"
   short_description: "安全使用 Blender MCP 环境探针和 dry-run 场景计划"
   default_prompt: "Use $starbridge-blender-mcp to check Blender availability and produce a safe dry-run scene plan."

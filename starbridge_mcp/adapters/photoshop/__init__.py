@@ -1,4 +1,4 @@
-"""Photoshop adapter for StarBridge MCP."""
+"""Photoshop adapter for CreNexus MCP."""
 
 from .mcp_server import TOOL_DEFINITIONS, TOOL_HANDLERS
 

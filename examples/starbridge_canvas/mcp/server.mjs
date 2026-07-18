@@ -3,7 +3,7 @@ import { basename, extname, join, relative, resolve, sep } from "node:path";
 import readline from "node:readline";
 import { generateKeyBetween } from "fractional-indexing";
 
-const SERVER_NAME = "StarBridge Canvas MCP";
+const SERVER_NAME = "CreNexus Canvas MCP";
 const SERVER_VERSION = "0.1.0";
 const TOOL_GET_SELECTION = "get_starbridge_canvas_selection";
 const TOOL_INSERT_IMAGE = "insert_starbridge_canvas_image";
@@ -205,7 +205,7 @@ async function loadCanvasSnapshot(args) {
   const payload = await fetchJson(`${canvasUrl}/api/canvas`);
   const snapshot = payload?.snapshot ?? payload;
   if (!snapshot || typeof snapshot !== "object" || !snapshot.schema || !snapshot.store) {
-    throw new Error(`Expected StarBridge Canvas snapshot from ${canvasUrl}/api/canvas`);
+    throw new Error(`Expected CreNexus Canvas snapshot from ${canvasUrl}/api/canvas`);
   }
   return { canvasUrl, snapshot, payload };
 }
@@ -369,7 +369,7 @@ async function getImageDimensions(filePath) {
   throw new Error(`Could not read image dimensions for ${filePath}. Pass displayWidth/displayHeight and use a PNG/JPEG/WebP source.`);
 }
 
-async function insertStarBridgeCanvasImage(args = {}) {
+async function insertCreNexusCanvasImage(args = {}) {
   const imagePath = nonEmptyString(args.imagePath);
   if (!imagePath) throw new Error("imagePath is required.");
 
@@ -458,7 +458,7 @@ async function insertStarBridgeCanvasImage(args = {}) {
       crop: null,
       flipX: false,
       flipY: false,
-      altText: nonEmptyString(args.altText) || "StarBridge Canvas inserted image",
+      altText: nonEmptyString(args.altText) || "CreNexus Canvas inserted image",
     },
     parentId,
     index,
@@ -494,15 +494,15 @@ function toolDefinitions() {
   return [
     {
       name: TOOL_GET_SELECTION,
-      title: "Get StarBridge Canvas Selection",
+      title: "Get CreNexus Canvas Selection",
       description:
-        "Return the currently selected StarBridge Canvas/tldraw shapes and image asset metadata from a project's canvas/starbridge-selection.json state file.",
+        "Return the currently selected CreNexus Canvas/tldraw shapes and image asset metadata from a project's canvas/starbridge-selection.json state file.",
       inputSchema: {
         type: "object",
         properties: {
           projectDir: {
             type: "string",
-            description: "Absolute StarBridge project directory. The tool reads <projectDir>/canvas/starbridge-selection.json.",
+            description: "Absolute CreNexus project directory. The tool reads <projectDir>/canvas/starbridge-selection.json.",
           },
           canvasDir: {
             type: "string",
@@ -520,16 +520,16 @@ function toolDefinitions() {
     },
     {
       name: TOOL_INSERT_IMAGE,
-      title: "Insert StarBridge Canvas Image",
+      title: "Insert CreNexus Canvas Image",
       description:
-        "Copy a local bitmap into a StarBridge Canvas page-local assets folder, create a tldraw image asset and shape, place it beside an anchor or clear page area, and save through the canvas API.",
+        "Copy a local bitmap into a CreNexus Canvas page-local assets folder, create a tldraw image asset and shape, place it beside an anchor or clear page area, and save through the canvas API.",
       inputSchema: {
         type: "object",
         properties: {
           imagePath: { type: "string", description: "Absolute local bitmap path to insert." },
-          projectDir: { type: "string", description: "Absolute StarBridge project directory containing canvas/." },
+          projectDir: { type: "string", description: "Absolute CreNexus project directory containing canvas/." },
           canvasDir: { type: "string", description: "Absolute canvas directory. Overrides projectDir." },
-          canvasUrl: { type: "string", description: "Running StarBridge Canvas URL, for example http://127.0.0.1:43218." },
+          canvasUrl: { type: "string", description: "Running CreNexus Canvas URL, for example http://127.0.0.1:43218." },
           cowartUrl: { type: "string", description: "Legacy alias for canvasUrl." },
           pageId: { type: "string", description: "Target tldraw page id. Optional when an anchor or view-state page is available." },
           anchorShapeId: { type: "string", description: "Existing shape id to place beside, usually the source image or AI frame." },
@@ -565,7 +565,7 @@ async function handleToolCall(id, params) {
     const selectedShapes = selection.selectedShapes ?? [];
     const summary =
       selectedShapes.length === 0
-        ? "No StarBridge Canvas shapes are currently selected."
+        ? "No CreNexus Canvas shapes are currently selected."
         : selectedShapes
             .map((shape) => {
               const assetName = shape.asset?.name ? ` (${shape.asset.name})` : "";
@@ -581,7 +581,7 @@ async function handleToolCall(id, params) {
   }
 
   if (params?.name === TOOL_INSERT_IMAGE || params?.name === LEGACY_TOOL_INSERT_IMAGE) {
-    const result = await insertStarBridgeCanvasImage(params.arguments ?? {});
+    const result = await insertCreNexusCanvasImage(params.arguments ?? {});
     sendResult(id, {
       content: [
         {
@@ -609,7 +609,7 @@ async function handleRequest(message) {
         version: SERVER_VERSION,
       },
       instructions:
-        "Read and update StarBridge Canvas state. Use get_starbridge_canvas_selection for persisted browser selection and insert_starbridge_canvas_image to place local bitmap assets into the running canvas without hand-writing tldraw records.",
+        "Read and update CreNexus Canvas state. Use get_starbridge_canvas_selection for persisted browser selection and insert_starbridge_canvas_image to place local bitmap assets into the running canvas without hand-writing tldraw records.",
     });
     return;
   }

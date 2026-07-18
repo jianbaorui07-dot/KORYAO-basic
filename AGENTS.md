@@ -1,6 +1,6 @@
 # Agent Instructions
 
-这个仓库只做一件事：公开协作 **Codex Skill + StarBridge MCP + Adobe UXP / 本地代理接入本地创意软件**。内容要精简、中文清楚、示例可运行；历史 demo、报告脚本、素材图片、临时输出和私有资产不要发到 GitHub。
+这个仓库只做一件事：公开协作 **Codex Skill + CreNexus MCP + Adobe UXP / 本地代理接入本地创意软件**。内容要精简、中文清楚、示例可运行；历史 demo、报告脚本、素材图片、临时输出和私有资产不要发到 GitHub。
 
 ## Codex 首次接入
 

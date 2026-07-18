@@ -82,7 +82,7 @@ jobs:
           python -m starbridge_mcp.server evidence --validate --json
           python -m starbridge_mcp.server job-status --json
 
-      - name: Run StarBridge preflight
+      - name: Run CreNexus preflight
         run: python scripts/starbridge_preflight.py --markdown
 
       - name: Run npm scripts

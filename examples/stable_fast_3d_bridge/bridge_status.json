@@ -27,7 +27,7 @@
   ],
   "next_steps": [
     "Keep the upstream installation outside this repository and pass its location through SF3D_ROOT.",
-    "Add a StarBridge MCP wrapper only after export paths, file hashing, and artifact cleanup are fully explicit.",
+    "Add a CreNexus MCP wrapper only after export paths, file hashing, and artifact cleanup are fully explicit.",
     "Record GLB dimensions, file size, and SHA256 when generated assets are used as evidence."
   ]
 }

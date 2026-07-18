@@ -23,7 +23,7 @@ from .security import sanitize
 SCHEMA_VERSION = "starbridge.desktop-connections.v2"
 PAIRING_VERSION = "starbridge.desktop-pairing.v1"
 APPLICATION_PAIRING_VERSION = "starbridge.application-pairings.v1"
-CONNECTOR_BEGIN = "# BEGIN STARBRIDGE DESKTOP CONNECTOR (managed by StarBridge Desktop)"
+CONNECTOR_BEGIN = "# BEGIN STARBRIDGE DESKTOP CONNECTOR (managed by CreNexus Desktop)"
 CONNECTOR_END = "# END STARBRIDGE DESKTOP CONNECTOR"
 PAIRING_CODE_ALPHABET = string.ascii_uppercase.replace("I", "").replace("O", "") + "23456789"
 PAIRING_CODE_LENGTH = 8
@@ -185,7 +185,7 @@ def pair_desktop_session(
             "ok": False,
             "error": {
                 "code": "confirmation_required",
-                "message": "关联当前 StarBridge 桌面会话前需要明确确认。",
+                "message": "关联当前 CreNexus 桌面会话前需要明确确认。",
                 "next_steps": ["确认连接中心显示的配对码，再设置 confirm_pairing=true。"],
             },
         }
@@ -196,7 +196,7 @@ def pair_desktop_session(
             "error": {
                 "code": "pairing_code_invalid",
                 "message": "配对码格式无效。",
-                "next_steps": ["回到 StarBridge 连接中心复制当前 8 位配对码。"],
+                "next_steps": ["回到 CreNexus 连接中心复制当前 8 位配对码。"],
             },
         }
 
@@ -207,8 +207,8 @@ def pair_desktop_session(
             "ok": False,
             "error": {
                 "code": "desktop_session_not_found",
-                "message": "没有找到正在等待关联的 StarBridge 桌面会话。",
-                "next_steps": ["打开 StarBridge 的连接中心后重试。"],
+                "message": "没有找到正在等待关联的 CreNexus 桌面会话。",
+                "next_steps": ["打开 CreNexus 的连接中心后重试。"],
             },
         }
     created_at = _parse_created_at(challenge.get("created_at"))
@@ -218,7 +218,7 @@ def pair_desktop_session(
             "error": {
                 "code": "pairing_code_expired",
                 "message": "该配对码已过期。",
-                "next_steps": ["在 StarBridge 连接中心点击“重新生成配对码”。"],
+                "next_steps": ["在 CreNexus 连接中心点击“重新生成配对码”。"],
             },
         }
     expected = challenge.get("pairing_code")
@@ -228,7 +228,7 @@ def pair_desktop_session(
             "ok": False,
             "error": {
                 "code": "pairing_code_invalid",
-                "message": "配对码与当前 StarBridge Desktop 会话不匹配。",
+                "message": "配对码与当前 CreNexus Desktop 会话不匹配。",
                 "next_steps": ["复制连接中心当前显示的配对码，不要使用旧任务中的配对码。"],
             },
         }
@@ -251,9 +251,9 @@ def pair_desktop_session(
         "ok": True,
         "paired": True,
         "dry_run": False,
-        "message": "Codex 已与当前 StarBridge 桌面会话关联。",
+        "message": "Codex 已与当前 CreNexus 桌面会话关联。",
         "drawing_enabled": True,
-        "next_steps": ["返回 StarBridge；连接中心会自动刷新并开放制图入口。"],
+        "next_steps": ["返回 CreNexus；连接中心会自动刷新并开放制图入口。"],
     }
 
 
@@ -466,14 +466,14 @@ class DesktopConnectionManager:
             raise ConnectionSetupError(
                 "confirmation_required",
                 "安装 Codex 本地连接器前需要明确确认。",
-                ["确认后重试；StarBridge 只修改自己的托管配置区块。"],
+                ["确认后重试；CreNexus 只修改自己的托管配置区块。"],
             )
         command, arguments, cwd = _connector_command()
         if not command.is_file():
             raise ConnectionSetupError(
                 "connector_executable_missing",
-                "没有找到 StarBridge 本地连接器程序。",
-                ["重新安装 StarBridge Desktop 后重试。"],
+                "没有找到 CreNexus 本地连接器程序。",
+                ["重新安装 CreNexus Desktop 后重试。"],
             )
         codex_home = _codex_home()
         config = codex_home / "config.toml"
@@ -482,7 +482,7 @@ class DesktopConnectionManager:
             if config.exists() and config.stat().st_size > MAX_CONFIG_BYTES:
                 raise ConnectionSetupError(
                     "codex_config_too_large",
-                    "Codex 配置文件过大，StarBridge 未修改它。",
+                    "Codex 配置文件过大，CreNexus 未修改它。",
                     ["请手动检查 config.toml 后重试。"],
                 )
             contents = config.read_text(encoding="utf-8") if config.exists() else ""
@@ -502,7 +502,7 @@ class DesktopConnectionManager:
         if re.search(r"(?m)^\s*\[mcp_servers\.starbridge-desktop(?:\.env)?\]\s*$", preserved):
             raise ConnectionSetupError(
                 "connector_config_conflict",
-                "Codex 配置中已有非托管的 starbridge-desktop 条目，StarBridge 未覆盖它。",
+                "Codex 配置中已有非托管的 starbridge-desktop 条目，CreNexus 未覆盖它。",
                 ["请先在 config.toml 中重命名或删除冲突条目。"],
             )
 
@@ -544,7 +544,7 @@ class DesktopConnectionManager:
             "connector": "starbridge-desktop",
             "message": "Codex 本地连接器已安装或更新。",
             "restart_required": True,
-            "next_steps": ["打开一个新的 Codex 任务，再发送 StarBridge 预填的配对指令。"],
+            "next_steps": ["打开一个新的 Codex 任务，再发送 CreNexus 预填的配对指令。"],
         }
 
     @staticmethod
@@ -553,7 +553,7 @@ class DesktopConnectionManager:
         if definition is None:
             raise ConnectionSetupError(
                 "application_not_supported",
-                "该软件不在 StarBridge 固定配对清单中。",
+                "该软件不在 CreNexus 固定配对清单中。",
                 ["在连接中心选择 Photoshop、Illustrator、ComfyUI、AutoCAD、Blender 或剪映。"],
             )
         return definition
@@ -657,7 +657,7 @@ class DesktopConnectionManager:
             elif running:
                 state = "running"
                 pairing_state = "ready_to_pair"
-                message = "软件正在运行，等待与当前 StarBridge 会话配对。"
+                message = "软件正在运行，等待与当前 CreNexus 会话配对。"
                 next_steps = ["确认软件中没有未保存的敏感任务后，点击“开始配对”。"]
             elif installed:
                 state = "installed"
@@ -702,7 +702,7 @@ class DesktopConnectionManager:
             raise ConnectionSetupError(
                 "confirmation_required",
                 "配对外部创意软件前需要明确确认。",
-                ["确认当前软件会话可以交给 StarBridge 检测后重试。"],
+                ["确认当前软件会话可以交给 CreNexus 检测后重试。"],
             )
         if not self.drawing_enabled():
             raise ConnectionSetupError(
@@ -721,7 +721,7 @@ class DesktopConnectionManager:
             raise ConnectionSetupError(
                 "application_not_running",
                 "该软件尚未运行，未创建配对。",
-                ["手动打开软件后重新检测；StarBridge 不会代替用户启动或重启外部软件。"],
+                ["手动打开软件后重新检测；CreNexus 不会代替用户启动或重启外部软件。"],
             )
         self._probe_application_bridge(application_id, refresh=True)
         receipts = self._application_receipts()
@@ -742,7 +742,7 @@ class DesktopConnectionManager:
         if application_id not in self._application_receipts():
             raise ConnectionSetupError(
                 "application_not_paired",
-                "当前 StarBridge 会话还没有配对该软件。",
+                "当前 CreNexus 会话还没有配对该软件。",
                 ["软件运行后点击“开始配对”。"],
             )
         return self.pair_application(application_id, confirm_pairing=True)
@@ -780,7 +780,7 @@ class DesktopConnectionManager:
             next_steps = ["先安装并登录 Codex，再返回连接中心重新检测。"]
         elif not connector_configured:
             state = "connector_required"
-            message = "已找到 Codex；需要安装 StarBridge 本地连接器。"
+            message = "已找到 Codex；需要安装 CreNexus 本地连接器。"
             next_steps = ["确认安装连接器，然后在新的 Codex 任务中完成配对。"]
         else:
             state = "awaiting_pairing"

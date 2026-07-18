@@ -1,8 +1,8 @@
-"""StarBridge MCP prompts.
+"""CreNexus MCP prompts.
 
 Prompts are the third MCP primitive (alongside tools and resources). They let a
 server expose reusable, parameterized prompt templates that clients can surface
-as slash commands. StarBridge prompts bake the safe-by-default protocol
+as slash commands. CreNexus prompts bake the safe-by-default protocol
 (read-only first, dry-run, explicit confirmation, sandbox-only writes) directly
 into each template so an agent starts from a safe plan instead of a blank call.
 
@@ -98,7 +98,7 @@ def _photoshop_recipe_run(arguments: JsonObject) -> str:
 
 def _safe_write_protocol(_arguments: JsonObject) -> str:
     return (
-        "在调用任何 StarBridge 写入 / 导出 / 启动本机软件的工具前，请遵守安全协议：\n"
+        "在调用任何 CreNexus 写入 / 导出 / 启动本机软件的工具前，请遵守安全协议：\n"
         "1. 先用只读 / probe / validate / plan 工具理解现状。\n"
         "2. 写入类工具默认 dry_run=true，先预览计划和输出清单。\n"
         "3. 真实动作需显式确认（confirm_write / confirm_export / confirm_run），"
@@ -151,7 +151,7 @@ _PROMPT_TABLE: tuple[tuple[str, str, str, list[JsonObject], Callable[[JsonObject
     (
         "safe_write_protocol",
         "Safe Write Protocol",
-        "返回 StarBridge 通用安全写入协议提示词，无需参数。",
+        "返回 CreNexus 通用安全写入协议提示词，无需参数。",
         [],
         _safe_write_protocol,
     ),

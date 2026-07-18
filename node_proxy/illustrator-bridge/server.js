@@ -252,13 +252,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/health") return json(res, 200, health());
     if (req.method === "GET" && url.pathname === "/preview") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-      return res.end(`<!doctype html><meta charset="utf-8"><title>StarBridge Illustrator Preview</title><style>html,body{margin:0;background:#111;color:#ddd;font:14px system-ui;height:100%}body{display:grid;grid-template-rows:auto 1fr}header{padding:8px 12px;background:#202020}img{width:100%;height:100%;object-fit:contain;min-height:0}</style><header>Illustrator 窗口实时预览 · <span id="status">连接中</span></header><img id="frame" alt="Illustrator window preview"><script>const image=document.querySelector('#frame'),status=document.querySelector('#status');let last='';async function tick(){try{const meta=await fetch('/frame/meta',{cache:'no-store'}).then(r=>r.json());if(meta.ok&&meta.frame.at!==last){last=meta.frame.at;image.src='/frame/latest?t='+encodeURIComponent(last);status.textContent=meta.frame.width+'×'+meta.frame.height+' · '+new Date(last).toLocaleTimeString();}}catch(e){status.textContent='等待代理';}}setInterval(tick,250);tick();</script>`);
+      return res.end(`<!doctype html><meta charset="utf-8"><title>CreNexus Illustrator Preview</title><style>html,body{margin:0;background:#111;color:#ddd;font:14px system-ui;height:100%}body{display:grid;grid-template-rows:auto 1fr}header{padding:8px 12px;background:#202020}img{width:100%;height:100%;object-fit:contain;min-height:0}</style><header>Illustrator 窗口实时预览 · <span id="status">连接中</span></header><img id="frame" alt="Illustrator window preview"><script>const image=document.querySelector('#frame'),status=document.querySelector('#status');let last='';async function tick(){try{const meta=await fetch('/frame/meta',{cache:'no-store'}).then(r=>r.json());if(meta.ok&&meta.frame.at!==last){last=meta.frame.at;image.src='/frame/latest?t='+encodeURIComponent(last);status.textContent=meta.frame.width+'×'+meta.frame.height+' · '+new Date(last).toLocaleTimeString();}}catch(e){status.textContent='等待代理';}}setInterval(tick,250);tick();</script>`);
     }
     if (req.method === "GET" && url.pathname === "/state") return json(res, 200, stateEnvelope(maxStateAge(url.searchParams.get("max_age_ms"))));
     if (req.method === "GET" && url.pathname === "/frame/meta") return json(res, 200, { ok: Boolean(latestFrame), frame: latestFrame ? { ...latestFrame, data: undefined } : null });
     if (req.method === "GET" && url.pathname === "/frame/latest") {
       if (!latestFrame) return json(res, 404, { ok: false, message: "frame_unavailable" });
-      res.writeHead(200, { "Content-Type": latestFrame.content_type, "Cache-Control": "no-store", "X-StarBridge-Capture": "illustrator-window" });
+      res.writeHead(200, { "Content-Type": latestFrame.content_type, "Cache-Control": "no-store", "X-CreNexus-Capture": "illustrator-window" });
       return res.end(latestFrame.data);
     }
     if (req.method === "POST" && url.pathname === "/capture/frame") {

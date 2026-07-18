@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 
 import { ErrorState } from "../components/ErrorState/ErrorState";
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { LicenseStatus, VersionInfo } from "../types/api";
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -16,7 +16,7 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 interface LicensePageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   license: LicenseStatus;
   version: VersionInfo | null;
   onLicenseChanged: (license: LicenseStatus) => void;
@@ -49,7 +49,7 @@ export function LicensePage({ client, license, version, onLicenseChanged }: Lice
       return;
     }
     if (file.size > 64 * 1024) {
-      setMessage("授权文件超过 64 KB，已拒绝读取。请确认选择的是 StarBridge 授权文件。");
+      setMessage("授权文件超过 64 KB，已拒绝读取。请确认选择的是 CreNexus 授权文件。");
       return;
     }
     setBusy(true);
@@ -68,7 +68,7 @@ export function LicensePage({ client, license, version, onLicenseChanged }: Lice
   const exportSummary = () => {
     if (license.state !== "active") return;
     const lines = [
-      "StarBridge 授权摘要",
+      "CreNexus 授权摘要",
       `版本：${license.edition}`,
       `授权编号：${license.licenseId ?? "未提供"}`,
       `签发日期：${license.issuedOn ?? "未提供"}`,
@@ -81,7 +81,7 @@ export function LicensePage({ client, license, version, onLicenseChanged }: Lice
     const url = URL.createObjectURL(new Blob([`${lines.join("\n")}\n`], { type: "text/plain;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "StarBridge-license-summary.txt";
+    anchor.download = "CreNexus-license-summary.txt";
     anchor.click();
     URL.revokeObjectURL(url);
     setMessage("已导出脱敏授权摘要。");
@@ -101,9 +101,9 @@ export function LicensePage({ client, license, version, onLicenseChanged }: Lice
           <div className="section-heading"><div><span>了解 Pro 专业版</span><h3>建议 ¥399 早鸟永久版</h3></div><span className="proposed-price">建议方案 · 尚未开售</span></div>
           <p>Pro 的价值来自未来新的生产级矢量工作流：批量、自动化、项目管理、商业交付、私有增强、稳定安装包和专业支持。公开的四种矢量模式不会被重新包装为 Pro 独占能力。</p>
           <div className="activation-steps">
-            <article><span>1</span><h4>导出设备申请</h4><p>生成脱敏申请文件，不含原始 MachineGuid、图片、授权文件或私钥。请按购买说明发送给 StarBridge 人工处理。</p><button type="button" className="secondary" disabled={busy} onClick={() => void exportRequest()}>导出设备申请</button></article>
+            <article><span>1</span><h4>导出设备申请</h4><p>生成脱敏申请文件，不含原始 MachineGuid、图片、授权文件或私钥。请按购买说明发送给 CreNexus 人工处理。</p><button type="button" className="secondary" disabled={busy} onClick={() => void exportRequest()}>导出设备申请</button></article>
             <article><span>2</span><h4>完成人工购买</h4><p>价格与条款仍是建议状态。正式开售前会明确 1–2 台设备、换机、退款、更新和支持期限。</p><span className="inactive-action">当前尚未开放购买</span></article>
-            <article><span>3</span><h4>导入授权文件</h4><p>收到签名授权后在本机导入。验证通过后保存在 StarBridge 应用数据目录，不会上传。</p><label className={`file-button${busy ? " is-disabled" : ""}`}>导入授权文件<input type="file" disabled={busy} accept=".starbridge-license,application/json" onChange={(event) => void importLicense(event)} /></label></article>
+            <article><span>3</span><h4>导入授权文件</h4><p>收到签名授权后在本机导入。验证通过后保存在 CreNexus 应用数据目录，不会上传。</p><label className={`file-button${busy ? " is-disabled" : ""}`}>导入授权文件<input type="file" disabled={busy} accept=".starbridge-license,application/json" onChange={(event) => void importLicense(event)} /></label></article>
           </div>
           <p className="device-note">设备与换机规则尚待产品所有者决定；当前协议上限为 2 台设备。重装或主板更换不能擅自承诺自动解绑。</p>
         </section>

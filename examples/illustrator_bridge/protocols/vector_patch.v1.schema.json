@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/vector_patch.v1.schema.json",
-  "title": "StarBridge Vector Patch",
+  "title": "CreNexus Vector Patch",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "patch_id", "scene_id", "round", "mode", "operations"],

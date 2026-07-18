@@ -24,7 +24,7 @@ import type {
   WorkflowSummary,
 } from "../types/api";
 import { createTransport } from "./runtime";
-import { TransportError, type StarBridgeTransport } from "./transport";
+import { TransportError, type CreNexusTransport } from "./transport";
 
 export class UserFacingError extends Error {
   constructor(
@@ -39,7 +39,7 @@ export class UserFacingError extends Error {
   }
 }
 
-export interface StarBridgeClient {
+export interface CreNexusClient {
   getRuntimeStatus(): Promise<RuntimeStatus>;
   getHealth(): Promise<ApiEnvelope<unknown>>;
   getBootstrap(): Promise<ApiEnvelope<unknown>>;
@@ -111,8 +111,8 @@ function errorFromEnvelope(
   );
 }
 
-export class StarBridgeApiClient implements StarBridgeClient {
-  constructor(private readonly transport: StarBridgeTransport = createTransport()) {}
+export class CreNexusApiClient implements CreNexusClient {
+  constructor(private readonly transport: CreNexusTransport = createTransport()) {}
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
     try {
@@ -134,7 +134,7 @@ export class StarBridgeApiClient implements StarBridgeClient {
       }
       throw new UserFacingError(
         "unexpected_client_error",
-        "StarBridge 暂时无法完成该操作。",
+        "CreNexus 暂时无法完成该操作。",
         error instanceof Error ? error.message : String(error),
       );
     }

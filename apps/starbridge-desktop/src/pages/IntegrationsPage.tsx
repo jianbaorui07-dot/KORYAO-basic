@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type {
   ConnectionOverview,
   CreativeApplicationConnection,
@@ -9,7 +9,7 @@ import type {
 } from "../types/api";
 
 interface IntegrationsPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   connections: ConnectionOverview | null;
   loading: boolean;
   error: string;
@@ -52,7 +52,7 @@ export function IntegrationsPage({
   const [message, setMessage] = useState("");
 
   const pairingCode = connections?.codex.pairing_code ?? "--------";
-  const pairingPrompt = `请调用 StarBridge MCP 工具 starbridge.desktop_pair，参数 pairing_code="${pairingCode}"、dry_run=false、confirm_pairing=true、confirm_write=true。完成后告诉我关联结果；不要读取或输出任何 Codex 登录凭据。`;
+  const pairingPrompt = `请调用 CreNexus MCP 工具 starbridge.desktop_pair，参数 pairing_code="${pairingCode}"、dry_run=false、confirm_pairing=true、confirm_write=true。完成后告诉我关联结果；不要读取或输出任何 Codex 登录凭据。`;
 
   const installAndOpen = async () => {
     setBusy(true);
@@ -62,7 +62,7 @@ export function IntegrationsPage({
         await client.installCodexConnector(true);
       }
       await client.openCodexPairing(pairingCode);
-      setMessage("已打开新的 Codex 任务。请发送预填的关联指令，StarBridge 会自动等待结果。");
+      setMessage("已打开新的 Codex 任务。请发送预填的关联指令，CreNexus 会自动等待结果。");
       await onRefresh();
     } catch (reason) {
       setMessage(actionError(reason));
@@ -74,7 +74,7 @@ export function IntegrationsPage({
   const copyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(pairingPrompt);
-      setMessage("关联指令已复制。请粘贴到一个已加载 StarBridge MCP 的新 Codex 任务中并发送。");
+      setMessage("关联指令已复制。请粘贴到一个已加载 CreNexus MCP 的新 Codex 任务中并发送。");
     } catch {
       setMessage("无法写入剪贴板。请点击“打开 Codex 完成配对”。");
     }
@@ -99,7 +99,7 @@ export function IntegrationsPage({
     setMessage("");
     try {
       await onRestartBridge();
-      setMessage("正在重启 StarBridge 本地桥接。重启后需要重新关联 Codex。外部创意软件不会被关闭。");
+      setMessage("正在重启 CreNexus 本地桥接。重启后需要重新关联 Codex。外部创意软件不会被关闭。");
     } catch (reason) {
       setMessage(actionError(reason));
     } finally {
@@ -142,7 +142,7 @@ export function IntegrationsPage({
           <span className="page-kicker">连接中心</span>
           <h2>先关联 Codex，再连接本机创意软件</h2>
           <p>
-            每次打开 StarBridge 都会创建新的本地配对会话。只有当前 Codex 完成关联后，制图入口才会开放；软件检测不会读取账号、素材或项目内容。
+            每次打开 CreNexus 都会创建新的本地配对会话。只有当前 Codex 完成关联后，制图入口才会开放；软件检测不会读取账号、素材或项目内容。
           </p>
         </div>
         <span className={connections?.drawing_enabled ? "local-badge" : "connection-required-badge"}>

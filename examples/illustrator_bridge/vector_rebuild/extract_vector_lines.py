@@ -1,6 +1,6 @@
 """Extract stroke paths from PDF-compatible AI/PDF/SVG files.
 
-This is a local-only prototype helper for StarBridge Illustrator research.
+This is a local-only prototype helper for CreNexus Illustrator research.
 It does not require Illustrator to be open and does not upload source artwork.
 """
 

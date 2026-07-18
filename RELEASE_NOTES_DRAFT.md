@@ -1,8 +1,8 @@
-# StarBridge v0.1.0-alpha.0 draft release notes
+# CreNexus v0.1.0-alpha.0 draft release notes
 
 ## Summary
 
-StarBridge v0.1.0-alpha.0 is a local-first MCP bridge for creative desktop software. This release focuses on safe probes, dry-run workflows, Action Plan recipes, and guarded creative software protocols. It is not a signed public desktop release.
+CreNexus v0.1.0-alpha.0 is a local-first MCP bridge for creative desktop software. This release focuses on safe probes, dry-run workflows, Action Plan recipes, and guarded creative software protocols. It is not a signed public desktop release.
 
 ## Highlights
 

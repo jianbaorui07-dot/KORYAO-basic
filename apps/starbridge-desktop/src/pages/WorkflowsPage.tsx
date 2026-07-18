@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "../components/EmptyState/EmptyState";
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { Project, WorkflowSummary } from "../types/api";
 
 type DrawingMode = "artisan" | "smart" | "lightweight";
 
 interface WorkflowsPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   runtimeReady: boolean;
   initialProjectId?: string;
   onOpenProjects: () => void;

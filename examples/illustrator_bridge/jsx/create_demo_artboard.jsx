@@ -38,7 +38,7 @@
     bgRect.fillColor = rgb(245, 247, 250);
     bgRect.stroked = false;
 
-    var title = makeText(foreground, "StarBridge AI Demo", 72, 80, height - 160, rgb(28, 35, 49));
+    var title = makeText(foreground, "CreNexus AI Demo", 72, 80, height - 160, rgb(28, 35, 49));
     title.name = "title_text";
     var subtitle = makeText(foreground, "Illustrator sandbox vector export", 34, 84, height - 220, rgb(76, 90, 112));
     subtitle.name = "subtitle_text";

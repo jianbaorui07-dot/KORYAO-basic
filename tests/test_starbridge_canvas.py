@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CANVAS_ROOT = REPO_ROOT / "examples" / "starbridge_canvas"
 
 
-class StarBridgeCanvasTest(unittest.TestCase):
+class CreNexusCanvasTest(unittest.TestCase):
     def test_canvas_example_declares_expected_runtime(self) -> None:
         package = json.loads((CANVAS_ROOT / "package.json").read_text(encoding="utf-8"))
 
@@ -38,7 +38,7 @@ class StarBridgeCanvasTest(unittest.TestCase):
     def test_canvas_mcp_exposes_starbridge_tools(self) -> None:
         server = (CANVAS_ROOT / "mcp" / "server.mjs").read_text(encoding="utf-8")
 
-        self.assertIn("StarBridge Canvas MCP", server)
+        self.assertIn("CreNexus Canvas MCP", server)
         self.assertIn("get_starbridge_canvas_selection", server)
         self.assertIn("insert_starbridge_canvas_image", server)
         self.assertIn("STARBRIDGE_CANVAS_URL", server)

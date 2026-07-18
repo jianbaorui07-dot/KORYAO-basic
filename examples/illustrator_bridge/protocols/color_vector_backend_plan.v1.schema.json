@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/color_vector_backend_plan.v1.schema.json",
-  "title": "StarBridge Color Vector Backend Plan",
+  "title": "CreNexus Color Vector Backend Plan",
   "type": "object",
   "additionalProperties": false,
   "required": [

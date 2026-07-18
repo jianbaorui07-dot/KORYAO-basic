@@ -7,14 +7,14 @@ from pathlib import Path
 
 from PIL import Image
 
-from starbridge_mcp.backend import StarBridgeBackend
+from starbridge_mcp.backend import CreNexusBackend
 
 
 class BackendProjectsWorkflowTests(unittest.TestCase):
     def test_comfyui_job_plan_does_not_persist_prompt_or_model_name(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            backend = StarBridgeBackend(app_data_dir=root / "app-data")
+            backend = CreNexusBackend(app_data_dir=root / "app-data")
             workflows = backend.route("GET", "/api/workflows")
             workflow_ids = {item["workflowId"] for item in workflows.body["data"]["workflows"]}
             self.assertIn("comfyui-generation-v1", workflow_ids)
@@ -57,7 +57,7 @@ class BackendProjectsWorkflowTests(unittest.TestCase):
     def test_project_asset_job_and_delivery_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            backend = StarBridgeBackend(app_data_dir=root / "app-data")
+            backend = CreNexusBackend(app_data_dir=root / "app-data")
             source = root / "selected-source.png"
             image = Image.new("RGBA", (32, 32), (255, 0, 0, 255))
             image.paste((0, 255, 0, 255), (16, 0, 32, 16))
@@ -138,7 +138,7 @@ class BackendProjectsWorkflowTests(unittest.TestCase):
             self.assertFalse(delivery.body["data"]["fabricatedOutputs"])
             self.assertNotIn(str(root), str(delivery.body))
 
-            reloaded = StarBridgeBackend(app_data_dir=root / "app-data")
+            reloaded = CreNexusBackend(app_data_dir=root / "app-data")
             persisted_job = reloaded.route("GET", f"/api/jobs/{job_id}")
             persisted_project = reloaded.route("GET", f"/api/projects/{project_id}")
 
@@ -147,7 +147,7 @@ class BackendProjectsWorkflowTests(unittest.TestCase):
 
     def test_legacy_vector_job_shape_projects_into_generic_task_center(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            backend = StarBridgeBackend(app_data_dir=Path(directory) / "app-data")
+            backend = CreNexusBackend(app_data_dir=Path(directory) / "app-data")
             legacy = {
                 "job_id": "vector-1",
                 "status": "queued",

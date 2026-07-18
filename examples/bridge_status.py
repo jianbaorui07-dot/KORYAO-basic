@@ -491,7 +491,7 @@ def check_jianying_capcut() -> dict:
 
 
 def print_text_report(results: list[dict]) -> None:
-    print("星桥本地软件接入状态")
+    print("创枢本地软件接入状态")
     print("=" * 28)
     for result in results:
         print(f"\n[{result['status_label']}] {result['label']}")
@@ -501,7 +501,7 @@ def print_text_report(results: list[dict]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="检查星桥本地软件接入状态，不读取账号、密钥或私有素材。",
+        description="检查创枢本地软件接入状态，不读取账号、密钥或私有素材。",
         add_help=False,
     )
     parser.add_argument("-h", "--help", action="help", help="显示帮助并退出。")

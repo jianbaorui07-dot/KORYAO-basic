@@ -33,7 +33,7 @@ export function AppShell({ currentPage, onNavigate, status, connections, license
       <section className="app-main">
         <header className="app-topbar">
           <div>
-            <span className="topbar-product">StarBridge</span>
+            <span className="topbar-product">CreNexus</span>
             <h1>{PAGE_TITLES[currentPage]}</h1>
           </div>
           <div className="topbar-actions">
@@ -59,7 +59,7 @@ export function AppShell({ currentPage, onNavigate, status, connections, license
               type="button"
               className="github-project-button"
               onClick={() => void onOpenGitHub()}
-              title="打开 StarBridge GitHub 项目"
+              title="打开 CreNexus GitHub 项目"
             >
               GitHub 项目
             </button>

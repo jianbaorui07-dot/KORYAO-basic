@@ -2,7 +2,7 @@
 
 ## 目标
 
-Photoshop UXP 插件为了让本机 MCP 非交互地导出 sandbox 预览，当前仍声明 `localFileSystem: fullAccess`。该权限只表示宿主允许访问文件系统，不代表 StarBridge 接受任意路径。Node Proxy 和 UXP 必须继续执行更窄的运行时边界。
+Photoshop UXP 插件为了让本机 MCP 非交互地导出 sandbox 预览，当前仍声明 `localFileSystem: fullAccess`。该权限只表示宿主允许访问文件系统，不代表 CreNexus 接受任意路径。Node Proxy 和 UXP 必须继续执行更窄的运行时边界。
 
 ## 请求边界
 
@@ -32,7 +32,7 @@ Node Proxy 从自身源码位置推导仓库根目录，不信任调用方传入
 
 输出文件必须是 `.png`，不得使用 `..`、相对路径、UNC 路径或仓库外绝对路径。UXP 收到请求后还会重复检查允许根和扩展名，避免绕过 Node Proxy 直接调用插件 handler。
 
-Adobe 官方 UXP 文件权限文档建议优先使用插件专属目录或文件选择器。StarBridge 保留 `fullAccess` 只为已确认的本机自动化预览；不得把它扩展为任意文件读取、删除或覆盖能力。
+Adobe 官方 UXP 文件权限文档建议优先使用插件专属目录或文件选择器。CreNexus 保留 `fullAccess` 只为已确认的本机自动化预览；不得把它扩展为任意文件读取、删除或覆盖能力。
 
 ## BatchPlay sandbox
 

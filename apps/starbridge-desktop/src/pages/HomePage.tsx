@@ -41,7 +41,7 @@ export function HomePage({ status, connections, recentTasks, onNavigate }: HomeP
         <div>
           <span className="privacy-pill">仅本机处理</span>
           <h2>从项目开始一次可审计的创作</h2>
-          <p>项目把源素材、确认步骤、任务历史、真实产物和证据组织在一起。<br />你的图片和设计文件不会上传到 StarBridge 服务器。</p>
+          <p>项目把源素材、确认步骤、任务历史、真实产物和证据组织在一起。<br />你的图片和设计文件不会上传到 CreNexus 服务器。</p>
         </div>
         <div className="hero-trajectory" aria-hidden="true"><span /><span /><i>✦</i></div>
         <div className="hero-actions">

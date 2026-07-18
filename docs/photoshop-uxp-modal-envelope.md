@@ -1,6 +1,6 @@
 # Photoshop UXP 可回滚执行信封
 
-StarBridge 的 Photoshop 写入仍只允许 typed allowlist、明确确认和 sandbox 副本。本信封不增加新的图像操作；它只让已有 `executeAsModal` 写入在占用、取消和异常时具有可验证终态。
+CreNexus 的 Photoshop 写入仍只允许 typed allowlist、明确确认和 sandbox 副本。本信封不增加新的图像操作；它只让已有 `executeAsModal` 写入在占用、取消和异常时具有可验证终态。
 
 ## 目标
 

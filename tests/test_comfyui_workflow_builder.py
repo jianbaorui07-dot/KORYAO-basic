@@ -138,7 +138,7 @@ class ComfyWorkflowBuilderTests(unittest.TestCase):
                 self.assertTrue(result["validation_report"]["ok"])
                 self.assertEqual(task_type, result["task_type"])
                 self.assertIn("workflow", result)
-                self.assertEqual("StarBridgeDraftMetadata", result["workflow"]["1"]["class_type"])
+                self.assertEqual("CreNexusDraftMetadata", result["workflow"]["1"]["class_type"])
                 self.assertFalse(result["workflow"]["1"]["inputs"]["production_ready"])
 
     def test_workflow_draft_replaces_real_paths_and_checkpoint_filenames(self) -> None:

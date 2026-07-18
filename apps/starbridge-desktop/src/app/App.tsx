@@ -12,7 +12,7 @@ import { ProjectsPage } from "../pages/ProjectsPage";
 import { TasksPage } from "../pages/TasksPage";
 import { VectorizationPage } from "../pages/VectorizationPage";
 import { WorkflowsPage } from "../pages/WorkflowsPage";
-import { StarBridgeApiClient, UserFacingError, type StarBridgeClient } from "../services/client";
+import { CreNexusApiClient, UserFacingError, type CreNexusClient } from "../services/client";
 import type {
   ConnectionOverview,
   LicenseStatus,
@@ -52,7 +52,7 @@ const UPDATE_CHECK_PREFERENCE = "starbridge.update.automaticChecks";
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 interface AppProps {
-  client?: StarBridgeClient;
+  client?: CreNexusClient;
 }
 
 function statusFromError(error: unknown): RuntimeStatus {
@@ -73,7 +73,7 @@ function statusFromError(error: unknown): RuntimeStatus {
 }
 
 export function App({ client: providedClient }: AppProps) {
-  const client = useMemo(() => providedClient ?? new StarBridgeApiClient(), [providedClient]);
+  const client = useMemo(() => providedClient ?? new CreNexusApiClient(), [providedClient]);
   const [page, setPage] = useState<PageId>("home");
   const [status, setStatus] = useState<RuntimeStatus>(INITIAL_STATUS);
   const [version, setVersion] = useState<VersionInfo | null>(null);
@@ -137,7 +137,7 @@ export function App({ client: providedClient }: AppProps) {
       setUpdateStatus(next);
       setUpdateMessage(
         next.available && next.version
-          ? `发现 StarBridge v${next.version}，请查看版本说明后确认安装。`
+          ? `发现 CreNexus v${next.version}，请查看版本说明后确认安装。`
           : "当前已经是最新正式版本。",
       );
     } catch (error) {
@@ -164,7 +164,7 @@ export function App({ client: providedClient }: AppProps) {
     setInstallingUpdate(true);
     setUpdateProgress(null);
     setUpdateError("");
-    setUpdateMessage("正在下载并验证更新包。请保持 StarBridge 打开。");
+    setUpdateMessage("正在下载并验证更新包。请保持 CreNexus 打开。");
     try {
       await client.installUpdate(updateStatus.version, true, (event) => {
         if (mounted.current) setUpdateProgress(event);

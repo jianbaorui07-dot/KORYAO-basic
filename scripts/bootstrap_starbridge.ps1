@@ -172,7 +172,7 @@ if (-not (Test-Path -LiteralPath $venvPython)) {
 }
 
 $installPython = if ((Test-Path -LiteralPath $venvPython) -or $DryRun) { $venvPython } else { $pythonCommand }
-Invoke-RecordedCommand $steps "install StarBridge core" $installPython @("-m", "pip", "install", "--disable-pip-version-check", "-e", ".")
+Invoke-RecordedCommand $steps "install CreNexus core" $installPython @("-m", "pip", "install", "--disable-pip-version-check", "-e", ".")
 if (-not $SkipCodexConfig) {
     Write-CodexConfig $steps $installPython
 }
@@ -270,7 +270,7 @@ if ($Json) {
     $result | ConvertTo-Json -Depth 8
 } else {
     Write-Host ""
-    Write-Host ("StarBridge is ready: {0} ({1})" -f $selected.label, $Subproject)
+    Write-Host ("CreNexus is ready: {0} ({1})" -f $selected.label, $Subproject)
     Write-Host "Only this partition was installed; no other subproject was started."
     Write-Host "Start a new Codex task in this repository to load the MCP servers."
 }

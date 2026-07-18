@@ -30,7 +30,7 @@ if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
 }
 
 $temporaryRoot = [IO.Path]::GetFullPath(
-    (Join-Path ([IO.Path]::GetTempPath()) ("StarBridge Sidecar Test " + [Guid]::NewGuid().ToString("N")))
+    (Join-Path ([IO.Path]::GetTempPath()) ("CreNexus Sidecar Test " + [Guid]::NewGuid().ToString("N")))
 )
 $tempPrefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd("\") + "\"
 if (-not $temporaryRoot.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase)) {
@@ -87,7 +87,7 @@ try {
     if (-not $health.ok) {
         throw "The sidecar health check failed."
     }
-    $wrongHeaders = @{ "X-StarBridge-Session" = ([Guid]::NewGuid().ToString("N") + [Guid]::NewGuid().ToString("N")) }
+    $wrongHeaders = @{ "X-CreNexus-Session" = ([Guid]::NewGuid().ToString("N") + [Guid]::NewGuid().ToString("N")) }
     $wrongCredentialStatus = 0
     try {
         Invoke-WebRequest `
@@ -108,7 +108,7 @@ try {
         throw "The sidecar returned $wrongCredentialStatus instead of 403 for an incorrect credential."
     }
 
-    $headers = @{ "X-StarBridge-Session" = $sessionCredential }
+    $headers = @{ "X-CreNexus-Session" = $sessionCredential }
     $bootstrap = Invoke-RestMethod `
         -Uri "http://127.0.0.1:$($ready.port)/api/bootstrap" `
         -Headers $headers `

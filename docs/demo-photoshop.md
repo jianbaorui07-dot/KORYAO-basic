@@ -9,7 +9,7 @@
 - `loonghao/photoshop-python-api-mcp-server`：仅参考 Windows COM / Photoshop 自动化和 document/layer/session 工具组织方式。
 - `ie3jp/illustrator-mcp-server`：仅参考 Adobe 桌面 bridge 的 MCP tool 分层思路。
 
-参考仓库保存在本机 `external_references/`，不提交到 Git。实现代码按 StarBridge 的 dry-run、confirm 和 sandbox 输出边界重写。
+参考仓库保存在本机 `external_references/`，不提交到 Git。实现代码按 CreNexus 的 dry-run、confirm 和 sandbox 输出边界重写。
 
 ## 前置条件
 

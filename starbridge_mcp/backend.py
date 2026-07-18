@@ -67,7 +67,7 @@ DEFAULT_STATIC_ROOT = REPO_ROOT / "examples" / "starbridge_frontend" / "dist"
 LEGACY_HISTORY_PATH = REPO_ROOT / "examples" / "output" / "app_history" / "history.json"
 SESSION_TOKEN_ENV = "STARBRIDGE_SESSION_TOKEN"
 PARENT_PID_ENV = "STARBRIDGE_PARENT_PID"
-SESSION_HEADER = "X-StarBridge-Session"
+SESSION_HEADER = "X-CreNexus-Session"
 READY_PREFIX = "STARBRIDGE_READY "
 MAX_REQUEST_BODY_BYTES = 1024 * 1024
 VECTOR_INPUT_MAX_BYTES = 128 * 1024 * 1024
@@ -144,7 +144,7 @@ PRODUCT_TIERS: list[JsonObject] = [
 
 HYBRID_EXECUTION: JsonObject = {
     "architecture_version": "starbridge.local-execution.v1",
-    "policy": "All StarBridge execution remains on the user's computer; no cloud execution lane is provided.",
+    "policy": "All CreNexus execution remains on the user's computer; no cloud execution lane is provided.",
     "lanes": [
         {
             "id": "local_desktop",
@@ -174,8 +174,8 @@ class BackendResponse:
     content_type: str = "application/json; charset=utf-8"
 
 
-class StarBridgeBackend:
-    """Small REST facade over the existing StarBridge MCP handlers."""
+class CreNexusBackend:
+    """Small REST facade over the existing CreNexus MCP handlers."""
 
     def __init__(
         self,
@@ -272,15 +272,15 @@ class StarBridgeBackend:
             return self._error(
                 401,
                 "authentication_required",
-                "StarBridge 本地服务需要当前桌面会话授权。",
-                next_steps=["请从 StarBridge Desktop 重新连接本地服务。"],
+                "CreNexus 本地服务需要当前桌面会话授权。",
+                next_steps=["请从 CreNexus Desktop 重新连接本地服务。"],
             )
         if not hmac.compare_digest(provided, self._session_credential or ""):
             return self._error(
                 403,
                 "authentication_failed",
                 "当前桌面会话授权无效或已过期。",
-                next_steps=["请重新启动 StarBridge 本地服务。"],
+                next_steps=["请重新启动 CreNexus 本地服务。"],
             )
         return None
 
@@ -345,7 +345,7 @@ class StarBridgeBackend:
 
     @staticmethod
     def _bool(query: dict[str, list[str]], key: str, default: bool = False) -> bool:
-        value = StarBridgeBackend._one(query, key)
+        value = CreNexusBackend._one(query, key)
         if value is None:
             return default
         return value.lower() in {"1", "true", "yes", "y", "on"}
@@ -642,7 +642,7 @@ class StarBridgeBackend:
             return self._error(
                 409,
                 "codex_association_required",
-                "当前 StarBridge Desktop 会话尚未与 Codex 关联，制图任务未启动。",
+                "当前 CreNexus Desktop 会话尚未与 Codex 关联，制图任务未启动。",
                 next_steps=["打开软件联动中的连接中心，完成本次 Codex 配对后重试。"],
             )
         required = ("confirm_run", "confirm_write", "confirm_export")
@@ -828,7 +828,7 @@ class StarBridgeBackend:
             return self._error(
                 400,
                 "confirmation_required",
-                "把素材复制到 StarBridge 项目目录前需要明确确认。",
+                "把素材复制到 CreNexus 项目目录前需要明确确认。",
             )
         source_path = body.get("inputPath") or body.get("input_path")
         if not isinstance(source_path, str) or not source_path.strip():
@@ -1202,8 +1202,8 @@ class StarBridgeBackend:
             return self._error(
                 403,
                 "origin_not_allowed",
-                "该页面来源不能直接访问 StarBridge 本地服务。",
-                next_steps=["请使用 StarBridge Desktop 或已配置的本地开发地址。"],
+                "该页面来源不能直接访问 CreNexus 本地服务。",
+                next_steps=["请使用 CreNexus Desktop 或已配置的本地开发地址。"],
             )
 
         if method == "GET" and path == "/api/health":
@@ -1229,7 +1229,7 @@ class StarBridgeBackend:
             return self._error(
                 413,
                 "request_too_large",
-                "请求内容超过 StarBridge 本地服务允许的大小。",
+                "请求内容超过 CreNexus 本地服务允许的大小。",
             )
 
         try:
@@ -1250,7 +1250,7 @@ class StarBridgeBackend:
                     "ok": True,
                     "data": {
                         "status": "stopping",
-                        "message": "StarBridge 本地服务正在安全停止。",
+                        "message": "CreNexus 本地服务正在安全停止。",
                     },
                 },
             )
@@ -1263,7 +1263,7 @@ class StarBridgeBackend:
                 return self._error(
                     409,
                     "desktop_required",
-                    "只能在安装后的 StarBridge Desktop 中配置 Codex 连接器。",
+                    "只能在安装后的 CreNexus Desktop 中配置 Codex 连接器。",
                 )
             try:
                 installed = self.connections.install_codex_connector(
@@ -1575,7 +1575,7 @@ class StarBridgeBackend:
 def _send(
     handler: BaseHTTPRequestHandler,
     response: BackendResponse,
-    backend: StarBridgeBackend,
+    backend: CreNexusBackend,
     *,
     write_body: bool = True,
 ) -> None:
@@ -1608,7 +1608,7 @@ def _send(
         handler.wfile.write(body)
 
 
-def make_handler(backend: StarBridgeBackend) -> type[BaseHTTPRequestHandler]:
+def make_handler(backend: CreNexusBackend) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def _route(self, method: str, raw_body: bytes = b"", *, write_body: bool = True) -> None:
             try:
@@ -1624,7 +1624,7 @@ def make_handler(backend: StarBridgeBackend) -> type[BaseHTTPRequestHandler]:
                 response = backend._error(
                     500,
                     "request_failed",
-                    "StarBridge 本地服务无法完成该请求。",
+                    "CreNexus 本地服务无法完成该请求。",
                     next_steps=["请查看诊断并重新启动本地服务。"],
                 )
             _send(self, response, backend, write_body=write_body)
@@ -1654,7 +1654,7 @@ def make_handler(backend: StarBridgeBackend) -> type[BaseHTTPRequestHandler]:
                 return b"", backend._error(
                     413,
                     "request_too_large",
-                    "请求内容超过 StarBridge 本地服务允许的大小。",
+                    "请求内容超过 CreNexus 本地服务允许的大小。",
                 )
             if length:
                 media_type = (self.headers.get("Content-Type") or "").split(";", 1)[0].strip()
@@ -1711,19 +1711,19 @@ def _require_loopback(host: str) -> None:
     try:
         address = ipaddress.ip_address(host)
     except ValueError as exc:
-        raise ValueError("StarBridge backend host must be a loopback address") from exc
+        raise ValueError("CreNexus backend host must be a loopback address") from exc
     if not address.is_loopback:
-        raise ValueError("StarBridge backend may only bind to a loopback address")
+        raise ValueError("CreNexus backend may only bind to a loopback address")
 
 
 class _LocalThreadingHttpServer(ThreadingHTTPServer):
     daemon_threads = True
 
 
-class StarBridgeHttpServer:
+class CreNexusHttpServer:
     def __init__(
         self,
-        backend: StarBridgeBackend,
+        backend: CreNexusBackend,
         *,
         host: str = "127.0.0.1",
         port: int = 0,
@@ -1793,6 +1793,12 @@ class StarBridgeHttpServer:
             "mode": self.backend.mode,
             "session_required": self.backend.auth_required,
         }
+
+
+# Preserve the public class names used by older local integrations while the
+# visible product brand moves to CreNexus.
+StarBridgeBackend = CreNexusBackend
+StarBridgeHttpServer = CreNexusHttpServer
 
 
 def process_is_running(pid: int) -> bool:
@@ -1866,13 +1872,13 @@ class ParentProcessMonitor:
 
 def serve(
     *,
-    backend: StarBridgeBackend | None = None,
+    backend: CreNexusBackend | None = None,
     host: str = "127.0.0.1",
     port: int = 8765,
     parent_pid: int | None = None,
 ) -> int:
-    active_backend = backend or StarBridgeBackend()
-    server = StarBridgeHttpServer(active_backend, host=host, port=port)
+    active_backend = backend or CreNexusBackend()
+    server = CreNexusHttpServer(active_backend, host=host, port=port)
     stop_requested = Event()
     monitor = ParentProcessMonitor(parent_pid, server.stop) if parent_pid is not None else None
 
@@ -1906,7 +1912,7 @@ def serve(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the StarBridge local HTTP backend.")
+    parser = argparse.ArgumentParser(description="Run the CreNexus local HTTP backend.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int)
     parser.add_argument("--desktop", action="store_true")
@@ -1935,7 +1941,7 @@ def main() -> None:
 
     port = args.port if args.port is not None else (0 if args.desktop else 8765)
     history_path = Path(args.history_path) if args.history_path else None
-    backend = StarBridgeBackend(
+    backend = CreNexusBackend(
         history_path=history_path,
         app_data_dir=args.app_data_dir,
         session_credential=credential,
@@ -1953,7 +1959,7 @@ def main() -> None:
                 {
                     "event": "startup_failed",
                     "error_type": type(exc).__name__,
-                    "message": "StarBridge local backend could not start.",
+                    "message": "CreNexus local backend could not start.",
                 },
                 separators=(",", ":"),
             ),

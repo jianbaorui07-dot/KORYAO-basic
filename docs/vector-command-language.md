@@ -2,7 +2,7 @@
 
 ## 目标
 
-用户用简短华语描述矢量任务，StarBridge 将其编译为严格 `VectorTask`，再生成 `VectorSceneGraph`。短令只描述目标和约束，不直接包含文件路径、脚本或桌面软件命令。
+用户用简短华语描述矢量任务，CreNexus 将其编译为严格 `VectorTask`，再生成 `VectorSceneGraph`。短令只描述目标和约束，不直接包含文件路径、脚本或桌面软件命令。
 
 标准形式：
 

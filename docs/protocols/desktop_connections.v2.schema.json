@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/desktop_connections.v2.schema.json",
-  "title": "StarBridge Desktop Connections v2",
+  "title": "CreNexus Desktop Connections v2",
   "type": "object",
   "additionalProperties": false,
   "required": [

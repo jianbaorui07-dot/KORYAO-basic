@@ -212,7 +212,7 @@ var doc = app.documents.add(
     CONFIG.width,
     CONFIG.height,
     CONFIG.resolution,
-    "StarBridge_Smart_Cutout",
+    "CreNexus_Smart_Cutout",
     NewDocumentMode.RGB,
     DocumentFill.TRANSPARENT
 );

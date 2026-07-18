@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import { UserFacingError } from "../services/client";
 import type { ConnectionOverview, RuntimeStatus } from "../types/api";
 import { App } from "./App";
@@ -27,7 +27,7 @@ const PAIRED_CONNECTIONS: ConnectionOverview = {
   },
 };
 
-function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeClient {
+function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): CreNexusClient {
   return {
     getRuntimeStatus: vi.fn().mockImplementation(() => Promise.resolve(status)),
     getHealth: vi.fn().mockResolvedValue({ ok: true }),
@@ -37,7 +37,7 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeC
       message: "本地服务已恢复。",
       recoveryAttempts: 1,
     }),
-    openLogsDirectory: vi.fn().mockResolvedValue("<LOCAL_APP_DATA>/StarBridge/logs"),
+    openLogsDirectory: vi.fn().mockResolvedValue("<LOCAL_APP_DATA>/CreNexus/logs"),
     getConnections: vi.fn().mockResolvedValue(PAIRED_CONNECTIONS),
     installCodexConnector: vi.fn().mockResolvedValue({
       installed: true,
@@ -80,8 +80,8 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): StarBridgeC
     }),
     createLicenseRequest: vi.fn().mockResolvedValue({
       requestId: "request-test",
-      fileName: "StarBridge-license-request-request-test.json",
-      location: "<LOCAL_APP_DATA>/StarBridge/license/requests",
+      fileName: "CreNexus-license-request-request-test.json",
+      location: "<LOCAL_APP_DATA>/CreNexus/license/requests",
       folderOpened: true,
     }),
     importLicenseFile: vi.fn().mockResolvedValue({
@@ -189,7 +189,7 @@ describe("desktop runtime status", () => {
         state: "connector_required",
         connector_configured: false,
         session_paired: false,
-        message: "已找到 Codex；需要安装 StarBridge 本地连接器。",
+        message: "已找到 Codex；需要安装 CreNexus 本地连接器。",
       },
     });
     render(<App client={client} />);
@@ -216,7 +216,7 @@ describe("desktop runtime status", () => {
       running: true,
       bridge_available: false,
       managed: false,
-      message: "软件正在运行，等待与当前 StarBridge 会话配对。",
+      message: "软件正在运行，等待与当前 CreNexus 会话配对。",
       pairing_state: "ready_to_pair" as const,
       paired: false,
       adapter_kind: "process" as const,

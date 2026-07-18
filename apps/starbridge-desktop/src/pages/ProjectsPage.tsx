@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { EmptyState } from "../components/EmptyState/EmptyState";
-import type { StarBridgeClient } from "../services/client";
+import type { CreNexusClient } from "../services/client";
 import type { Project } from "../types/api";
 
 interface ProjectsPageProps {
-  client: StarBridgeClient;
+  client: CreNexusClient;
   runtimeReady: boolean;
   onOpenWorkflow: (projectId: string, workflowId: string) => void;
 }
@@ -77,7 +77,7 @@ export function ProjectsPage({ client, runtimeReady, onOpenWorkflow }: ProjectsP
         <div>
           <span className="page-kicker">项目是任务与交付的边界</span>
           <h2>先建立项目，再导入明确选择的素材</h2>
-          <p>StarBridge 只复制你在文件选择器里明确选择的单个图片，不扫描文件夹，也不在界面或记录里展示原始路径。</p>
+          <p>CreNexus 只复制你在文件选择器里明确选择的单个图片，不扫描文件夹，也不在界面或记录里展示原始路径。</p>
         </div>
         <span className="local-badge">仅本机保存</span>
       </header>
@@ -111,7 +111,7 @@ export function ProjectsPage({ client, runtimeReady, onOpenWorkflow }: ProjectsP
               ) : project.workflowId === "vector-delivery-v1" ? <p className="truth-note">尚未导入素材。原始路径不会被保存到项目记录。</p> : <p className="truth-note">提示词与模型名只在建立任务后进入进程内临时保险库，不保存到项目。</p>}
               {project.workflowId === "vector-delivery-v1" ? <label className="confirmation">
                 <input type="checkbox" checked={importConfirmations[project.projectId] ?? false} onChange={(event) => setImportConfirmations((current) => ({ ...current, [project.projectId]: event.target.checked }))} />
-                我确认把接下来明确选择的一张图片复制到 StarBridge 的项目安全目录。
+                我确认把接下来明确选择的一张图片复制到 CreNexus 的项目安全目录。
               </label> : null}
               <div className="button-row">
                 {project.workflowId === "vector-delivery-v1" ? <button type="button" className="secondary" disabled={busy || !importConfirmations[project.projectId]} onClick={() => void importAsset(project.projectId)}>选择并导入图片</button> : null}

@@ -1,6 +1,6 @@
 import { DesktopTransport, type InvokeLike } from "./desktopTransport";
 import { HttpTransport } from "./httpTransport";
-import type { StarBridgeTransport } from "./transport";
+import type { CreNexusTransport } from "./transport";
 
 interface RuntimeScope {
   __TAURI_INTERNALS__?: unknown;
@@ -15,7 +15,7 @@ export function createTransport(options?: {
   invoke?: InvokeLike;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
-}): StarBridgeTransport {
+}): CreNexusTransport {
   const desktop = options?.desktop ?? isTauriRuntime();
   if (desktop) {
     return new DesktopTransport(options?.invoke);

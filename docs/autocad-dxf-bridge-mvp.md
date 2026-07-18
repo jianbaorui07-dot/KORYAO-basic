@@ -1,6 +1,6 @@
 # AutoCAD / DXF Bridge MVP
 
-本 MVP 是 StarBridge 的 CAD / DXF 无头生成 bridge 原型。它的目标是先建立安全、可测试的 CAD plan 合约和 DXF dry-run 流程，而不是直接控制真实 AutoCAD。
+本 MVP 是 CreNexus 的 CAD / DXF 无头生成 bridge 原型。它的目标是先建立安全、可测试的 CAD plan 合约和 DXF dry-run 流程，而不是直接控制真实 AutoCAD。
 
 ## 为什么先做 DXF plan
 
@@ -13,7 +13,7 @@
 - 不打开 DWG。
 - 不扫描用户目录。
 - `dry_run=False` 时只允许写到 `examples/cad/output/`。
-- 输出统一经过 StarBridge sanitizer，不输出真实用户目录。
+- 输出统一经过 CreNexus sanitizer，不输出真实用户目录。
 
 ## 支持的实体类型
 
@@ -36,7 +36,7 @@
 
 ## 后续扩展
 
-1. 把 DXF plan 接入 StarBridge 核心 server，等待核心分支合并后再注册。
+1. 把 DXF plan 接入 CreNexus 核心 server，等待核心分支合并后再注册。
 2. 增加更多实体：arc、dimension、mtext、hatch。
 3. 增加 AutoCAD COM 打开 DXF 的可选验证，但默认关闭。
 4. 研究 AutoCAD LT File IPC，不直接依赖窗口焦点。

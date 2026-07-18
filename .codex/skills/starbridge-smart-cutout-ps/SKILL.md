@@ -1,9 +1,9 @@
 ---
 name: starbridge-smart-cutout-ps
-description: Intelligently separate multiple visible subjects into disjoint full-canvas transparent layers and assemble a Photoshop-native PSD through StarBridge. Use for 智能抠图, PS分层, 每个物体一个图层, 每栋楼一个图层, instance masks, transparent cutouts, skyline/building separation, or opening an AI-segmented layered result in Photoshop.
+description: Intelligently separate multiple visible subjects into disjoint full-canvas transparent layers and assemble a Photoshop-native PSD through CreNexus. Use for 智能抠图, PS分层, 每个物体一个图层, 每栋楼一个图层, instance masks, transparent cutouts, skyline/building separation, or opening an AI-segmented layered result in Photoshop.
 ---
 
-# StarBridge 智能抠图 PS
+# CreNexus 智能抠图 PS
 
 Preserve the source pixels while assigning each visible subject to an independently editable Photoshop layer. Do not invent hidden or occluded content unless the user explicitly requests reconstruction.
 
@@ -28,7 +28,7 @@ Install the optional local segmentation runtime only when the user authorizes de
 python -m pip install ultralytics
 ```
 
-Export full-canvas RGBA layers and a StarBridge manifest. Keep all generated files in the ignored Photoshop output tree:
+Export full-canvas RGBA layers and a CreNexus manifest. Keep all generated files in the ignored Photoshop output tree:
 
 ```powershell
 python .codex\skills\starbridge-smart-cutout-ps\scripts\export_instance_layers.py `

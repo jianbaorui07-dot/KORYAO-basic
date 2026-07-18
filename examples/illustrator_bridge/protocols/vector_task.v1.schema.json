@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/vector_task.v1.schema.json",
-  "title": "StarBridge Vector Task",
+  "title": "CreNexus Vector Task",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "task", "strategy", "structure", "style", "quality", "review", "exports", "dry_run", "confirm_write", "unrecognized_terms"],

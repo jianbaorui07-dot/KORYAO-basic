@@ -72,7 +72,7 @@ if ($Bootstrap) {
 }
 
 $checks = [ordered]@{
-    repo = "StarBridge"
+    repo = "CreNexus"
     mode = $(if ($Bootstrap) { "bootstrap" } else { "check" })
     dry_run = [bool]$DryRun
     venv = [ordered]@{
@@ -118,7 +118,7 @@ if ($Json) {
     exit 0
 }
 
-Write-Host "StarBridge Windows local setup check"
+Write-Host "CreNexus Windows local setup check"
 Write-Host "Repository: $repoRoot"
 Write-Host "Mode: $($checks.mode)"
 Write-Host "Virtual environment: exists=$($checks.venv.exists), python=$($checks.venv.python)"

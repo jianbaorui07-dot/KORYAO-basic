@@ -1,6 +1,6 @@
-# Contributing to StarBridge
+# Contributing to CreNexus
 
-谢谢你关注 StarBridge。这个仓库欢迎围绕 **AI agent / MCP / 本地创意软件自动化** 的安全改进、文档补充、探针脚本和测试用例。
+谢谢你关注 CreNexus。这个仓库欢迎围绕 **AI agent / MCP / 本地创意软件自动化** 的安全改进、文档补充、探针脚本和测试用例。
 
 This repository is Chinese-first, but English issues and pull requests are welcome. Please keep commands, environment variables, MCP tool names, file names, and API names in English.
 

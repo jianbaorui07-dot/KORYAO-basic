@@ -1,4 +1,4 @@
 interface:
-  display_name: "StarBridge Photoshop MCP"
+  display_name: "CreNexus Photoshop MCP"
   short_description: "安全使用 Photoshop MCP 探针、文档摘要和 recipe"
   default_prompt: "Use $starbridge-photoshop-mcp to inspect Photoshop MCP availability and plan a safe read-only document summary."

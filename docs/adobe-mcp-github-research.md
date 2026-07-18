@@ -10,7 +10,7 @@
 
 ## 优先参考项目
 
-| 项目 | 软件范围 | 参考价值 | StarBridge 吸收方式 |
+| 项目 | 软件范围 | 参考价值 | CreNexus 吸收方式 |
 | --- | --- | --- | --- |
 | [adobe/generator-app-remote-mcp-server-generic](https://github.com/adobe/generator-app-remote-mcp-server-generic) | Adobe App Builder / remote MCP | Adobe 官方 MCP 模板 | 只参考 remote MCP 包装方式，不引入云运行时依赖 |
 | [mikechambers/adb-mcp](https://github.com/mikechambers/adb-mcp) | Photoshop / Premiere | Adobe 工具经 MCP 暴露给 AI 的早期 PoC | 只参考分层方式，不接入任意脚本执行 |
@@ -52,7 +52,7 @@ Adobe 接入不是单一工具问题，而是三类桥接方式并存：
 | Windows COM / 本机对象桥 | Photoshop COM、Illustrator COM 项目 | session/document/layer 只读边界、结构化 error、soft-exit | 打开私有 PSD/AI 或批量改真实工程 |
 | 插件 / 本地代理桥 | Photoshop UXP、CEP、Generator 项目 | Node Proxy、UXP/CEP 与 MCP server 分层 | 自动安装插件、写用户目录、保存 token |
 
-StarBridge 应继续保持当前策略：先稳定 `status`、`document_info`、`preflight`、`dry-run plan` 和 sandbox demo，再把写入类能力放到显式确认、输出目录约束、路径脱敏和 evidence manifest 后面。
+CreNexus 应继续保持当前策略：先稳定 `status`、`document_info`、`preflight`、`dry-run plan` 和 sandbox demo，再把写入类能力放到显式确认、输出目录约束、路径脱敏和 evidence manifest 后面。
 
 ## 安全准入规则
 

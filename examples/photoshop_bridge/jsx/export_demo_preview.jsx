@@ -38,7 +38,7 @@
 
     if (!isDemo) {
         return fail(
-            "Refusing to export because the active document is not the StarBridge sandbox demo.",
+            "Refusing to export because the active document is not the CreNexus sandbox demo.",
             ["Activate starbridge_ps_demo.psd or create the sandbox demo document again."]
         );
     }

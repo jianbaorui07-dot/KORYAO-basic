@@ -2,7 +2,7 @@
 // No image trace: silhouette, iron lattice, platforms and antenna are all
 // emitted as individual stroked paths from a small parametric core.
 //
-// Transport: inject over COM (StarBridge pattern). The runner prepends a config
+// Transport: inject over COM (CreNexus pattern). The runner prepends a config
 // block, e.g.: var STARBRIDGE_CONFIG = { lineColor:[38,38,46], latticeColor:[95,100,112],
 //                                        edgeWidth:3.0, latticeWidth:1.0 };
 //

@@ -1,8 +1,8 @@
-# StarBridge Code Engineer Skill
+# CreNexus Code Engineer Skill
 
 ## Purpose
 
-This skill helps Codex work on the StarBridge Creative Software MCP repository with higher success on complex coding tasks.
+This skill helps Codex work on the CreNexus Creative Software MCP repository with higher success on complex coding tasks.
 
 Use this skill when the task involves:
 

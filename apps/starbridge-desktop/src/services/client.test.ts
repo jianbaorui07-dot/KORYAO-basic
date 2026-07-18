@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { StarBridgeTransport } from "./transport";
-import { StarBridgeApiClient, UserFacingError } from "./client";
+import type { CreNexusTransport } from "./transport";
+import { CreNexusApiClient, UserFacingError } from "./client";
 
-function transportReturning(status: number, body: Record<string, unknown>): StarBridgeTransport {
+function transportReturning(status: number, body: Record<string, unknown>): CreNexusTransport {
   return {
     kind: "desktop",
     request: async () => ({ status, body }),
@@ -74,7 +74,7 @@ function transportReturning(status: number, body: Record<string, unknown>): Star
       body: { ok: true, data: { eventCount: 0, events: [] } },
     }),
     openVectorOutput: async () => ({ status: 200, body: { ok: true, data: { opened: true } } }),
-  } as StarBridgeTransport;
+  } as CreNexusTransport;
 }
 
 describe("API error translation", () => {
@@ -82,7 +82,7 @@ describe("API error translation", () => {
     [401, "authentication_required", "重新授权"],
     [403, "authentication_failed", "会话已失效"],
   ])("translates HTTP %s without hiding technical details", async (status, code, phrase) => {
-    const client = new StarBridgeApiClient(
+    const client = new CreNexusApiClient(
       transportReturning(status, {
         ok: false,
         error: { code, message: "raw backend message" },

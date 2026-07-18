@@ -1,6 +1,6 @@
 # Stable Fast 3D bridge example
 
-This example records the local SF3D image-to-3D bridge status for StarBridge. It is intentionally read-mostly and does
+This example records the local SF3D image-to-3D bridge status for CreNexus. It is intentionally read-mostly and does
 not submit generation jobs by default.
 
 ## Safe Boundaries

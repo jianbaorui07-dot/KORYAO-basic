@@ -1,6 +1,6 @@
-# StarBridge Photoshop Node Proxy
+# CreNexus Photoshop Node Proxy
 
-Starts a local HTTP JSON-RPC bridge between the StarBridge MCP server and the Photoshop UXP plugin.
+Starts a local HTTP JSON-RPC bridge between the CreNexus MCP server and the Photoshop UXP plugin.
 
 ## Start
 

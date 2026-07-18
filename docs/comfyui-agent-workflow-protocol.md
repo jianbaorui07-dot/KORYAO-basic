@@ -149,7 +149,7 @@ history 中出现任务记录本身不能作为成功证据；只有规范化终
 
 如果提交后的 history 查询断线或缺少可验证终态，必须保留 `prompt_id` 和 `submitted=true`，并返回 `status_unavailable`。调用方应先用同一个 `prompt_id` 恢复查询，确认本机 queue/history 后再决定是否重试，避免重复生成。
 
-实现依据：ComfyUI 官方执行器把 `execution_success`、`execution_error` 与 `execution_interrupted` 写入 history 状态消息；官方 jobs 归一化逻辑先读取 `status_str`，再在 error 状态下用 `execution_interrupted` 区分 `cancelled` 与 `failed`。StarBridge 对缺少可验证终态的旧 payload 有意采用更保守的 `status_unavailable`，避免仅凭 history 存在就宣称成功。
+实现依据：ComfyUI 官方执行器把 `execution_success`、`execution_error` 与 `execution_interrupted` 写入 history 状态消息；官方 jobs 归一化逻辑先读取 `status_str`，再在 error 状态下用 `execution_interrupted` 区分 `cancelled` 与 `failed`。CreNexus 对缺少可验证终态的旧 payload 有意采用更保守的 `status_unavailable`，避免仅凭 history 存在就宣称成功。
 
 - [ComfyUI `execution.py` 终态事件](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/execution.py#L674-L820)
 - [ComfyUI `comfy_execution/jobs.py` 状态归一化](https://github.com/Comfy-Org/ComfyUI/blob/0aecac867d7840b56ad790aa76c5e76e33c74c3d/comfy_execution/jobs.py#L191-L243)

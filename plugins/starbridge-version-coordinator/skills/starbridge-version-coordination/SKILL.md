@@ -1,11 +1,11 @@
 ---
 name: starbridge-version-coordination
-description: Configure StarBridge for different Photoshop, Illustrator, AutoCAD, Blender, ComfyUI, CapCut/Jianying, or StarBridge v5-v9 versions in Codex. Use for compatibility planning, safe route selection, quick Codex setup, or migration from v5-v8 to v9. Do not use this skill to claim desktop automation passed or to write customer files.
+description: Configure CreNexus for different Photoshop, Illustrator, AutoCAD, Blender, ComfyUI, CapCut/Jianying, or CreNexus v5-v9 versions in Codex. Use for compatibility planning, safe route selection, quick Codex setup, or migration from v5-v8 to v9. Do not use this skill to claim desktop automation passed or to write customer files.
 ---
 
-# StarBridge 版本配置协同
+# CreNexus 版本配置协同
 
-先把“客户本机软件版本”和“StarBridge 项目代际”分开记录。软件版本使用 `software_versions`，项目代际使用 `starbridge_generation`。
+先把“客户本机软件版本”和“CreNexus 项目代际”分开记录。软件版本使用 `software_versions`，项目代际使用 `starbridge_generation`。
 
 ## 工作流
 
@@ -15,8 +15,8 @@ description: Configure StarBridge for different Photoshop, Illustrator, AutoCAD,
    - 未提供版本时保留 `unknown`，让计划选择只读能力探针；不要猜版本。manifest 的 `minVersion` 只是偏好提示，不是版本白名单或授权检查。
    - 默认 `safety_mode=safe`。
 3. 如果客户仍在 v5-v8，调用 `starbridge_config.migrate` 生成增量迁移步骤；保留旧产物和旧引用。
-4. 先执行计划返回的 `probe_tool`。只有完整 StarBridge MCP 已连接且探针通过，才继续使用 `full_mcp_tools`。
-5. 本协调器只生成计划。真实写入仍需完整 StarBridge MCP、显式确认和 sandbox/output 边界。
+4. 先执行计划返回的 `probe_tool`。只有完整 CreNexus MCP 已连接且探针通过，才继续使用 `full_mcp_tools`。
+5. 本协调器只生成计划。真实写入仍需完整 CreNexus MCP、显式确认和 sandbox/output 边界。
 
 ## 客户默认顺序
 

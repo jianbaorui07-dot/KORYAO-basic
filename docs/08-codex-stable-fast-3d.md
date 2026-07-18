@@ -1,6 +1,6 @@
 # Codex Stable Fast 3D local bridge
 
-Stable Fast 3D is useful when StarBridge needs a local image-to-3D asset generator before handing GLB/OBJ/FBX outputs
+Stable Fast 3D is useful when CreNexus needs a local image-to-3D asset generator before handing GLB/OBJ/FBX outputs
 to Blender or another DCC tool. This repository does not redistribute the upstream project or model weights; it keeps a
 small, parameterized read-only probe under `examples/stable_fast_3d_bridge/`.
 

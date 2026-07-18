@@ -65,7 +65,7 @@ MODEL_INPUT_KEYS = {
     "control_net_name",
     "unet_name",
 }
-KNOWN_DRAFT_METADATA_CLASSES = {"StarBridgeDraftMetadata"}
+KNOWN_DRAFT_METADATA_CLASSES = {"CreNexusDraftMetadata"}
 
 
 def _is_link(value: Any) -> bool:

@@ -224,7 +224,7 @@ def evaluate_safety(
     if blocked:
         return SafetyDecision(
             allowed=False,
-            reason="blocked by StarBridge safety guard",
+            reason="blocked by CreNexus safety guard",
             required_flags=sorted(set(required_flags)),
             blocked_because=blocked,
             risk_level=plan.risk_level,
@@ -233,7 +233,7 @@ def evaluate_safety(
 
     return SafetyDecision(
         allowed=True,
-        reason="allowed by StarBridge safety guard",
+        reason="allowed by CreNexus safety guard",
         required_flags=sorted(set(required_flags)),
         risk_level=plan.risk_level,
         user_confirmation_required=plan.requires_user_presence,
@@ -270,7 +270,7 @@ class CodexComputerUseAdapter:
     def generate_codex_gui_instructions(self, plan: ActionPlan) -> str:
         safety = evaluate_safety(plan)
         lines = [
-            f"StarBridge GUI instructions for plan {plan.id}",
+            f"CreNexus GUI instructions for plan {plan.id}",
             f"Target app: {plan.app}",
             f"Goal: {plan.goal}",
             f"Risk level: {plan.risk_level}",

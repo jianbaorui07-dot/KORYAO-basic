@@ -1,6 +1,6 @@
 # Illustrator Vector Line Rebuild Pipeline
 
-This document describes a practical StarBridge prototype for turning a PDF-compatible Illustrator file into structured vector data, rebuilt SVG output, and simplified closed contours.
+This document describes a practical CreNexus prototype for turning a PDF-compatible Illustrator file into structured vector data, rebuilt SVG output, and simplified closed contours.
 
 The motivating local test used a one-page Illustrator `.ai` line drawing. The file was PDF-compatible, contained no embedded raster images, and exposed thousands of vector stroke paths. The source artwork and generated private outputs stay local and are not committed to this repository.
 

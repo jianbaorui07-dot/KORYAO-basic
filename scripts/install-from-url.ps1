@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
     [string]$RepositoryUrl,
-    [string]$Destination = "StarBridge",
+    [string]$Destination = "CreNexus",
     [ValidateSet("auto", "core", "standard", "all")]
     [string]$Profile = "auto",
     [switch]$SkipNode,
@@ -57,4 +57,4 @@ $quickArgs = @("-Profile", $Profile)
 if ($SkipNode) { $quickArgs += "-SkipNode" }
 if ($Json) { $quickArgs += "-Json" }
 & powershell.exe -ExecutionPolicy Bypass -File $quickstart @quickArgs
-if ($LASTEXITCODE -ne 0) { throw "StarBridge quickstart failed (exit $LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) { throw "CreNexus quickstart failed (exit $LASTEXITCODE)." }

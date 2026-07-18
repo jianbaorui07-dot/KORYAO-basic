@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="brand/starbridge-readme.svg" width="520" alt="StarBridge 本地创意工作台">
+  <img src="brand/exports/crenexus-software-icon.png" width="180" alt="创枢 CreNexus">
 </p>
 
-# StarBridge：本地创意工作台
+# CreNexus：AI 创意软件协同平台
 
 Artisan 现已支持以最终 SVG 原分辨率渲染为准的自适应少锚点优化：默认结构差异不高于 15%、归一化 MAE 不高于 0.06、边缘 Dice 不低于 0.92，合格后按锚点、子路径、文件大小和耗时选优；未通过时保留原 Artisan 基准。详见 [自适应矢量优化](docs/adaptive-vector-optimization.md)。
 
-[![CI](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/actions/workflows/ci.yml/badge.svg)](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/actions/workflows/ci.yml)
+[![CI](https://github.com/jianbaorui07-dot/CreNexus/actions/workflows/ci.yml/badge.svg)](https://github.com/jianbaorui07-dot/CreNexus/actions/workflows/ci.yml)
 ![Windows first](https://img.shields.io/badge/Windows-first-2563eb)
 ![MCP stdio](https://img.shields.io/badge/MCP-stdio-16a34a)
 ![Local first](https://img.shields.io/badge/local--first-safe-0f766e)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-StarBridge 是一款 Windows 本地创意工作台，也是一套 MIT 开放核心。它把图片矢量化、任务证据、**Codex Skill / StarBridge MCP** 和 **Adobe UXP / Node Proxy** 创意软件联动集中到可审计的本机工作流中；ComfyUI、Photoshop、CAD / AutoCAD、Blender 和 CapCut / 剪映等公开桥接能力继续保留。图片、设计文件和授权文件不上传到 StarBridge 服务器，也不收集遥测。项目仍支持从仓库链接开始的快速适配：自动创建隔离环境、安装匹配依赖、生成项目级 Codex MCP 配置并执行安全自检。
+CreNexus 是一款 Windows AI 创意软件协同平台，也是一套 MIT 开放核心。它把图片矢量化、任务证据、**Codex Skill / CreNexus MCP** 和 **Adobe UXP / Node Proxy** 创意软件联动集中到可审计的本机工作流中；ComfyUI、Photoshop、CAD / AutoCAD、Blender 和 CapCut / 剪映等公开桥接能力继续保留。图片、设计文件和授权文件不上传到 CreNexus 服务器，也不收集遥测。项目仍支持从仓库链接开始的快速适配：自动创建隔离环境、安装匹配依赖、生成项目级 Codex MCP 配置并执行安全自检。
 
 Community 免费版无需登录、联网或授权文件。已经公开的**匠心矢量、智能矢量、轻量矢量和精确重建**继续属于 Community / 开放核心；基础 Project、CreativeJob、单任务历史、基础交付和脱敏 Evidence 也是所有工作流共享的 Community 基础。未来 Pro 只承载批量、并发、检查点、高级恢复、商业策略、新的私有增强、稳定签名安装包和专业支持，不能把同一份 MIT 能力重新包装成独占收费功能。
 
@@ -41,14 +41,14 @@ flowchart LR
 - 桌面源码位于 [`apps/starbridge-desktop`](apps/starbridge-desktop)，包含可测试的左侧导航、独立授权页、诊断页和 Community 图片矢量化流程；当前整体状态为 `experimental`，不是已签名稳定发行版。
 - 官网候选位于 [`apps/starbridge-site`](apps/starbridge-site)，目前只在本地构建，未与任何线上 `chatgpt.site` 建立可验证部署关系。
 - Community：`¥0`，无需激活；Pro 早鸟永久版：建议 `¥399`，**尚未开售**；Enterprise：按项目报价。
-- [Windows x64 未签名内部预览安装包](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe) 已通过 GitHub prerelease 提供给团队直接安装测试；无需 Git、Python 或 Node.js。对应的 [GitHub 上传记录与说明](https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software/releases/tag/starbridge-preview-v0.1.0-unsigned.1) 保留安装包大小、SHA-256 和未签名提示。
+- [Windows x64 未签名内部预览安装包](https://github.com/jianbaorui07-dot/CreNexus/releases/download/starbridge-preview-v0.1.0-unsigned.1/StarBridge-Desktop_0.1.0_x64-setup-UNSIGNED-PREVIEW.exe) 是更名前发布的兼容预览版；无需 Git、Python 或 Node.js。对应的 [GitHub 上传记录与说明](https://github.com/jianbaorui07-dot/CreNexus/releases/tag/starbridge-preview-v0.1.0-unsigned.1) 保留安装包大小、SHA-256 和未签名提示。
 - 当前 NSIS 内部预览包仍为 `NotSigned`；公开 GitHub 资产经重新下载后完成本机 Defender 自定义扫描且检出 0，但尚未完成 Authenticode、干净 Windows 和 SmartScreen 验收，因此不是正式签名版或收费 Release。
 - 软件内已实现固定 GitHub Release 地址的启动/定时/手动检查、用户确认、强制验签和安全安装链路；当前没有生产更新公钥和签名 Release，因此开发构建不会联网检查，也不能冒充公开更新。
 - 机器可读事实以 [`product/product-manifest.json`](product/product-manifest.json) 为准；状态语义见 [`docs/PRODUCT_FACTS.md`](docs/PRODUCT_FACTS.md)，工作流架构见 [`docs/ARCHITECTURE_V2.md`](docs/ARCHITECTURE_V2.md)。
 
 ## Codex 快速版本协同
 
-仓库新增自包含的 `starbridge-version-coordinator` 插件，用于把客户的 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI、CapCut / 剪映版本映射到基于能力探针的 StarBridge 路由，并把 v5-v8 工作流增量迁移到 v9。版本号只作协同信息，不作为正版校验或固定版本白名单；协调器只生成计划，真实写入仍交给完整 StarBridge MCP 并要求显式确认。
+仓库新增自包含的 `starbridge-version-coordinator` 插件，用于把客户的 Photoshop、Illustrator、AutoCAD、Blender、ComfyUI、CapCut / 剪映版本映射到基于能力探针的 CreNexus 路由，并把 v5-v8 工作流增量迁移到 v9。版本号只作协同信息，不作为正版校验或固定版本白名单；协调器只生成计划，真实写入仍交给完整 CreNexus MCP 并要求显式确认。
 
 ```powershell
 npm.cmd run codex:coordinator:self-test
@@ -187,7 +187,7 @@ npm.cmd run install:quick
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-from-url.ps1 `
-  -RepositoryUrl "https://github.com/jianbaorui07-dot/Codex-Integration-with-Creative-Industry-Software.git"
+  -RepositoryUrl "https://github.com/jianbaorui07-dot/CreNexus.git"
 ```
 
 先运行不依赖桌面软件的安全检查（quickstart 已包含前三项）：
@@ -268,7 +268,7 @@ npm.cmd run illustrator:vectorize:legacy-quantized -- --input "<input.png>" --co
 ```mermaid
 flowchart LR
   A["Codex / AI 客户端"] --> B["Codex Skills"]
-  B --> C["StarBridge MCP stdio"]
+  B --> C["CreNexus MCP stdio"]
   C --> D["Tool Registry / Resources / Prompts"]
   D --> E["安全层：dry-run / redact / confirm / sandbox"]
   E --> F["Adobe UXP / Node Proxy"]
@@ -370,7 +370,7 @@ npm.cmd test
 
 ## English
 
-StarBridge is a Windows-first, local-first integration layer with a premium Artisan Vector mode above three preserved baseline modes. Artisan Vector now includes geometry-only intent profiles, tangent-aware continuation, quality-gated fallbacks, stable edit selectors, and a compact local edit index. Smart, Lightweight, and Exact Reconstruction remain available unchanged. Every mode emits verified raster-free SVG; ordinary image vectorization does not select Illustrator Image Trace, and desktop writes require explicit confirmation.
+CreNexus is a Windows-first, local-first integration layer with a premium Artisan Vector mode above three preserved baseline modes. Artisan Vector now includes geometry-only intent profiles, tangent-aware continuation, quality-gated fallbacks, stable edit selectors, and a compact local edit index. Smart, Lightweight, and Exact Reconstruction remain available unchanged. Every mode emits verified raster-free SVG; ordinary image vectorization does not select Illustrator Image Trace, and desktop writes require explicit confirmation.
 
 ## License
 

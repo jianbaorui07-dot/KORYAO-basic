@@ -222,7 +222,7 @@ export async function validateBatchPlay(descriptors) {
   }));
 }
 
-export async function executeTypedBatchPlay({ descriptors, requireConfirmation = true, sandboxOnly = true, commandName = "StarBridge BatchPlay" }) {
+export async function executeTypedBatchPlay({ descriptors, requireConfirmation = true, sandboxOnly = true, commandName = "CreNexus BatchPlay" }) {
   const validations = await validateBatchPlay(descriptors);
   const blocked = validations.filter((item) => !item.allowed);
   if (blocked.length) {
@@ -264,7 +264,7 @@ export async function executeTypedBatchPlay({ descriptors, requireConfirmation =
     }
     if (executionContext?.isCancelled) throw new Error("user_cancelled");
     const originalDocumentId = String(document._id || document.id || "");
-    const sandboxDocument = await document.duplicate("StarBridge Sandbox", false);
+    const sandboxDocument = await document.duplicate("CreNexus Sandbox", false);
     const sandboxDocumentId = String(sandboxDocument?._id || sandboxDocument?.id || "");
     if (!sandboxDocumentId) throw new Error("sandbox_document_id_unavailable");
     await hostControl.registerAutoCloseDocument(sandboxDocument.id || sandboxDocument._id);

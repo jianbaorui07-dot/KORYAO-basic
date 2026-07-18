@@ -17,11 +17,11 @@ import type {
   VectorSelection,
   VectorizationStart,
 } from "../types/api";
-import { TransportError, type StarBridgeTransport } from "./transport";
+import { TransportError, type CreNexusTransport } from "./transport";
 
 type FetchLike = typeof fetch;
 
-export class HttpTransport implements StarBridgeTransport {
+export class HttpTransport implements CreNexusTransport {
   readonly kind = "http" as const;
 
   constructor(
@@ -110,7 +110,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中配置 Codex 连接器。",
+      "请在安装后的 CreNexus Windows 桌面版中配置 Codex 连接器。",
     );
   }
 
@@ -119,7 +119,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectionResetResult>>> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中重新关联 Codex。",
+      "请在安装后的 CreNexus Windows 桌面版中重新关联 Codex。",
     );
   }
 
@@ -133,7 +133,7 @@ export class HttpTransport implements StarBridgeTransport {
   async openGitHubProject(): Promise<void> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中打开 GitHub 项目。",
+      "请在安装后的 CreNexus Windows 桌面版中打开 GitHub 项目。",
     );
   }
 
@@ -143,7 +143,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中配对创意软件。",
+      "请在安装后的 CreNexus Windows 桌面版中配对创意软件。",
     );
   }
 
@@ -153,7 +153,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中重新连接创意软件。",
+      "请在安装后的 CreNexus Windows 桌面版中重新连接创意软件。",
     );
   }
 
@@ -163,7 +163,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<CreativeApplicationConnection>>> {
     throw new TransportError(
       "desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中解除创意软件配对。",
+      "请在安装后的 CreNexus Windows 桌面版中解除创意软件配对。",
     );
   }
 
@@ -185,7 +185,7 @@ export class HttpTransport implements StarBridgeTransport {
   async checkForUpdate(): Promise<SoftwareUpdateStatus> {
     throw new TransportError(
       "update_desktop_required",
-      "请在安装后的 StarBridge Windows 桌面版中检查更新。",
+      "请在安装后的 CreNexus Windows 桌面版中检查更新。",
     );
   }
 
@@ -214,14 +214,14 @@ export class HttpTransport implements StarBridgeTransport {
   async createLicenseRequest(): Promise<LicenseRequestReceipt> {
     throw new TransportError(
       "desktop_required",
-      "请在 StarBridge Windows 桌面版中导出设备授权申请。",
+      "请在 CreNexus Windows 桌面版中导出设备授权申请。",
     );
   }
 
   async importLicenseFile(_contents: string): Promise<LicenseStatus> {
     throw new TransportError(
       "desktop_required",
-      "请在 StarBridge Windows 桌面版中导入授权文件。",
+      "请在 CreNexus Windows 桌面版中导入授权文件。",
     );
   }
 
@@ -231,7 +231,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<{ asset: unknown; project: Project }>> | null> {
     throw new TransportError(
       "desktop_required",
-      "浏览器预览不能读取本机文件路径，请在 StarBridge Windows 桌面版中导入素材。",
+      "浏览器预览不能读取本机文件路径，请在 CreNexus Windows 桌面版中导入素材。",
     );
   }
 
@@ -240,7 +240,7 @@ export class HttpTransport implements StarBridgeTransport {
   > {
     throw new TransportError(
       "desktop_required",
-      "请在 StarBridge Windows 桌面版中选择本机图片。",
+      "请在 CreNexus Windows 桌面版中选择本机图片。",
     );
   }
 
@@ -249,7 +249,7 @@ export class HttpTransport implements StarBridgeTransport {
   ): Promise<TransportResponse<ApiEnvelope<VectorJob>>> {
     throw new TransportError(
       "desktop_required",
-      "请在 StarBridge Windows 桌面版中运行本机矢量化。",
+      "请在 CreNexus Windows 桌面版中运行本机矢量化。",
     );
   }
 

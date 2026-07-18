@@ -1,4 +1,4 @@
-name: StarBridge Desktop signed release
+name: CreNexus Desktop signed release
 
 on:
   push:
@@ -185,11 +185,11 @@ jobs:
           $signature = Get-Item "$($installer.FullName).sig" -ErrorAction Stop
           $desktopExecutable = Get-Item "apps/starbridge-desktop/src-tauri/target/release/starbridge-desktop.exe" -ErrorAction Stop
           if ((Get-AuthenticodeSignature -LiteralPath $desktopExecutable.FullName).Status -ne "Valid") {
-            throw "The main StarBridge executable is not Authenticode-valid."
+            throw "The main CreNexus executable is not Authenticode-valid."
           }
           $releaseDirectory = Join-Path $env:RUNNER_TEMP "starbridge-release"
           New-Item -ItemType Directory -Path $releaseDirectory -Force | Out-Null
-          $assetName = "StarBridge-Desktop_$($env:STARBRIDGE_RELEASE_VERSION)_x64-setup.exe"
+          $assetName = "CreNexus-Desktop_$($env:STARBRIDGE_RELEASE_VERSION)_x64-setup.exe"
           $publicInstaller = Join-Path $releaseDirectory $assetName
           $publicSignature = "$publicInstaller.sig"
           Copy-Item -LiteralPath $installer.FullName -Destination $publicInstaller
@@ -201,7 +201,7 @@ jobs:
             -InstallerAssetName $assetName `
             -SignaturePath $publicSignature `
             -OutputPath $manifest `
-            -Notes "See the GitHub release notes for verified changes in this StarBridge version."
+            -Notes "See the GitHub release notes for verified changes in this CreNexus version."
           & ./apps/starbridge-desktop/scripts/Test-StarBridgeReleaseArtifacts.ps1 `
             -InstallerPath $publicInstaller `
             -SignaturePath $publicSignature `
@@ -214,7 +214,7 @@ jobs:
       - name: Upload verified release evidence
         uses: actions/upload-artifact@v6
         with:
-          name: StarBridge-Desktop-${{ env.STARBRIDGE_RELEASE_VERSION }}-verified
+          name: CreNexus-Desktop-${{ env.STARBRIDGE_RELEASE_VERSION }}-verified
           path: ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}
           if-no-files-found: error
           retention-days: 30
@@ -223,10 +223,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.STARBRIDGE_RELEASE_TAG }}
-          name: StarBridge Desktop v${{ env.STARBRIDGE_RELEASE_VERSION }}
+          name: CreNexus Desktop v${{ env.STARBRIDGE_RELEASE_VERSION }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}/StarBridge-Desktop_${{ env.STARBRIDGE_RELEASE_VERSION }}_x64-setup.exe
-            ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}/StarBridge-Desktop_${{ env.STARBRIDGE_RELEASE_VERSION }}_x64-setup.exe.sig
+            ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}/CreNexus-Desktop_${{ env.STARBRIDGE_RELEASE_VERSION }}_x64-setup.exe
+            ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}/CreNexus-Desktop_${{ env.STARBRIDGE_RELEASE_VERSION }}_x64-setup.exe.sig
             ${{ env.STARBRIDGE_RELEASE_DIRECTORY }}/latest.json

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://starbridge.local/schemas/photoshop_modal_execution.v1.schema.json",
-  "title": "StarBridge Photoshop UXP Modal Execution",
+  "title": "CreNexus Photoshop UXP Modal Execution",
   "type": "object",
   "additionalProperties": false,
   "required": [
