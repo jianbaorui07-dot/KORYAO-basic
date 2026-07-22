@@ -13,6 +13,7 @@ step_names=()
 step_statuses=()
 step_details=()
 warnings=()
+isolated_environment=()
 
 usage() {
     cat <<'EOF'
@@ -92,10 +93,33 @@ run_step() {
     add_step "$name" "completed" "$detail"
 }
 
-run_pip_step() {
-    local name="$1" variable
-    local pip_environment=(env)
+prepare_python_environment() {
+    local variable
+    isolated_environment=(env)
+    while IFS= read -r variable; do
+        case "$variable" in
+            PYTHON*|__PYVENV_LAUNCHER__) isolated_environment+=(-u "$variable") ;;
+        esac
+    done < <(compgen -e)
+}
+
+run_python_isolated() {
+    local interpreter="$1"
     shift
+    prepare_python_environment
+    "${isolated_environment[@]}" "$interpreter" -I "$@"
+}
+
+run_python_step() {
+    local name="$1" interpreter="$2"
+    shift 2
+    prepare_python_environment
+    run_step "$name" "${isolated_environment[@]}" "$interpreter" -I "$@"
+}
+
+prepare_pip_environment() {
+    local variable
+    prepare_python_environment
 
     # PIP_CONFIG_FILE=os.devnull is pip's documented way to disable global,
     # user, site, and explicitly selected configuration files.  Do not use
@@ -113,18 +137,21 @@ run_pip_step() {
             PIP_NETRC|PIP_REQUIRE_VIRTUALENV|PIP_REQUIRE_VENV)
                 ;;
             PIP_*)
-                pip_environment+=(-u "$variable")
-                ;;
-            PYTHON*)
-                pip_environment+=(-u "$variable")
+                isolated_environment+=(-u "$variable")
                 ;;
         esac
     done < <(compgen -e)
-    pip_environment+=(PIP_CONFIG_FILE=/dev/null)
+    isolated_environment+=(PIP_CONFIG_FILE=/dev/null)
+}
+
+run_pip_step() {
+    local name="$1"
+    shift
+    prepare_pip_environment
 
     # Python -I also blocks PYTHONPATH/PYTHONHOME/user-site injection without
     # affecting the local project path passed explicitly to pip.
-    run_step "$name" "${pip_environment[@]}" "$venv_python" -I -m pip "$@"
+    run_step "$name" "${isolated_environment[@]}" "$venv_python" -I -m pip "$@"
 }
 
 toml_escape() {
@@ -230,7 +257,7 @@ find_python() {
     local candidate version major minor
     for candidate in python3 python; do
         command -v "$candidate" >/dev/null 2>&1 || continue
-        version="$($candidate --version 2>&1 || true)"
+        version="$(run_python_isolated "$candidate" --version 2>&1 || true)"
         if [[ "$version" =~ Python[[:space:]]+([0-9]+)\.([0-9]+) ]]; then
             major="${BASH_REMATCH[1]}"
             minor="${BASH_REMATCH[2]}"
@@ -370,7 +397,7 @@ values = (
 if any(not isinstance(value, str) or not value or "\n" in value or "\r" in value for value in values):
     raise SystemExit(3)
 print("\n".join(values))  # STARBRIDGE_VENV_PREFIX_CHECK'
-    if ! identity="$("$venv_python" -I -c "$identity_code" 2>/dev/null)"; then
+    if ! identity="$(run_python_isolated "$venv_python" -c "$identity_code" 2>/dev/null)"; then
         die ".venv Python did not identify itself as an isolated virtual environment; no dependency commands were run."
     fi
     while IFS= read -r candidate; do
@@ -445,7 +472,7 @@ check_platform_prerequisites() {
 
 toml_file_is_valid() {
     local file_path="$1"
-    "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
+    run_python_isolated "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
 import sys
 from pathlib import Path
 
@@ -461,7 +488,7 @@ PY
 
 prepare_config_base() {
     local file_path="$1"
-    "$venv_python" - "$file_path" "$venv_python" "$repo_root" \
+    run_python_isolated "$venv_python" - "$file_path" "$venv_python" "$repo_root" \
         "$repo_root/plugins/starbridge-version-coordinator/scripts/version_coordinator_mcp.py" <<'PY'
 import copy
 import io
@@ -631,7 +658,9 @@ def canonical_windows_root(value: object) -> str:
         device_stem = segment.split(".", 1)[0].rstrip(" .").upper()
         if device_stem in {"CON", "PRN", "AUX", "NUL"}:
             raise ValueError
-        if re.fullmatch(r"(?:COM|LPT)[1-9]", device_stem):
+        if re.fullmatch(r"(?:COM|LPT)(?:[1-9¹²³])", device_stem):
+            raise ValueError
+        if device_stem in {"CONIN$", "CONOUT$"}:
             raise ValueError
 
     if value.startswith("\\\\"):
@@ -718,7 +747,7 @@ PY
 
 external_mcp_config_is_unclaimed() {
     local file_path="$1"
-    "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
+    run_python_isolated "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
 import sys
 from pathlib import Path
 
@@ -820,7 +849,7 @@ EOF
         rm -f -- "$temporary_config"
         die "Generated .codex/config.toml is not valid TOML; no configuration changes were made."
     fi
-    if ! "$venv_python" - "$temporary_config" "$config_path" >/dev/null 2>&1 <<'PY'
+    if ! run_python_isolated "$venv_python" - "$temporary_config" "$config_path" >/dev/null 2>&1 <<'PY'
 import os
 import stat
 import sys
@@ -952,7 +981,7 @@ if [[ -d "$venv_path" ]]; then
     fi
 else
     find_python
-    run_step "create virtual environment" "$python_command" -m venv "$venv_path"
+    run_python_step "create virtual environment" "$python_command" -m venv "$venv_path"
     if (( ! dry_run )); then
         validate_venv_identity
     fi
@@ -967,8 +996,8 @@ if [[ "$effective_profile" == "standard" || "$effective_profile" == "all" ]]; th
     warn "Desktop software is not probed, installed, opened, or granted permissions by bootstrap.sh; verify optional desktop capabilities separately."
 fi
 
-run_step "verify Python package" "$venv_python" -c "import starbridge_mcp; print('starbridge_mcp import: ok')"
-run_step "verify version coordinator" "$venv_python" "$repo_root/plugins/starbridge-version-coordinator/scripts/version_coordinator_mcp.py" self-test
-run_step "verify safe MCP tools" "$venv_python" -m starbridge_mcp.server tools --json --safe-only
+run_python_step "verify Python package" "$venv_python" -c "import starbridge_mcp; print('starbridge_mcp import: ok')"
+run_python_step "verify version coordinator" "$venv_python" "$repo_root/plugins/starbridge-version-coordinator/scripts/version_coordinator_mcp.py" self-test
+run_python_step "verify safe MCP tools" "$venv_python" -m starbridge_mcp.server tools --json --safe-only
 
 emit_result

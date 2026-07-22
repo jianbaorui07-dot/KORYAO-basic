@@ -80,7 +80,7 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
         fake_python.write_text(
             "#!/usr/bin/env bash\n"
             "set -eu\n"
-            "if [[ \"${1:-}\" == \"--version\" ]]; then echo 'Python 3.12.1'; exit 0; fi\n"
+            "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"--version\" ]]; then echo 'Python 3.12.1'; exit 0; fi\n"
             "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-c\" && \"${3:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
             "  prefix=$(cd -P \"$(dirname \"$0\")/..\" && pwd -P)\n"
             "  base=/fixture/base\n"
@@ -92,14 +92,14 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             "    \"$prefix/include/site/python3.12/starbridge-bootstrap-probe\"\n"
             "  exit 0\n"
             "fi\n"
-            "if [[ \"${1:-}\" == \"-\" || \"${1:-}\" == \"-c\" ]]; then\n"
+            "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-\" ]]; then\n"
             f"  exec {shlex.quote(sys.executable)} \"$@\"\n"
             "fi\n"
-            "if [[ \"${1:-}\" == \"-m\" && \"${2:-}\" == \"venv\" ]]; then\n"
-            "  mkdir -p \"$3/bin\" \"$3/lib/python3.12/site-packages\"\n"
-            "  cp \"$0\" \"$3/bin/python\"\n"
-            "  chmod +x \"$3/bin/python\"\n"
-            "  printf 'home = fixture\\n' > \"$3/pyvenv.cfg\"\n"
+            "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-m\" && \"${3:-}\" == \"venv\" ]]; then\n"
+            "  mkdir -p \"$4/bin\" \"$4/lib/python3.12/site-packages\"\n"
+            "  cp \"$0\" \"$4/bin/python\"\n"
+            "  chmod +x \"$4/bin/python\"\n"
+            "  printf 'home = fixture\\n' > \"$4/pyvenv.cfg\"\n"
             "fi\n",
             encoding="utf-8",
         )
@@ -280,6 +280,37 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             "    return wheel_name\n",
             encoding="utf-8",
         )
+
+    def python_injection_environment(
+        self, temporary_root: Path, trace: Path
+    ) -> dict[str, str]:
+        attacker = temporary_root / "python-injection"
+        (attacker / "venv").mkdir(parents=True)
+        tracer_code = (
+            "from pathlib import Path\n"
+            f"with Path({str(trace)!r}).open('a', encoding='utf-8') as target:\n"
+            "    target.write('executed\\n')\n"
+        )
+        (attacker / "sitecustomize.py").write_text(tracer_code, encoding="utf-8")
+        (attacker / "venv/__init__.py").write_text("", encoding="utf-8")
+        (attacker / "venv/__main__.py").write_text(tracer_code, encoding="utf-8")
+        startup = attacker / "startup.py"
+        startup.write_text(tracer_code, encoding="utf-8")
+
+        userbase = temporary_root / "python-userbase"
+        user_site = userbase / (
+            f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
+        )
+        user_site.mkdir(parents=True)
+        (user_site / "sitecustomize.py").write_text(tracer_code, encoding="utf-8")
+        return {
+            "PYTHONPATH": str(attacker),
+            "PYTHONUSERBASE": str(userbase),
+            "PYTHONHOME": str(temporary_root / "invalid-python-home"),
+            "PYTHONSTARTUP": str(startup),
+            "PYTHONWARNINGS": "error::RuntimeWarning",
+            "__PYVENV_LAUNCHER__": str(temporary_root / "outside-launcher"),
+        }
 
     def test_help_describes_safe_platform_boundaries(self) -> None:
         completed = self.run_bootstrap(REPO_ROOT, "--help")
@@ -547,8 +578,16 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             r"C:\Work\con.any.extension",
             r"C:\Work\CON .txt",
             r"C:\Work\COM1 .log",
+            r"C:\Work\COM¹",
+            r"C:\Work\LPT².log",
+            r"C:\Work\com³.any.extension",
+            r"C:\Work\CONIN$",
+            r"C:\Work\conout$.log",
             r"\\server\share\AUX.txt",
             r"\\server\NUL\Repo",
+            r"\\server\share\COM¹.txt",
+            r"\\server\LPT³\Repo",
+            r"\\server\share\CONOUT$",
         )
         accepted = (
             r"C:\console\Repo",
@@ -556,6 +595,11 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             r"C:\Work\COM10",
             r"C:\Work\LPT0.log",
             r"C:\Work\NULled.txt",
+            r"C:\Work\COM⁰",
+            r"C:\Work\COM⁴.txt",
+            r"C:\Work\LPT¹backup",
+            r"C:\Work\CONINBOX$",
+            r"C:\Work\CONOUTPUT$",
             r"\\server\share\console",
         )
         for index, root in enumerate(rejected):
@@ -999,6 +1043,75 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             ).stdout.strip()
             self.assertEqual(str((repo_root / ".venv").resolve()), prefix)
 
+    def test_new_venv_isolated_before_probe_and_creation(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            repo_root, environment = self.make_config_fixture(temporary_root, "new-isolated")
+            self.configure_offline_build_backend(repo_root)
+            injection_trace = temporary_root / "python-injection.trace"
+            environment_trace = temporary_root / "python-environment.trace"
+            path_python = temporary_root / "bin/python3"
+            path_python.write_text(
+                "#!/usr/bin/env bash\n"
+                "printf '%s|%s|%s|%s|%s|%s\\n' "
+                "\"${PYTHONPATH-unset}\" \"${PYTHONUSERBASE-unset}\" "
+                "\"${PYTHONHOME-unset}\" \"${PYTHONSTARTUP-unset}\" "
+                "\"${PYTHONWARNINGS-unset}\" \"${__PYVENV_LAUNCHER__-unset}\" "
+                f">> {shlex.quote(str(environment_trace))}\n"
+                f"exec {shlex.quote(sys.executable)} \"$@\"\n",
+                encoding="utf-8",
+            )
+            path_python.chmod(0o755)
+            environment = environment | self.python_injection_environment(
+                temporary_root, injection_trace
+            )
+            environment |= {
+                "PIP_NO_INDEX": "1",
+                "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+            }
+
+            completed = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertFalse(injection_trace.exists())
+            self.assertGreaterEqual(
+                len(environment_trace.read_text(encoding="utf-8").splitlines()), 2
+            )
+            self.assertEqual(
+                {"unset|unset|unset|unset|unset|unset"},
+                set(environment_trace.read_text(encoding="utf-8").splitlines()),
+            )
+            self.assertTrue((repo_root / ".venv/pyvenv.cfg").is_file())
+            self.load_toml(repo_root / ".codex/config.toml")
+
+    def test_existing_venv_helpers_and_verification_ignore_python_environment(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            repo_root, environment = self.make_config_fixture(temporary_root, "existing-isolated")
+            self.configure_offline_build_backend(repo_root)
+            subprocess.run(
+                [sys.executable, "-m", "venv", str(repo_root / ".venv")],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            injection_trace = temporary_root / "python-injection.trace"
+            environment = environment | self.python_injection_environment(
+                temporary_root, injection_trace
+            )
+            environment |= {
+                "PIP_NO_INDEX": "1",
+                "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+            }
+
+            completed = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertFalse(injection_trace.exists())
+            self.load_toml(repo_root / ".codex/config.toml")
+            self.assert_no_config_temporaries(repo_root / ".codex/config.toml")
+
     def test_pip_target_overrides_and_config_files_cannot_write_outside_venv(self) -> None:
         cases = (
             "target",
@@ -1116,6 +1229,10 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
                 "fi\n"
                 "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-m\" && \"${3:-}\" == \"pip\" ]]; then\n"
                 f"  printf '%s|%s|%s|%s|%s|%s|%s\\n' \"${{PIP_TARGET-unset}}\" \"${{PIP_CONFIG_FILE-unset}}\" \"${{HTTPS_PROXY-unset}}\" \"${{PIP_PROXY-unset}}\" \"${{PIP_CERT-unset}}\" \"${{SSL_CERT_FILE-unset}}\" \"${{REQUESTS_CA_BUNDLE-unset}}\" >> {shlex.quote(str(pip_trace))}\n"
+                "  exit 0\n"
+                "fi\n"
+                "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-\" ]]; then\n"
+                f"  exec {shlex.quote(sys.executable)} \"$@\"\n"
                 "fi\n"
                 "exit 0\n",
                 encoding="utf-8",
