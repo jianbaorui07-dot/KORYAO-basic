@@ -311,9 +311,7 @@ def build_batch_plan(
                     )
                 ),
                 "execution_ready": execution_ready,
-                "execution_entrypoint": compiled.get("details", {}).get(
-                    "execution_entrypoint"
-                ),
+                "execution_entrypoint": compiled.get("details", {}).get("execution_entrypoint"),
                 "idempotency_key": _hash_payload({"item_id": item_id, "recipe_id": recipe_id}),
             }
         )

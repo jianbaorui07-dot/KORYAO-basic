@@ -102,7 +102,9 @@ class DiagramForgeCompilerTests(unittest.TestCase):
         self.assertTrue(validate_document(document).ok)
         reopened = from_drawio_xml(to_drawio_xml(document))
         self.assertEqual(
-            next(cell for cell in reopened.pages[0].cells if cell.cell_id == cells["child"].cell_id).parent,
+            next(
+                cell for cell in reopened.pages[0].cells if cell.cell_id == cells["child"].cell_id
+            ).parent,
             cells["container"].cell_id,
         )
 

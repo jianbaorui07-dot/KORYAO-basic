@@ -114,13 +114,12 @@ def compile_spec(spec: dict[str, Any]) -> DiagramDocument:
             layer_key = str(raw_node.get("layer") or "main")
             parent_key = str(raw_node.get("parent_key") or "")
             sibling_index = sum(
-                1
-                for prior in raw_nodes[:index]
-                if str(prior.get("parent_key") or "") == parent_key
+                1 for prior in raw_nodes[:index] if str(prior.get("parent_key") or "") == parent_key
             )
-            is_container = bool(raw_node.get("container")) or str(
-                raw_node.get("role") or ""
-            ) in {"container", "group"}
+            is_container = bool(raw_node.get("container")) or str(raw_node.get("role") or "") in {
+                "container",
+                "group",
+            }
             page.cells.append(
                 DiagramCell(
                     cell_id=node_id,
