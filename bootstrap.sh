@@ -209,6 +209,19 @@ find_python() {
     die "Python 3.10+ was not found. Install Python manually, then run this command again."
 }
 
+validate_repository_path() {
+    local control_byte control_code escaped
+    # NUL cannot appear in a POSIX path. Reject the other C0 controls and DEL
+    # before building TOML so a failed bootstrap leaves configuration untouched.
+    for control_code in {1..31} 127; do
+        printf -v escaped '\\%03o' "$control_code"
+        printf -v control_byte '%b' "$escaped"
+        if [[ "$repo_root" == *"$control_byte"* ]]; then
+            die "Repository paths containing ASCII control characters are not supported; rename or move the checkout before bootstrapping."
+        fi
+    done
+}
+
 check_platform_prerequisites() {
     local platform architecture
     platform="$(uname -s)"
@@ -235,6 +248,65 @@ check_platform_prerequisites() {
     fi
 }
 
+toml_file_is_valid() {
+    local file_path="$1"
+    "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
+with Path(sys.argv[1]).open("rb") as source:
+    tomllib.load(source)
+PY
+}
+
+managed_markers_are_valid() {
+    local file_path="$1"
+    awk '
+        BEGIN { markers = 0; inside = 0 }
+        /^# BEGIN STARBRIDGE QUICKSTART/ {
+            if (inside || markers >= 1) { exit 1 }
+            inside = 1
+            markers++
+            next
+        }
+        /^# END STARBRIDGE QUICKSTART/ {
+            if (!inside) { exit 1 }
+            inside = 0
+            next
+        }
+        { next }
+        END { if (inside) { exit 1 } }
+    ' "$file_path" >/dev/null
+}
+
+external_mcp_config_is_unclaimed() {
+    local file_path="$1"
+    "$venv_python" - "$file_path" >/dev/null 2>&1 <<'PY'
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
+with Path(sys.argv[1]).open("rb") as source:
+    document = tomllib.load(source)
+
+servers = document.get("mcp_servers")
+if servers is not None:
+    if not isinstance(servers, dict):
+        raise SystemExit(1)
+    if "starbridge" in servers or "starbridge-version-coordinator" in servers:
+        raise SystemExit(1)
+PY
+}
+
 write_codex_config() {
     if (( skip_codex_config )); then
         add_step "configure Codex MCP" "skipped" "--skip-codex-config"
@@ -245,32 +317,45 @@ write_codex_config() {
         return
     fi
 
+    if [[ -f "$config_path" ]]; then
+        if ! toml_file_is_valid "$config_path"; then
+            die "Existing .codex/config.toml is not valid TOML; no configuration changes were made."
+        fi
+        if ! managed_markers_are_valid "$config_path"; then
+            die "Existing .codex/config.toml has an unclosed or repeated STARBRIDGE QUICKSTART block; no configuration changes were made."
+        fi
+    fi
+
     mkdir -p -- "$config_dir"
     local temporary_config
     temporary_config="$(mktemp "$config_dir/.config.toml.XXXXXX")"
     if [[ -f "$config_path" ]]; then
         if ! awk '
             /^# BEGIN STARBRIDGE QUICKSTART/ { inside = 1; next }
-            /^# END STARBRIDGE QUICKSTART/ {
-                if (!inside) { exit 2 }
-                inside = 0
-                next
-            }
+            /^# END STARBRIDGE QUICKSTART/ { inside = 0; next }
             !inside { print }
-            END { if (inside) { exit 3 } }
         ' "$config_path" > "$temporary_config"; then
             rm -f -- "$temporary_config"
-            die "Existing .codex/config.toml has an incomplete STARBRIDGE QUICKSTART block; repair it manually."
+            die "Could not prepare .codex/config.toml for a safe update; no configuration changes were made."
         fi
     else
         : > "$temporary_config"
+    fi
+
+    if ! toml_file_is_valid "$temporary_config"; then
+        rm -f -- "$temporary_config"
+        die "Existing .codex/config.toml outside the managed block is not valid TOML; no configuration changes were made."
+    fi
+    if ! external_mcp_config_is_unclaimed "$temporary_config"; then
+        rm -f -- "$temporary_config"
+        die "Existing .codex/config.toml already defines a Starbridge MCP server or a conflicting mcp_servers structure; refusing to overwrite it."
     fi
 
     local python_toml root_toml coordinator_toml
     python_toml="$(toml_escape "$venv_python")"
     root_toml="$(toml_escape "$repo_root")"
     coordinator_toml="$(toml_escape "$repo_root/plugins/starbridge-version-coordinator/scripts/version_coordinator_mcp.py")"
-    cat >> "$temporary_config" <<EOF
+    if ! cat >> "$temporary_config" <<EOF
 
 # BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh)
 [mcp_servers.starbridge]
@@ -289,7 +374,18 @@ args = ["$coordinator_toml"]
 cwd = "$root_toml"
 # END STARBRIDGE QUICKSTART
 EOF
-    mv -- "$temporary_config" "$config_path"
+    then
+        rm -f -- "$temporary_config"
+        die "Could not generate .codex/config.toml; no configuration changes were made."
+    fi
+    if ! toml_file_is_valid "$temporary_config"; then
+        rm -f -- "$temporary_config"
+        die "Generated .codex/config.toml is not valid TOML; no configuration changes were made."
+    fi
+    if ! mv -- "$temporary_config" "$config_path"; then
+        rm -f -- "$temporary_config"
+        die "Could not atomically replace .codex/config.toml; no configuration changes were made."
+    fi
     add_step "configure Codex MCP" "completed" "$config_path"
 }
 
@@ -364,6 +460,7 @@ repo_root="$script_dir"
 [[ -f "$repo_root/pyproject.toml" && -f "$repo_root/package.json" && -d "$repo_root/starbridge_mcp" ]] \
     || die "bootstrap.sh must run from a CreNexus repository checkout."
 
+validate_repository_path
 check_platform_prerequisites
 find_python
 
