@@ -107,7 +107,7 @@ class TauriPlatformConfigTest(unittest.TestCase):
             package["scripts"]["tauri:bundle:nsis"],
         )
         self.assertEqual(
-            "node scripts/check-tauri-config.mjs",
+            "node --test scripts/check-tauri-config.node-tests.mjs && node scripts/check-tauri-config.mjs",
             package["scripts"]["test:tauri-config"],
         )
         release_workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
