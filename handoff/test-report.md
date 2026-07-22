@@ -107,7 +107,7 @@ PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest discover -s tes
 ### 根因与修改
 
 1. `camera_raw_export.ps1` 的未确认分支已返回结构化拒绝结果，但 warning 文案漂移，缺少测试和公开契约要求的稳定拒绝语义。现统一为明确的 `Refusing Camera Raw export without explicit confirmation`，并继续声明 `-ConfirmApply` 与 `-ConfirmExport` 都是必需条件。
-2. 通用 sanitizer 已覆盖用户主目录，但没有覆盖 macOS 的临时目录根；在 `/private/tmp` 或 `/private/var/folders` 下创建 clean worktree 时，evidence manifest 的 `redacted_paths` 会泄露临时 checkout 绝对路径。现对 macOS/Unix 临时根执行整段 `<REDACTED_PATH>` 替换，并让敏感文本检测同步识别该类路径；正向回归测试覆盖两种 macOS 临时根，反向回归测试确保 `/tmpfile`、`/private/tmpfile`、`/var/folders-public` 和 `/tmpish` 等相似普通名称不会被误判。
+2. 通用 sanitizer 已覆盖用户主目录，但没有覆盖 macOS 的临时目录根；在 `/private/tmp` 或 `/private/var/folders` 下创建 clean worktree 时，evidence manifest 的 `redacted_paths` 会泄露临时 checkout 绝对路径。首个阶段 0.5 候选虽加入临时根规则，但独立验收发现其文本边界不完整，并且通用 `<REDACTED_PATH>` 后处理会吞掉路径后的正常文本。返工后，sanitizer 直接识别 `/tmp`、`/var/tmp`、`/var/folders` 及其 `/private` 前缀，只替换路径 token：支持中英文句末标点和冒号，保留前后文，不匹配 URL 主机中的 `tmp`，也不误伤 `/tmpfile`、`/private/tmpfile`、`/var/folders-public` 或 `/tmpish`。`contains_sensitive_text()` 使用同一 token 规则；旧的贪婪占位符后处理已移除。
 
 ### 验证证据
 
@@ -115,10 +115,16 @@ PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest discover -s tes
 
 | 范围 | 命令 | 结果 |
 | --- | --- | --- |
-| 两个原失败 + sanitizer 正反向回归 | `PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest -v tests.test_photoshop_camera_raw_protocol.PhotoshopCameraRawProtocolTests.test_export_script_refuses_without_confirmations tests.test_photoshop_color_preprocess.PhotoshopColorPreprocessTests.test_confirmed_recipe_records_redacted_evidence tests.test_security_sanitizer.SecuritySanitizerTests.test_sanitize_path_redacts_macos_temporary_paths tests.test_security_sanitizer.SecuritySanitizerTests.test_sanitize_path_preserves_similar_non_temporary_roots` | PASS：4 tests |
-| Python clean-worktree 全量 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$CLEAN_WORKTREE" "$PROJECT_VENV/bin/python" -m unittest discover -s tests` | PASS：694 tests，5 skipped |
+| 两个原失败 + sanitizer/evidence 相关测试 | `PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest -v tests.test_photoshop_camera_raw_protocol.PhotoshopCameraRawProtocolTests.test_export_script_refuses_without_confirmations tests.test_photoshop_color_preprocess.PhotoshopColorPreprocessTests.test_confirmed_recipe_records_redacted_evidence tests.test_security_sanitizer tests.test_evidence_manifest` | PASS：14 tests |
+| Python clean-worktree 全量 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$CLEAN_WORKTREE" "$PROJECT_VENV/bin/python" -m unittest discover -s tests` | PASS：695 tests，5 skipped |
+| Python lint | `"$PROJECT_VENV/bin/python" -m ruff check starbridge_mcp/core/security.py tests/test_security_sanitizer.py` | PASS |
+| Diff 完整性 | `git diff --check` | PASS |
+| 公开安全扫描 | `PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" scripts/security_check.py` | PASS |
+| 文本编码 | `PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" scripts/check_text_encoding.py` | PASS |
 
 第一次 clean-worktree 全量运行未设置 `PYTHONPATH="$CLEAN_WORKTREE"`，导致一个 subprocess 从项目 `.venv` 的 editable 安装位置解析源码并报 `ModuleNotFoundError`；这不是仓库代码失败。补齐与 clean worktree 一致的源码根后，全量结果如上恢复绿色。localhost/socket 测试按权限流程在非沙箱环境运行，没有把 sandbox 的 `PermissionError` 计为代码失败。
+
+共享 dirty checkout 额外运行 `starbridge_preflight.py --markdown` 时，`markdown_links` 因既有未跟踪根目录 `SKILL.md` 引用不存在的 `references/compatibility.md` 而失败；该文件不属于本阶段，也未被修改或纳入提交。相同候选在不包含既有未跟踪文件的 clean worktree 中，完整 Python 套件所覆盖的 preflight 契约通过。
 
 ### 剩余风险与边界
 

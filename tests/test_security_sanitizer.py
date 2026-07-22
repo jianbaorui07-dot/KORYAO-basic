@@ -38,19 +38,51 @@ class SecuritySanitizerTests(unittest.TestCase):
         self.assertIn("<REDACTED_PATH>", sanitized)
         self.assert_clean(sanitized)
 
-    def test_sanitize_path_redacts_macos_temporary_paths(self) -> None:
+    def test_sanitize_path_redacts_posix_temporary_roots(self) -> None:
         samples = [
+            "/tmp/job/manifest.latest.json",
+            "/var/tmp/job/manifest.latest.json",
+            "/var/folders/ab/random/T/manifest.latest.json",
             "/private/tmp/clean-worktree/examples/output/evidence/manifest.latest.json",
+            "/private/var/tmp/job/manifest.latest.json",
             "/private/var/folders/ab/random/T/manifest.latest.json",
         ]
         for sample in samples:
             with self.subTest(sample=sample):
                 sanitized = sanitize_path(sample)
                 self.assertEqual("<REDACTED_PATH>", sanitized)
+                self.assertTrue(contains_sensitive_text(sample))
                 self.assert_clean(sanitized)
 
-    def test_sanitize_path_preserves_similar_non_temporary_roots(self) -> None:
+    def test_sanitize_path_preserves_temporary_path_context_and_punctuation(self) -> None:
+        samples = {
+            "Path: /tmp.": "Path: <REDACTED_PATH>.",
+            "Path: /tmp: denied": "Path: <REDACTED_PATH>: denied",
+            "路径：/tmp。": "路径：<REDACTED_PATH>。",
+            "(/tmp)": "(<REDACTED_PATH>)",
+            "“/tmp”": "“<REDACTED_PATH>”",
+            "prefix /tmp/secret suffix preserved": "prefix <REDACTED_PATH> suffix preserved",
+            "Path: /tmp/secret)": "Path: <REDACTED_PATH>)",
+            "Path: /tmp/secret” suffix": "Path: <REDACTED_PATH>” suffix",
+            "prefix /var/tmp/secret.txt. suffix": "prefix <REDACTED_PATH>. suffix",
+            "prefix /private/var/folders/ab/random/T/file.json; suffix": (
+                "prefix <REDACTED_PATH>; suffix"
+            ),
+            "prefix /Users/somename/Documents/client.ai suffix": (
+                "prefix <REDACTED_PATH> suffix"
+            ),
+        }
+        for sample, expected in samples.items():
+            with self.subTest(sample=sample):
+                sanitized = sanitize_path(sample)
+                self.assertEqual(expected, sanitized)
+                self.assertTrue(contains_sensitive_text(sample))
+                self.assert_clean(sanitized)
+
+    def test_sanitize_path_preserves_urls_and_similar_non_temporary_roots(self) -> None:
         samples = [
+            "https://tmp/path",
+            "https://var/tmp/path",
             "/tmpfile/public.txt",
             "/private/tmpfile/public.txt",
             "/var/folders-public/readme",
@@ -59,6 +91,7 @@ class SecuritySanitizerTests(unittest.TestCase):
         for sample in samples:
             with self.subTest(sample=sample):
                 self.assertEqual(sample, sanitize_path(sample))
+                self.assertFalse(contains_sensitive_text(sample))
 
     def test_sanitize_text_preserves_normal_bridge_text(self) -> None:
         text = "Photoshop 修图桥 当前未完全就绪，详见 details.notes。"

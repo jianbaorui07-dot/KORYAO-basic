@@ -57,12 +57,25 @@ REDACTION_PATTERNS = [
     ),
 ]
 
+TEMP_PATH_ROOT_BOUNDARY_CHARS = "\"'`“”‘’<>.,;:!?，。；：！？、()（）[]{}【】《》"
+TEMP_PATH_TOKEN_DELIMITER_CHARS = "\"'`“”‘’<>，。；：！？、()（）[]{}【】《》"
+TEMP_PATH_TRAILING_PUNCTUATION = ".,;:!?，。；：！？、"
+
 POSIX_TEMP_PATH_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_])(?:/private)?/(?:tmp|var/(?:tmp|folders))"
-    r"(?=/|[\s\"'<>，）),;\]}]|$)"
-    r"(?:/[^\s\"'<>，）),;\]}]+)*",
+    rf"(?<![A-Za-z0-9_/])(?:/private)?/(?:tmp|var/(?:tmp|folders))"
+    rf"(?=/|[\s{re.escape(TEMP_PATH_ROOT_BOUNDARY_CHARS)}]|$)"
+    rf"(?:/[^\s{re.escape(TEMP_PATH_TOKEN_DELIMITER_CHARS)}]+)*",
     re.IGNORECASE,
 )
+
+
+def _redact_posix_temp_path(match: re.Match[str]) -> str:
+    path_text = match.group(0)
+    trailing = ""
+    while path_text and path_text[-1] in TEMP_PATH_TRAILING_PUNCTUATION:
+        trailing = path_text[-1] + trailing
+        path_text = path_text[:-1]
+    return "<REDACTED_PATH>" + trailing
 
 
 def sanitize_path(value: str) -> str:
@@ -107,13 +120,12 @@ def sanitize_path(value: str) -> str:
         redacted,
         flags=re.IGNORECASE,
     )
-    redacted = POSIX_TEMP_PATH_PATTERN.sub(replace_unix_user, redacted)
+    redacted = POSIX_TEMP_PATH_PATTERN.sub(_redact_posix_temp_path, redacted)
     redacted = re.sub(
         r"(?i)\b[A-Z]:[\\/][^\s\"'<>，）)]+(?:[\\/][^\s\"'<>，）)]+)*",
         replace_drive_path,
         redacted,
     )
-    redacted = re.sub(r"<REDACTED_PATH>[^\"'<>，）\]\r\n]+", "<REDACTED_PATH>", redacted)
     for private_part in PRIVATE_PATH_PARTS:
         redacted = re.sub(
             rf"(?i)([\\/]){re.escape(private_part)}(?=([\\/])|$)", r"\1<REDACTED_PATH>", redacted
