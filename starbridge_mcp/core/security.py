@@ -57,6 +57,13 @@ REDACTION_PATTERNS = [
     ),
 ]
 
+POSIX_TEMP_PATH_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:/private)?/(?:tmp|var/(?:tmp|folders))"
+    r"(?=/|[\s\"'<>，）),;\]}]|$)"
+    r"(?:/[^\s\"'<>，）),;\]}]+)*",
+    re.IGNORECASE,
+)
+
 
 def sanitize_path(value: str) -> str:
     redacted = value
@@ -100,6 +107,7 @@ def sanitize_path(value: str) -> str:
         redacted,
         flags=re.IGNORECASE,
     )
+    redacted = POSIX_TEMP_PATH_PATTERN.sub(replace_unix_user, redacted)
     redacted = re.sub(
         r"(?i)\b[A-Z]:[\\/][^\s\"'<>，）)]+(?:[\\/][^\s\"'<>，）)]+)*",
         replace_drive_path,
@@ -178,6 +186,8 @@ def contains_sensitive_text(value: Any) -> bool:
     if re.search(r"/Users/(?!<USER_HOME>)[^/\s]+", text, re.IGNORECASE):
         return True
     if re.search(r"/home/(?!<USER_HOME>)[^/\s]+", text, re.IGNORECASE):
+        return True
+    if POSIX_TEMP_PATH_PATTERN.search(text):
         return True
     if re.search(r"(?i)\b[A-Z]:[\\/][^\s\"'<>]+", text):
         return True

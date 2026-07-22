@@ -97,3 +97,31 @@ PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest discover -s tes
 ## 阶段 0 结论
 
 环境依赖已补齐到可运行基线，Python/MCP 安全检查和前端测试/构建通过；但 Python 全量单测存在 2 个真实失败，Rust/Tauri 因缺少 darwin sidecar 失败，Tauri dev 因 `npm.cmd` 失败。阶段 0 只能认定为“基线已建立、阻塞已复现”，不能认定 macOS 软件已跑通。进入后续适配前需要独立验收本报告与证据边界。
+
+## 阶段 0.5：恢复 Python 基线
+
+- 日期：2026-07-22（Asia/Shanghai）
+- 范围：只修复阶段 0 记录的两个 Python 基线失败；未开始阶段 1，未处理 Darwin sidecar 或 Tauri `npm.cmd`。
+- CodeGraph：本阶段已确认仓库登记有效，并在编辑前查询相关测试、`sanitize_text`、Photoshop color preprocess 执行路径、调用链、依赖和变更影响。所有命中路径均在本仓库内。
+
+### 根因与修改
+
+1. `camera_raw_export.ps1` 的未确认分支已返回结构化拒绝结果，但 warning 文案漂移，缺少测试和公开契约要求的稳定拒绝语义。现统一为明确的 `Refusing Camera Raw export without explicit confirmation`，并继续声明 `-ConfirmApply` 与 `-ConfirmExport` 都是必需条件。
+2. 通用 sanitizer 已覆盖用户主目录，但没有覆盖 macOS 的临时目录根；在 `/private/tmp` 或 `/private/var/folders` 下创建 clean worktree 时，evidence manifest 的 `redacted_paths` 会泄露临时 checkout 绝对路径。现对 macOS/Unix 临时根执行整段 `<REDACTED_PATH>` 替换，并让敏感文本检测同步识别该类路径；正向回归测试覆盖两种 macOS 临时根，反向回归测试确保 `/tmpfile`、`/private/tmpfile`、`/var/folders-public` 和 `/tmpish` 等相似普通名称不会被误判。
+
+### 验证证据
+
+为隔离既有未跟踪文件，全量测试仍在候选基点的临时 detached clean worktree 中执行，并把本阶段未提交 diff 应用到该 worktree。命令中的 `PROJECT_VENV` 和 `CLEAN_WORKTREE` 仅代表本机临时运行位置，报告不记录其绝对路径。
+
+| 范围 | 命令 | 结果 |
+| --- | --- | --- |
+| 两个原失败 + sanitizer 正反向回归 | `PYTHONDONTWRITEBYTECODE=1 "$PROJECT_VENV/bin/python" -m unittest -v tests.test_photoshop_camera_raw_protocol.PhotoshopCameraRawProtocolTests.test_export_script_refuses_without_confirmations tests.test_photoshop_color_preprocess.PhotoshopColorPreprocessTests.test_confirmed_recipe_records_redacted_evidence tests.test_security_sanitizer.SecuritySanitizerTests.test_sanitize_path_redacts_macos_temporary_paths tests.test_security_sanitizer.SecuritySanitizerTests.test_sanitize_path_preserves_similar_non_temporary_roots` | PASS：4 tests |
+| Python clean-worktree 全量 | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$CLEAN_WORKTREE" "$PROJECT_VENV/bin/python" -m unittest discover -s tests` | PASS：694 tests，5 skipped |
+
+第一次 clean-worktree 全量运行未设置 `PYTHONPATH="$CLEAN_WORKTREE"`，导致一个 subprocess 从项目 `.venv` 的 editable 安装位置解析源码并报 `ModuleNotFoundError`；这不是仓库代码失败。补齐与 clean worktree 一致的源码根后，全量结果如上恢复绿色。localhost/socket 测试按权限流程在非沙箱环境运行，没有把 sandbox 的 `PermissionError` 计为代码失败。
+
+### 剩余风险与边界
+
+- 当前 macOS 环境没有运行 Windows PowerShell、Photoshop COM 或真实 Camera Raw 导出；拒绝分支在本机走静态契约检查。真实 Windows 桌面软件行为仍需后续专用环境验证。
+- 阶段 0 已记录的 Darwin sidecar、Tauri `npm.cmd` 和 macOS workflow 缺口均未在阶段 0.5 处理，状态不变。
+- 本阶段候选仍需独立验收线程复核 diff、敏感信息、测试证据、提交范围及 local/remote SHA；实现线程不自批。

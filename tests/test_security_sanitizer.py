@@ -38,6 +38,28 @@ class SecuritySanitizerTests(unittest.TestCase):
         self.assertIn("<REDACTED_PATH>", sanitized)
         self.assert_clean(sanitized)
 
+    def test_sanitize_path_redacts_macos_temporary_paths(self) -> None:
+        samples = [
+            "/private/tmp/clean-worktree/examples/output/evidence/manifest.latest.json",
+            "/private/var/folders/ab/random/T/manifest.latest.json",
+        ]
+        for sample in samples:
+            with self.subTest(sample=sample):
+                sanitized = sanitize_path(sample)
+                self.assertEqual("<REDACTED_PATH>", sanitized)
+                self.assert_clean(sanitized)
+
+    def test_sanitize_path_preserves_similar_non_temporary_roots(self) -> None:
+        samples = [
+            "/tmpfile/public.txt",
+            "/private/tmpfile/public.txt",
+            "/var/folders-public/readme",
+            "prefix /tmpish text",
+        ]
+        for sample in samples:
+            with self.subTest(sample=sample):
+                self.assertEqual(sample, sanitize_path(sample))
+
     def test_sanitize_text_preserves_normal_bridge_text(self) -> None:
         text = "Photoshop 修图桥 当前未完全就绪，详见 details.notes。"
         self.assertEqual(sanitize_text(text), text)
