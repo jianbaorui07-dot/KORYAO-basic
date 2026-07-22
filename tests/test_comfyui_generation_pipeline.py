@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 from starbridge_mcp.adapters.comfyui import ComfyUiAdapter, RuntimeInputVault
+from starbridge_mcp.adapters.comfyui.adapter import _validate_generated_image_payload
 from starbridge_mcp.core.app_data import resolve_app_data_paths
 from starbridge_mcp.storage.evidence_store import EvidenceStore
 from starbridge_mcp.storage.job_store import JobStore
@@ -172,6 +173,30 @@ class ComfyUiGenerationPipelineTests(unittest.TestCase):
         self.assertNotIn(PRIVATE_PROMPT, evidence_text)
         self.assertNotIn(PRIVATE_MODEL, evidence_text)
         self.assertEqual([False, True], [bool(call.get("confirm_run")) for call in calls])
+
+    def test_output_validation_accepts_supported_images_and_rejects_spoofs(self) -> None:
+        encoded: dict[str, bytes] = {}
+        for image_format, basename in (
+            ("PNG", "generated.png"),
+            ("JPEG", "generated.jpg"),
+            ("WEBP", "generated.webp"),
+            ("GIF", "generated.gif"),
+        ):
+            image_buffer = io.BytesIO()
+            Image.new("RGB", (8, 8), (12, 34, 56)).save(image_buffer, format=image_format)
+            encoded[image_format] = image_buffer.getvalue()
+            _validate_generated_image_payload(basename, encoded[image_format])
+
+        png_bytes = encoded["PNG"]
+        invalid_outputs = (
+            ("generated.png", b"<html>local error</html>"),
+            ("generated.jpg", png_bytes),
+            ("generated.png", png_bytes[:-12]),
+            ("generated.bmp", b"BM" + bytes(30)),
+        )
+        for basename, payload in invalid_outputs:
+            with self.subTest(basename=basename), self.assertRaises(ValueError):
+                _validate_generated_image_payload(basename, payload)
 
     def test_unavailable_service_soft_fails_without_prompt_submission(self) -> None:
         submit_calls = 0

@@ -26,6 +26,12 @@ from starbridge_mcp.storage.atomic_json import atomic_write_json, read_json
 DEFAULT_COMFYUI_URL = "http://127.0.0.1:8188"
 MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 MAX_OUTPUTS = 16
+SUPPORTED_OUTPUT_EXTENSIONS = {
+    "gif": frozenset({".gif"}),
+    "jpeg": frozenset({".jpg", ".jpeg"}),
+    "png": frozenset({".png"}),
+    "webp": frozenset({".webp"}),
+}
 
 
 class RuntimeInputVault:
@@ -92,6 +98,34 @@ def validate_loopback_url(value: str) -> str:
     if parsed.path not in {"", "/"}:
         raise ValueError("ComfyUI URL must not contain a path")
     return f"http://{parsed.netloc}"
+
+
+def _validate_generated_image_payload(basename: str, payload: bytes) -> str:
+    validate_basename(basename, "output filename")
+    if not isinstance(payload, bytes) or not payload or len(payload) > MAX_OUTPUT_BYTES:
+        raise ValueError("ComfyUI output is empty or exceeds the safe limit")
+
+    detected_format: str | None = None
+    if payload.startswith(b"\x89PNG\r\n\x1a\n") and payload.endswith(
+        b"\x00\x00\x00\x00IEND\xaeB`\x82"
+    ):
+        detected_format = "png"
+    elif payload.startswith(b"\xff\xd8\xff") and payload.endswith(b"\xff\xd9"):
+        detected_format = "jpeg"
+    elif payload.startswith((b"GIF87a", b"GIF89a")) and payload.endswith(b";"):
+        detected_format = "gif"
+    elif (
+        len(payload) >= 12
+        and payload.startswith(b"RIFF")
+        and payload[8:12] == b"WEBP"
+        and int.from_bytes(payload[4:8], "little") == len(payload) - 8
+    ):
+        detected_format = "webp"
+
+    suffix = Path(basename).suffix.lower()
+    if detected_format is None or suffix not in SUPPORTED_OUTPUT_EXTENSIONS[detected_format]:
+        raise ValueError("ComfyUI output is not a supported image matching its extension")
+    return detected_format
 
 
 def _fetch_output(base_url: str, image: dict[str, Any], timeout: int) -> bytes:
@@ -420,8 +454,9 @@ class ComfyUiAdapter(CreativeAdapter):
                 basename = str(image.get("filename") or "")
                 validate_basename(basename)
                 target_name = basename if index == 0 else f"{index + 1}-{basename}"
-                target = store.allocate_path(context.project_id, context.job_id, target_name)
                 payload = self.output_fetcher(base_url, image, 15)
+                _validate_generated_image_payload(basename, payload)
+                target = store.allocate_path(context.project_id, context.job_id, target_name)
                 self._write_bytes(target, payload)
                 artifacts.append(
                     store.register(
