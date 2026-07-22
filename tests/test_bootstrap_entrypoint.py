@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ntpath
 import os
 import shlex
 import shutil
@@ -80,14 +81,22 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             "#!/usr/bin/env bash\n"
             "set -eu\n"
             "if [[ \"${1:-}\" == \"--version\" ]]; then echo 'Python 3.12.1'; exit 0; fi\n"
-            "if [[ \"${1:-}\" == \"-c\" && \"${2:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
-            "  cd -P \"$(dirname \"$0\")/..\"; pwd -P; echo 'Python 3.12.1'; exit 0\n"
+            "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-c\" && \"${3:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
+            "  prefix=$(cd -P \"$(dirname \"$0\")/..\" && pwd -P)\n"
+            "  base=/fixture/base\n"
+            "  printf '%s\\n' \"$prefix\" \"$base\" 'Python 3.12.1' \\\n"
+            "    \"$prefix/bin\" \"$prefix/lib/python3.12/site-packages\" \\\n"
+            "    \"$prefix/lib/python3.12/site-packages\" \"$prefix\" \"$base/include\" \\\n"
+            "    \"$prefix/bin\" \"$prefix/lib/python3.12/site-packages\" \\\n"
+            "    \"$prefix/lib/python3.12/site-packages\" \"$prefix\" \\\n"
+            "    \"$prefix/include/site/python3.12/starbridge-bootstrap-probe\"\n"
+            "  exit 0\n"
             "fi\n"
             "if [[ \"${1:-}\" == \"-\" || \"${1:-}\" == \"-c\" ]]; then\n"
             f"  exec {shlex.quote(sys.executable)} \"$@\"\n"
             "fi\n"
             "if [[ \"${1:-}\" == \"-m\" && \"${2:-}\" == \"venv\" ]]; then\n"
-            "  mkdir -p \"$3/bin\"\n"
+            "  mkdir -p \"$3/bin\" \"$3/lib/python3.12/site-packages\"\n"
             "  cp \"$0\" \"$3/bin/python\"\n"
             "  chmod +x \"$3/bin/python\"\n"
             "  printf 'home = fixture\\n' > \"$3/pyvenv.cfg\"\n"
@@ -123,25 +132,36 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
     def assert_no_config_temporaries(self, config_path: Path) -> None:
         self.assertEqual([], list(config_path.parent.glob(".config.toml.*")))
 
-    def windows_managed_config(self, base: str = "[existing]\r\nkeep = true") -> bytes:
-        root = r"C:\CreNexus"
-        python = root + r"\.venv\Scripts\python.exe"
-        coordinator = (
-            root
-            + r"\plugins\starbridge-version-coordinator\scripts\version_coordinator_mcp.py"
+    def windows_managed_config(
+        self,
+        base: str = "[existing]\r\nkeep = true",
+        root: str = r"C:\CreNexus",
+        pythonpath: str | None = None,
+    ) -> bytes:
+        python = ntpath.join(root, ".venv", "Scripts", "python.exe")
+        coordinator = ntpath.join(
+            root,
+            "plugins",
+            "starbridge-version-coordinator",
+            "scripts",
+            "version_coordinator_mcp.py",
         )
-        block = "\r\n".join(
-            (
-                "# BEGIN STARBRIDGE QUICKSTART (managed by scripts/quickstart.ps1)",
-                "[mcp_servers.starbridge]",
-                f"command = {json.dumps(python)}",
-                'args = ["-m", "starbridge_mcp.mcp_server"]',
-                f"cwd = {json.dumps(root)}",
-                "",
-                "[mcp_servers.starbridge.env]",
-                'STARBRIDGE_PHOTOSHOP_SAFE_ONLY = "1"',
-                'STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN = "1"',
-                'STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE = "0"',
+        lines = [
+            "# BEGIN STARBRIDGE QUICKSTART (managed by scripts/quickstart.ps1)",
+            "[mcp_servers.starbridge]",
+            f"command = {json.dumps(python)}",
+            'args = ["-m", "starbridge_mcp.mcp_server"]',
+            f"cwd = {json.dumps(root)}",
+            "",
+            "[mcp_servers.starbridge.env]",
+            'STARBRIDGE_PHOTOSHOP_SAFE_ONLY = "1"',
+            'STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN = "1"',
+            'STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE = "0"',
+        ]
+        if pythonpath is not None:
+            lines.append(f"PYTHONPATH = {json.dumps(pythonpath)}")
+        lines.extend(
+            [
                 "",
                 "[mcp_servers.starbridge-version-coordinator]",
                 f"command = {json.dumps(python)}",
@@ -149,9 +169,68 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
                 f"cwd = {json.dumps(root)}",
                 "# END STARBRIDGE QUICKSTART",
                 "",
-            )
+            ]
         )
+        block = "\r\n".join(lines)
         return (base + "\r\n" + block).encode("utf-8")
+
+    def make_fake_existing_venv(
+        self,
+        repo_root: Path,
+        trace: Path,
+        overrides: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        venv = repo_root / ".venv"
+        (venv / "bin").mkdir(parents=True)
+        (venv / "lib/python3.12/site-packages").mkdir(parents=True)
+        (venv / "pyvenv.cfg").write_text("home = fixture\n", encoding="utf-8")
+        prefix = str(venv.resolve())
+        base = "/fixture/base"
+        values = {
+            "prefix": prefix,
+            "base_prefix": base,
+            "version": "Python 3.12.1",
+            "sys_scripts": f"{prefix}/bin",
+            "sys_purelib": f"{prefix}/lib/python3.12/site-packages",
+            "sys_platlib": f"{prefix}/lib/python3.12/site-packages",
+            "sys_data": prefix,
+            "sys_include": f"{base}/include",
+            "pip_scripts": f"{prefix}/bin",
+            "pip_purelib": f"{prefix}/lib/python3.12/site-packages",
+            "pip_platlib": f"{prefix}/lib/python3.12/site-packages",
+            "pip_data": prefix,
+            "pip_headers": f"{prefix}/include/site/python3.12/starbridge-bootstrap-probe",
+        }
+        values.update(overrides or {})
+        ordered = (
+            "prefix",
+            "base_prefix",
+            "version",
+            "sys_scripts",
+            "sys_purelib",
+            "sys_platlib",
+            "sys_data",
+            "sys_include",
+            "pip_scripts",
+            "pip_purelib",
+            "pip_platlib",
+            "pip_data",
+            "pip_headers",
+        )
+        output_arguments = " ".join(shlex.quote(values[name]) for name in ordered)
+        venv_python = venv / "bin/python"
+        venv_python.write_text(
+            "#!/usr/bin/env bash\n"
+            f"printf '%s:%s\\n' \"${{1:-}}\" \"${{2:-}}\" >> {shlex.quote(str(trace))}\n"
+            "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-c\" && \"${3:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
+            f"  printf '%s\\n' {output_arguments}\n"
+            "  exit 0\n"
+            "fi\n"
+            "exit 92\n",
+            encoding="utf-8",
+        )
+        venv_python.chmod(0o755)
+        return values
 
     def test_help_describes_safe_platform_boundaries(self) -> None:
         completed = self.run_bootstrap(REPO_ROOT, "--help")
@@ -345,6 +424,131 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
                 self.load_toml(codex_config)
                 self.assert_no_config_temporaries(codex_config)
 
+    def test_windows_managed_root_accepts_only_canonical_resolve_path_forms(self) -> None:
+        accepted = (
+            r"C:\CreNexus",
+            r"C:\Creative Work\CreNexus",
+            "C:\\",
+            r"\\server\share\CreNexus",
+            r"\\server\share",
+        )
+        for index, root in enumerate(accepted):
+            with self.subTest(root=root), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                repo_root, environment = self.make_config_fixture(
+                    Path(temporary_directory), f"windows-good-{index}"
+                )
+                codex_config = repo_root / ".codex/config.toml"
+                codex_config.parent.mkdir()
+                codex_config.write_bytes(self.windows_managed_config(root=root))
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertEqual(0, completed.returncode, completed.stderr)
+                self.load_toml(codex_config)
+                self.assertNotIn("scripts/quickstart.ps1", codex_config.read_text(encoding="utf-8"))
+                self.assert_no_config_temporaries(codex_config)
+
+    def test_windows_managed_root_rejects_noncanonical_or_non_source_forms(self) -> None:
+        rejected = (
+            r"relative\repo",
+            "/tmp/fake-win-repo",
+            r"C:repo",
+            r"C:\CreNexus\..\Other",
+            r"C:\CreNexus\.",
+            r"c:\CreNexus",
+            "C:\\CreNexus\\",
+            'C:\\Cre"Nexus',
+            r"\\server",
+            r"\\server\share\CreNexus\..\Other",
+            r"C:\CreNexus\\Nested",
+        )
+        for index, root in enumerate(rejected):
+            with self.subTest(root=root), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                repo_root, environment = self.make_config_fixture(
+                    Path(temporary_directory), f"windows-bad-{index}"
+                )
+                codex_config = repo_root / ".codex/config.toml"
+                codex_config.parent.mkdir()
+                original = self.windows_managed_config(root=root)
+                codex_config.write_bytes(original)
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertNotEqual(0, completed.returncode)
+                self.assertIn("ambiguous managed block", completed.stderr)
+                self.assertEqual(original, codex_config.read_bytes())
+                self.assert_no_config_temporaries(codex_config)
+
+    def test_windows_managed_block_rejects_pythonpath_not_emitted_by_quickstart(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            repo_root, environment = self.make_config_fixture(
+                Path(temporary_directory), "windows-pythonpath"
+            )
+            codex_config = repo_root / ".codex/config.toml"
+            codex_config.parent.mkdir()
+            original = self.windows_managed_config(
+                root=r"C:\CreNexus", pythonpath=r"C:\CreNexus"
+            )
+            codex_config.write_bytes(original)
+
+            completed = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertNotEqual(0, completed.returncode)
+            self.assertEqual(original, codex_config.read_bytes())
+            self.assert_no_config_temporaries(codex_config)
+
+    def test_windows_managed_args_and_cwd_must_derive_from_the_same_root(self) -> None:
+        root = r"C:\CreNexus"
+        other = r"D:\Other"
+        valid_text = self.windows_managed_config(root=root).decode("utf-8")
+        coordinator = ntpath.join(
+            root,
+            "plugins",
+            "starbridge-version-coordinator",
+            "scripts",
+            "version_coordinator_mcp.py",
+        )
+        other_coordinator = ntpath.join(
+            other,
+            "plugins",
+            "starbridge-version-coordinator",
+            "scripts",
+            "version_coordinator_mcp.py",
+        )
+        bad_args = valid_text.replace(
+            f"args = [{json.dumps(coordinator)}]",
+            f"args = [{json.dumps(other_coordinator)}]",
+        )
+        cwd_line = f"cwd = {json.dumps(root)}"
+        head, separator, tail = valid_text.rpartition(cwd_line)
+        self.assertTrue(separator)
+        bad_coordinator_cwd = head + f"cwd = {json.dumps(other)}" + tail
+
+        for name, text in {
+            "coordinator_args": bad_args,
+            "coordinator_cwd": bad_coordinator_cwd,
+        }.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                repo_root, environment = self.make_config_fixture(
+                    Path(temporary_directory), name
+                )
+                codex_config = repo_root / ".codex/config.toml"
+                codex_config.parent.mkdir()
+                original = text.encode("utf-8")
+                codex_config.write_bytes(original)
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertNotEqual(0, completed.returncode)
+                self.assertEqual(original, codex_config.read_bytes())
+                self.assert_no_config_temporaries(codex_config)
+
     def test_managed_block_with_unmanaged_toml_data_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
             repo_root, environment = self.make_config_fixture(Path(temporary_directory), "managed-extra")
@@ -514,6 +718,94 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             self.assertFalse(trace.exists())
             self.assertFalse((repo_root / ".codex").exists())
 
+    def test_venv_critical_subpaths_fail_before_any_python_execution(self) -> None:
+        cases = ["bin_symlink", "lib_symlink", "lib_file", "site_packages_symlink"]
+        if hasattr(os, "mkfifo"):
+            cases.append("include_fifo")
+
+        for name in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                temporary_root = Path(temporary_directory)
+                repo_root, environment = self.make_config_fixture(temporary_root, name)
+                venv = repo_root / ".venv"
+                venv.mkdir()
+                (venv / "pyvenv.cfg").write_text("home = fixture\n", encoding="utf-8")
+                outside = temporary_root / "outside-scheme"
+                outside.mkdir()
+                trace = temporary_root / "venv-subpath.trace"
+                tracer = (
+                    "#!/usr/bin/env bash\n"
+                    f"printf 'executed\\n' >> {shlex.quote(str(trace))}\n"
+                    "exit 93\n"
+                )
+
+                if name == "bin_symlink":
+                    (outside / "python").write_text(tracer, encoding="utf-8")
+                    (outside / "python").chmod(0o755)
+                    (venv / "bin").symlink_to(outside, target_is_directory=True)
+                    (venv / "lib").mkdir()
+                else:
+                    (venv / "bin").mkdir()
+                    (venv / "bin/python").write_text(tracer, encoding="utf-8")
+                    (venv / "bin/python").chmod(0o755)
+                    if name == "lib_symlink":
+                        (venv / "lib").symlink_to(outside, target_is_directory=True)
+                    elif name == "lib_file":
+                        (venv / "lib").write_text("not a directory\n", encoding="utf-8")
+                    else:
+                        (venv / "lib/python3.12").mkdir(parents=True)
+                        if name == "site_packages_symlink":
+                            (venv / "lib/python3.12/site-packages").symlink_to(
+                                outside, target_is_directory=True
+                            )
+                        else:
+                            (venv / "lib/python3.12/site-packages").mkdir()
+                            os.mkfifo(venv / "include")
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertNotEqual(0, completed.returncode)
+                self.assertFalse(trace.exists())
+                self.assertFalse((repo_root / ".codex").exists())
+                self.assertEqual(
+                    ["python"] if name == "bin_symlink" else [],
+                    sorted(path.name for path in outside.iterdir()),
+                )
+
+    def test_venv_writable_install_schemes_must_remain_inside_venv(self) -> None:
+        cases = (
+            "sys_scripts",
+            "sys_purelib",
+            "sys_platlib",
+            "sys_data",
+            "pip_scripts",
+            "pip_purelib",
+            "pip_platlib",
+            "pip_data",
+            "pip_headers",
+        )
+        for name in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                temporary_root = Path(temporary_directory)
+                repo_root, environment = self.make_config_fixture(temporary_root, name)
+                outside = temporary_root / f"outside-{name}"
+                trace = temporary_root / "venv-scheme.trace"
+                self.make_fake_existing_venv(
+                    repo_root, trace, overrides={name: str(outside)}
+                )
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertNotEqual(0, completed.returncode)
+                self.assertIn("installation scheme resolved outside", completed.stderr)
+                self.assertEqual(["-I:-c"], trace.read_text(encoding="utf-8").splitlines())
+                self.assertFalse(outside.exists())
+                self.assertFalse((repo_root / ".codex").exists())
+
     def test_venv_sys_prefix_must_match_the_repository_local_venv(self) -> None:
         with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
             temporary_root = Path(temporary_directory)
@@ -529,6 +821,7 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             path_python.chmod(0o755)
             venv = repo_root / ".venv"
             (venv / "bin").mkdir(parents=True)
+            (venv / "lib/python3.12/site-packages").mkdir(parents=True)
             (venv / "pyvenv.cfg").write_text("home = fixture\n", encoding="utf-8")
             outside_prefix = temporary_root / "outside-prefix"
             outside_prefix.mkdir()
@@ -536,9 +829,16 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             venv_python = venv / "bin/python"
             venv_python.write_text(
                 "#!/usr/bin/env bash\n"
-                f"printf '%s\\n' \"$*\" >> {shlex.quote(str(trace))}\n"
-                "if [[ \"${1:-}\" == \"-c\" && \"${2:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
-                f"  printf '%s\\n' {shlex.quote(str(outside_prefix.resolve()))}\n"
+                f"printf 'STARBRIDGE_VENV_PREFIX_CHECK\\n' >> {shlex.quote(str(trace))}\n"
+                "if [[ \"${1:-}\" == \"-I\" && \"${2:-}\" == \"-c\" && \"${3:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
+                f"  prefix={shlex.quote(str(outside_prefix.resolve()))}\n"
+                "  base=/fixture/base\n"
+                "  printf '%s\\n' \"$prefix\" \"$base\" 'Python 3.12.1' \\\n"
+                "    \"$prefix/bin\" \"$prefix/lib/python3.12/site-packages\" \\\n"
+                "    \"$prefix/lib/python3.12/site-packages\" \"$prefix\" \"$base/include\" \\\n"
+                "    \"$prefix/bin\" \"$prefix/lib/python3.12/site-packages\" \\\n"
+                "    \"$prefix/lib/python3.12/site-packages\" \"$prefix\" \\\n"
+                "    \"$prefix/include/site/python3.12/starbridge-bootstrap-probe\"\n"
                 "  exit 0\n"
                 "fi\n"
                 "exit 91\n",

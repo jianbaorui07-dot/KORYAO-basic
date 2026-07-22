@@ -280,27 +280,79 @@ ensure_config_directory() {
 }
 
 validate_venv_identity() {
-    local expected_prefix identity reported_prefix reported_version major minor
+    local expected_prefix identity identity_code reported_prefix reported_base_prefix
+    local reported_version major minor candidate python_dir site_packages
+    local identity_lines=()
     validate_repo_directory ".venv" "$venv_path" 1
     if [[ -L "$venv_path/pyvenv.cfg" || ! -f "$venv_path/pyvenv.cfg" ]]; then
         die ".venv must contain a regular repository-local pyvenv.cfg before its Python is used."
     fi
+
+    validate_repo_directory ".venv/bin" "$venv_path/bin" 1
+    validate_repo_directory ".venv/lib" "$venv_path/lib" 1
+    if [[ -e "$venv_path/include" || -L "$venv_path/include" ]]; then
+        validate_repo_directory ".venv/include" "$venv_path/include" 1
+    fi
+    for python_dir in "$venv_path/lib"/python*; do
+        if [[ -e "$python_dir" || -L "$python_dir" ]]; then
+            validate_repo_directory ".venv/lib Python directory" "$python_dir" 1
+            site_packages="$python_dir/site-packages"
+            if [[ -e "$site_packages" || -L "$site_packages" ]]; then
+                validate_repo_directory ".venv site-packages" "$site_packages" 1
+            fi
+        fi
+    done
     if [[ ! -f "$venv_python" || ! -x "$venv_python" ]]; then
         die "The virtual environment exists but does not contain an executable $venv_python. Remove it manually only if it is safe to do so, then rerun."
     fi
     expected_prefix="$(physical_directory "$venv_path")" \
         || die "The repository-local .venv path could not be resolved."
-    if ! identity="$("$venv_python" -c 'import os, platform, sys; assert sys.prefix != sys.base_prefix; print(os.path.realpath(sys.prefix)); print("Python " + platform.python_version())  # STARBRIDGE_VENV_PREFIX_CHECK' 2>/dev/null)"; then
+    identity_code='import os
+import platform
+import sys
+import sysconfig
+
+from pip._internal.locations import get_scheme
+
+if sys.prefix == sys.base_prefix:
+    raise SystemExit(2)
+scheme = get_scheme("starbridge-bootstrap-probe")
+values = (
+    os.path.realpath(sys.prefix),
+    os.path.realpath(sys.base_prefix),
+    "Python " + platform.python_version(),
+    os.path.realpath(sysconfig.get_path("scripts")),
+    os.path.realpath(sysconfig.get_path("purelib")),
+    os.path.realpath(sysconfig.get_path("platlib")),
+    os.path.realpath(sysconfig.get_path("data")),
+    os.path.realpath(sysconfig.get_path("include")),
+    os.path.realpath(scheme.scripts),
+    os.path.realpath(scheme.purelib),
+    os.path.realpath(scheme.platlib),
+    os.path.realpath(scheme.data),
+    os.path.realpath(scheme.headers),
+)
+if any(not isinstance(value, str) or not value or "\n" in value or "\r" in value for value in values):
+    raise SystemExit(3)
+print("\n".join(values))  # STARBRIDGE_VENV_PREFIX_CHECK'
+    if ! identity="$("$venv_python" -I -c "$identity_code" 2>/dev/null)"; then
         die ".venv Python did not identify itself as an isolated virtual environment; no dependency commands were run."
     fi
-    reported_prefix="${identity%%$'\n'*}"
+    while IFS= read -r candidate; do
+        identity_lines[${#identity_lines[@]}]="$candidate"
+    done <<< "$identity"
+    if (( ${#identity_lines[@]} != 13 )); then
+        die ".venv Python returned an incomplete installation scheme; no dependency commands were run."
+    fi
+    reported_prefix="${identity_lines[0]}"
+    reported_base_prefix="${identity_lines[1]}"
+    reported_version="${identity_lines[2]}"
     if [[ "$reported_prefix" != "$expected_prefix" ]]; then
         die ".venv Python reported sys.prefix outside the repository-local .venv; no dependency commands were run."
     fi
-    if [[ "$identity" != *$'\n'* ]]; then
-        die ".venv Python did not report its version; no dependency commands were run."
+    if [[ "$reported_base_prefix" == "$reported_prefix" || "$reported_base_prefix" != /* ]]; then
+        die ".venv Python reported an invalid sys.base_prefix; no dependency commands were run."
     fi
-    reported_version="${identity#*$'\n'}"
     if [[ "$reported_version" =~ ^Python[[:space:]]+([0-9]+)\.([0-9]+) ]]; then
         major="${BASH_REMATCH[1]}"
         minor="${BASH_REMATCH[2]}"
@@ -310,6 +362,23 @@ validate_venv_identity() {
     if (( major < 3 || (major == 3 && minor < 10) )); then
         die ".venv Python must be Python 3.10 or newer; no dependency commands were run."
     fi
+
+    # sysconfig scripts/purelib/platlib/data and pip's actual writable install
+    # scheme must resolve into this venv.  sysconfig include may identify the
+    # base interpreter's read-only headers, while pip's headers target below
+    # is the location an installation can actually write.
+    for candidate in "${identity_lines[3]}" "${identity_lines[4]}" "${identity_lines[5]}" \
+        "${identity_lines[6]}" "${identity_lines[8]}" "${identity_lines[9]}" \
+        "${identity_lines[10]}" "${identity_lines[11]}" "${identity_lines[12]}"; do
+        case "$candidate" in
+            "$expected_prefix"|"$expected_prefix"/*) ;;
+            *) die ".venv installation scheme resolved outside the repository-local .venv; no dependency commands were run." ;;
+        esac
+    done
+    case "${identity_lines[7]}" in
+        "$expected_prefix"|"$expected_prefix"/*|"$reported_base_prefix"|"$reported_base_prefix"/*) ;;
+        *) die ".venv sysconfig include path was unrelated to the venv or its base interpreter; no dependency commands were run." ;;
+    esac
     python_version="$reported_version"
 }
 
@@ -362,7 +431,7 @@ prepare_config_base() {
 import copy
 import io
 import ntpath
-import posixpath
+import re
 import sys
 from pathlib import Path
 
@@ -506,16 +575,52 @@ safe_environment = {
     "STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN": "1",
     "STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE": "0",
 }
+
+
+def canonical_windows_root(value: object) -> str:
+    if not isinstance(value, str) or not value or "/" in value:
+        raise ValueError
+    if any(ord(character) < 32 or character in '<>"|?*' for character in value):
+        raise ValueError
+    drive, tail = ntpath.splitdrive(value)
+    if value.startswith("\\\\"):
+        share_parts = drive[2:].split("\\")
+        if len(share_parts) != 2 or not all(share_parts):
+            raise ValueError
+        if ":" in drive or (tail and not tail.startswith("\\")):
+            raise ValueError
+        root_only = tail in ("", "\\")
+    else:
+        if not re.fullmatch(r"[A-Z]:", drive) or not tail.startswith("\\"):
+            raise ValueError
+        root_only = tail == "\\"
+        if ":" in tail:
+            raise ValueError
+    if ntpath.normpath(value) != value:
+        raise ValueError
+    if value.endswith("\\") and not root_only:
+        raise ValueError
+    segments = [segment for segment in tail.split("\\") if segment]
+    if any(
+        segment in (".", "..")
+        or segment.endswith((" ", "."))
+        or ":" in segment
+        for segment in segments
+    ):
+        raise ValueError
+    return value
+
+
 if schema == "windows":
     managed = servers.get("starbridge")
-    if not isinstance(managed, dict) or not isinstance(managed.get("cwd"), str):
+    if not isinstance(managed, dict):
         raise SystemExit(1)
-    managed_root = managed["cwd"]
-    if not managed_root:
+    try:
+        managed_root = canonical_windows_root(managed.get("cwd"))
+    except ValueError:
         raise SystemExit(1)
-    path_module = ntpath if ("\\" in managed_root or ntpath.splitdrive(managed_root)[0]) else posixpath
-    managed_python = path_module.join(managed_root, ".venv", "Scripts", "python.exe")
-    managed_coordinator = path_module.join(
+    managed_python = ntpath.join(managed_root, ".venv", "Scripts", "python.exe")
+    managed_coordinator = ntpath.join(
         managed_root,
         "plugins",
         "starbridge-version-coordinator",
