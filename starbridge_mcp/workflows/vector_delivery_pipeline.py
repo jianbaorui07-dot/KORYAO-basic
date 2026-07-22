@@ -13,12 +13,33 @@ DRAWING_MODES = frozenset({"artisan", "smart", "lightweight"})
 
 def create_vector_delivery_plan(inputs: dict[str, Any]) -> WorkflowPlan:
     source_relative_path = validate_relative_path(str(inputs.get("sourceAssetRelativePath") or ""))
-    drawing_mode = str(inputs.get("drawingMode") or "artisan")
+    drawing_mode = str(inputs.get("drawingMode") or "smart")
     if drawing_mode not in DRAWING_MODES:
         raise ValueError("drawingMode must be artisan, smart, or lightweight")
     parameters = inputs.get("parameters") or {}
     if not isinstance(parameters, dict):
         raise ValueError("parameters must be an object")
+    exact_parameters = parameters.get("exact") or {}
+    drawing_parameters = parameters.get("drawing") or {}
+    if not isinstance(exact_parameters, dict):
+        raise ValueError("parameters.exact must be an object")
+    if not isinstance(drawing_parameters, dict):
+        raise ValueError("parameters.drawing must be an object")
+    exact_max_dimension = exact_parameters.get("maxDimension")
+    if exact_max_dimension is not None and (
+        isinstance(exact_max_dimension, bool)
+        or not isinstance(exact_max_dimension, int | float)
+        or int(exact_max_dimension) != exact_max_dimension
+        or (int(exact_max_dimension) != 0 and not 256 <= int(exact_max_dimension) <= 4096)
+    ):
+        raise ValueError("exact maxDimension must be 0 or between 256 and 4096")
+    exact_max_svg_size = exact_parameters.get("maxSvgSizeMb")
+    if exact_max_svg_size is not None and (
+        isinstance(exact_max_svg_size, bool)
+        or not isinstance(exact_max_svg_size, int | float)
+        or not 1 <= float(exact_max_svg_size) <= 256
+    ):
+        raise ValueError("exact maxSvgSizeMb must be between 1 and 256")
     common = {"sourceAssetRelativePath": source_relative_path}
     return build_workflow_plan(
         WORKFLOW_ID,
@@ -36,7 +57,7 @@ def create_vector_delivery_plan(inputs: dict[str, Any]) -> WorkflowPlan:
                     **common,
                     "operation": "vectorize",
                     "mode": "exact",
-                    "parameters": parameters.get("exact") or {},
+                    "parameters": exact_parameters,
                 },
                 validation=("safe-output-root", "no-source-overwrite"),
                 requires_confirmation=True,
@@ -61,7 +82,7 @@ def create_vector_delivery_plan(inputs: dict[str, Any]) -> WorkflowPlan:
                     **common,
                     "operation": "vectorize",
                     "mode": drawing_mode,
-                    "parameters": parameters.get("drawing") or {},
+                    "parameters": drawing_parameters,
                 },
                 validation=("exact-baseline-completed", "safe-output-root"),
                 requires_confirmation=True,

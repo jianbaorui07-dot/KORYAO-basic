@@ -1,4 +1,6 @@
 import type {
+  AdobeExportReceipt,
+  AdobeExportRequest,
   ApiEnvelope,
   CodexConnectionResetResult,
   CodexConnectorInstallResult,
@@ -105,6 +107,27 @@ export class HttpTransport implements CreNexusTransport {
     );
   }
 
+  async openProjectArtifacts(_projectId: string): Promise<string> {
+    throw new TransportError(
+      "desktop_required",
+      "浏览器开发模式不能打开项目交付目录。",
+    );
+  }
+
+  async exportAdobeFile(_request: AdobeExportRequest): Promise<AdobeExportReceipt | null> {
+    throw new TransportError(
+      "desktop_required",
+      "浏览器开发模式不能调用本机 Photoshop 或 Illustrator 导出。",
+    );
+  }
+
+  async listAdobeExports(_projectId: string): Promise<AdobeExportReceipt[]> {
+    throw new TransportError(
+      "desktop_required",
+      "浏览器开发模式不能读取本机 Adobe 导出历史。",
+    );
+  }
+
   async installCodexConnector(
     _confirmInstall: boolean,
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
@@ -127,6 +150,13 @@ export class HttpTransport implements CreNexusTransport {
     throw new TransportError(
       "desktop_required",
       "浏览器预览不能打开本机 Codex 应用。",
+    );
+  }
+
+  async openCodexTask(_prompt: string, _confirmOpen: boolean): Promise<void> {
+    throw new TransportError(
+      "desktop_required",
+      "浏览器开发模式不能打开本机 Codex 对话。",
     );
   }
 

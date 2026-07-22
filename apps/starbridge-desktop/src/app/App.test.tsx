@@ -38,6 +38,11 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): CreNexusCli
       recoveryAttempts: 1,
     }),
     openLogsDirectory: vi.fn().mockResolvedValue("<LOCAL_APP_DATA>/CreNexus/logs"),
+    openProjectArtifacts: vi
+      .fn()
+      .mockResolvedValue("<LOCAL_APP_DATA>/CreNexus/artifacts/project-test"),
+    exportAdobeFile: vi.fn().mockResolvedValue(null),
+    listAdobeExports: vi.fn().mockResolvedValue([]),
     getConnections: vi.fn().mockResolvedValue(PAIRED_CONNECTIONS),
     installCodexConnector: vi.fn().mockResolvedValue({
       installed: true,
@@ -48,6 +53,7 @@ function makeClient(status: RuntimeStatus | Promise<RuntimeStatus>): CreNexusCli
     }),
     resetCodexConnection: vi.fn().mockResolvedValue({ reset: true, pairing_code: "WXYZ6789" }),
     openCodexPairing: vi.fn().mockResolvedValue(undefined),
+    openCodexTask: vi.fn().mockResolvedValue(undefined),
     openGitHubProject: vi.fn().mockResolvedValue(undefined),
     pairCreativeApplication: vi.fn(),
     reconnectCreativeApplication: vi.fn(),
@@ -460,7 +466,8 @@ describe("desktop runtime status", () => {
       expect.objectContaining({
         projectId: "project-test",
         sourceAssetId: "asset-test",
-        drawingMode: "artisan",
+        drawingMode: "smart",
+        parameters: { exact: { maxDimension: 1024, maxSvgSizeMb: 128 } },
       }),
     ));
     expect((await screen.findAllByText("等待开始")).length).toBeGreaterThan(0);

@@ -79,6 +79,30 @@ class VectorDeliveryPipelineTests(unittest.TestCase):
         self.assertTrue(plan.steps[step_ids.index("draw-vector")].requires_confirmation)
         self.assertTrue(plan.steps[step_ids.index("review-result")].requires_confirmation)
 
+    def test_plan_preserves_customer_selected_exact_safety_parameters(self) -> None:
+        plan = create_vector_delivery_plan(
+            {
+                "sourceAssetRelativePath": "projects/project-1/source/asset-1.png",
+                "drawingMode": "artisan",
+                "parameters": {"exact": {"maxDimension": 1024, "maxSvgSizeMb": 128}},
+            }
+        )
+
+        exact_step = next(step for step in plan.steps if step.step_id == "exact-reconstruction")
+        self.assertEqual(
+            {"maxDimension": 1024, "maxSvgSizeMb": 128},
+            exact_step.input_data["parameters"],
+        )
+
+    def test_plan_rejects_unbounded_exact_svg_size(self) -> None:
+        with self.assertRaisesRegex(ValueError, "maxSvgSizeMb"):
+            create_vector_delivery_plan(
+                {
+                    "sourceAssetRelativePath": "projects/project-1/source/asset-1.png",
+                    "parameters": {"exact": {"maxSvgSizeMb": 512}},
+                }
+            )
+
     def test_real_small_image_completes_exact_then_lightweight_delivery(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

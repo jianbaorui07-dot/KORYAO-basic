@@ -1,6 +1,8 @@
 import { Channel, invoke as tauriInvoke } from "@tauri-apps/api/core";
 
 import type {
+  AdobeExportReceipt,
+  AdobeExportRequest,
   ApiEnvelope,
   CodexConnectionResetResult,
   CodexConnectorInstallResult,
@@ -94,6 +96,23 @@ export class DesktopTransport implements CreNexusTransport {
     return this.call<string>("open_logs_directory");
   }
 
+  openProjectArtifacts(projectId: string): Promise<string> {
+    return this.call<string>("open_project_artifacts", { projectId });
+  }
+
+  exportAdobeFile(request: AdobeExportRequest): Promise<AdobeExportReceipt | null> {
+    return this.call<AdobeExportReceipt | null>("export_adobe_file", {
+      projectId: request.projectId,
+      artifactRelativePath: request.artifactRelativePath,
+      format: request.format,
+      confirmExport: request.confirmExport,
+    });
+  }
+
+  listAdobeExports(projectId: string): Promise<AdobeExportReceipt[]> {
+    return this.call<AdobeExportReceipt[]>("list_adobe_exports", { projectId });
+  }
+
   installCodexConnector(
     confirmInstall: boolean,
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
@@ -108,6 +127,10 @@ export class DesktopTransport implements CreNexusTransport {
 
   openCodexPairing(pairingCode: string): Promise<void> {
     return this.call("open_codex_pairing", { pairingCode });
+  }
+
+  openCodexTask(prompt: string, confirmOpen: boolean): Promise<void> {
+    return this.call("open_codex_task", { prompt, confirmOpen });
   }
 
   openGitHubProject(): Promise<void> {

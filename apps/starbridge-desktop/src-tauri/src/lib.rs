@@ -13,6 +13,7 @@ use tauri_plugin_shell::{
 };
 use uuid::Uuid;
 
+mod adobe_export;
 mod licensing;
 mod updater;
 
@@ -609,6 +610,29 @@ fn open_codex_pairing(pairing_code: String) -> Result<(), String> {
     })
 }
 
+fn valid_codex_prompt(prompt: &str) -> bool {
+    let trimmed = prompt.trim();
+    !trimmed.is_empty()
+        && trimmed.len() <= 4000
+        && !trimmed.chars().any(|character| character == '\0')
+}
+
+#[tauri::command]
+fn open_codex_task(prompt: String, confirm_open: bool) -> Result<(), String> {
+    if !confirm_open {
+        return Err("打开 Codex 对话前需要明确确认。".into());
+    }
+    if !valid_codex_prompt(&prompt) {
+        return Err("Codex 指令不能为空，且不能超过 4000 字节。".into());
+    }
+    let mut link =
+        url::Url::parse("codex://new").map_err(|_| "无法创建 Codex 对话链接。".to_string())?;
+    link.query_pairs_mut().append_pair("prompt", prompt.trim());
+    open::that(link.as_str()).map_err(|_| {
+        "无法打开 Codex；请确认 Codex 已安装，并从连接中心完成本次会话关联。".to_string()
+    })
+}
+
 const GITHUB_PROJECT_URL: &str = "https://github.com/jianbaorui07-dot/CreNexus";
 
 #[tauri::command]
@@ -759,6 +783,30 @@ async fn open_vector_output(
     .await
 }
 
+#[tauri::command]
+fn open_project_artifacts(app: AppHandle, project_id: String) -> Result<String, String> {
+    if !valid_vector_id(&project_id, "project-") {
+        return Err("项目编号无效，请重新选择项目后再试。".into());
+    }
+    let artifacts_root = starbridge_data_root(&app)?.join("artifacts");
+    let project_directory = artifacts_root.join(&project_id);
+    if !project_directory.is_dir() {
+        return Err("这个项目还没有可打开的真实交付目录。".into());
+    }
+    let resolved_root = artifacts_root
+        .canonicalize()
+        .map_err(|_| "无法验证项目交付根目录。".to_string())?;
+    let resolved_directory = project_directory
+        .canonicalize()
+        .map_err(|_| "无法验证项目交付目录。".to_string())?;
+    if resolved_directory == resolved_root || !resolved_directory.starts_with(&resolved_root) {
+        return Err("项目交付目录超出 CreNexus 安全范围。".into());
+    }
+    open::that(resolved_directory)
+        .map_err(|_| "无法打开项目交付目录，请从交付记录重试。".to_string())?;
+    Ok(format!("<LOCAL_APP_DATA>/CreNexus/artifacts/{project_id}"))
+}
+
 async fn request_graceful_stop(manager: &BackendManager) {
     let connection = {
         let mut inner = manager.lock();
@@ -902,6 +950,7 @@ pub fn run() {
             reconnect_creative_application,
             disconnect_creative_application,
             open_codex_pairing,
+            open_codex_task,
             open_github_project,
             choose_vector_input,
             import_project_asset,
@@ -909,6 +958,9 @@ pub fn run() {
             vectorization_job,
             vectorization_history,
             open_vector_output,
+            open_project_artifacts,
+            adobe_export::export_adobe_file,
+            adobe_export::list_adobe_exports,
             restart_backend,
             open_logs_directory,
             version_info,
@@ -1014,6 +1066,14 @@ mod tests {
         }
         assert!(!valid_creative_application_id("../../private"));
         assert!(!valid_creative_application_id("unknown"));
+    }
+
+    #[test]
+    fn codex_prompt_requires_bounded_visible_text() {
+        assert!(valid_codex_prompt("继续客户验收"));
+        assert!(!valid_codex_prompt("   "));
+        assert!(!valid_codex_prompt("包含\0控制字符"));
+        assert!(!valid_codex_prompt(&"x".repeat(4001)));
     }
 
     #[test]

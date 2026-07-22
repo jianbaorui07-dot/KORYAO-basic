@@ -252,7 +252,8 @@ def create_manifest(
         input_summary=input_summary or {},
         notes=notes or [],
     )
-    manifest.redacted_paths.append(sanitize_path_string(str(ensure_evidence_path())))
+    manifest_path = ensure_evidence_path()
+    manifest.redacted_paths.append(sanitize_path_string(manifest_path.as_posix()))
     return manifest
 
 

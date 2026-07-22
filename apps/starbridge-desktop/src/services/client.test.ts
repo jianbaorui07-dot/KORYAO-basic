@@ -21,6 +21,7 @@ function transportReturning(status: number, body: Record<string, unknown>): CreN
     installCodexConnector: async () => ({ status: 200, body: { ok: true } }),
     resetCodexConnection: async () => ({ status: 200, body: { ok: true } }),
     openCodexPairing: async () => undefined,
+    openCodexTask: async () => undefined,
     openGitHubProject: async () => undefined,
     pairCreativeApplication: async () => ({ status: 200, body: { ok: true } }),
     reconnectCreativeApplication: async () => ({ status: 200, body: { ok: true } }),
@@ -74,6 +75,9 @@ function transportReturning(status: number, body: Record<string, unknown>): CreN
       body: { ok: true, data: { eventCount: 0, events: [] } },
     }),
     openVectorOutput: async () => ({ status: 200, body: { ok: true, data: { opened: true } } }),
+    openProjectArtifacts: async () => "artifacts",
+    exportAdobeFile: async () => null,
+    listAdobeExports: async () => [],
   } as CreNexusTransport;
 }
 

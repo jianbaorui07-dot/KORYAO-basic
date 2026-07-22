@@ -33,6 +33,8 @@ PROMPT_ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
 ASSET_ID_PATTERN = re.compile(r"asset_[0-9a-f]{16}\Z")
 PROVENANCE_TTL_SECONDS = 24 * 60 * 60
 MAX_PROVENANCE_RECORDS = 128
+DEFAULT_ASSET_LIST_LIMIT = 20
+MAX_ASSET_LIST_LIMIT = 100
 REGENERATION_OVERRIDE_FIELDS = (
     "cfg",
     "height",
@@ -1646,6 +1648,87 @@ def generation_result(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def generation_cancel(arguments: dict[str, Any]) -> dict[str, Any]:
+    prompt_id = _validate_prompt_id(arguments.get("prompt_id"))
+    base_url = _validate_loopback_url(str(arguments.get("comfy_url") or DEFAULT_BASE_URL))
+    timeout = _as_int(arguments.get("timeout"), 8, minimum=1, maximum=15)
+    confirm_cancel = bool(arguments.get("confirm_cancel", False))
+    logical_job_id = _logical_generation_id(prompt_id)
+    base_result = {
+        "bridge": BRIDGE_ID,
+        "action": "generation_cancel",
+        "logical_job_id": logical_job_id,
+    }
+
+    if not confirm_cancel:
+        return sanitize(
+            {
+                **base_result,
+                "ok": True,
+                "mode": "dry_run",
+                "cancel_requested": False,
+                "cancelled": False,
+                "state": "not_cancelled",
+                "warnings": ["confirmation_required"],
+                "next_steps": [
+                    "Review this single-job cancellation, then set confirm_cancel=true to dispatch it."
+                ],
+            }
+        )
+
+    try:
+        response = post_json(base_url, f"/api/jobs/{prompt_id}/cancel", {}, timeout)
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return sanitize(
+            {
+                **base_result,
+                "ok": False,
+                "mode": "confirmed",
+                "cancel_requested": True,
+                "cancelled": False,
+                "state": "cancel_unavailable",
+                "error_code": "comfyui_cancel_unavailable",
+                "warnings": ["comfyui_cancel_unavailable"],
+                "next_steps": [
+                    "Confirm local ComfyUI supports per-job cancellation and inspect this job locally."
+                ],
+            }
+        )
+
+    cancelled = response.get("cancelled")
+    if not isinstance(cancelled, bool):
+        return sanitize(
+            {
+                **base_result,
+                "ok": False,
+                "mode": "confirmed",
+                "cancel_requested": True,
+                "cancelled": False,
+                "state": "cancel_unavailable",
+                "error_code": "comfyui_cancel_unavailable",
+                "warnings": ["comfyui_cancel_response_invalid"],
+                "next_steps": [
+                    "Confirm local ComfyUI supports per-job cancellation and inspect this job locally."
+                ],
+            }
+        )
+
+    return sanitize(
+        {
+            **base_result,
+            "ok": True,
+            "mode": "confirmed",
+            "cancel_requested": True,
+            "cancelled": cancelled,
+            "state": "cancelled" if cancelled else "not_cancelled",
+            "warnings": [] if cancelled else ["job_finished_or_unknown"],
+            "next_steps": [
+                "Call comfyui.generation_result with the same prompt_id to verify final history."
+            ],
+        }
+    )
+
+
 def asset_metadata(arguments: dict[str, Any]) -> dict[str, Any]:
     asset_id = _validate_asset_id(arguments.get("asset_id"))
     now = time.monotonic()
@@ -1702,6 +1785,67 @@ def asset_metadata(arguments: dict[str, Any]) -> dict[str, Any]:
             "next_steps": [
                 "Review a comfyui.regenerate dry-run before explicitly confirming a new submission."
             ],
+        }
+    )
+
+
+def asset_list(arguments: dict[str, Any]) -> dict[str, Any]:
+    limit = _as_int(
+        arguments.get("limit"),
+        DEFAULT_ASSET_LIST_LIMIT,
+        minimum=1,
+        maximum=MAX_ASSET_LIST_LIMIT,
+    )
+    now = time.monotonic()
+    _prune_provenance(now=now)
+    available_records = [
+        (asset_id, record)
+        for asset_id, record in _ASSET_RECORDS.items()
+        if ASSET_ID_PATTERN.fullmatch(asset_id) is not None
+        and isinstance(record, dict)
+        and isinstance(record.get("workflow"), dict)
+    ]
+    available_records.sort(key=lambda item: (-float(item[1].get("created_at", 0.0)), item[0]))
+    selected_records = available_records[:limit]
+    assets = []
+    for asset_id, record in selected_records:
+        created_at = float(record.get("created_at", now))
+        age_seconds = max(0.0, now - created_at)
+        assets.append(
+            {
+                "asset_id": asset_id,
+                "can_regenerate": True,
+                "workflow_hash": workflow_hash(record["workflow"]),
+                "expires_in_seconds": max(0, int(PROVENANCE_TTL_SECONDS - age_seconds)),
+            }
+        )
+
+    total_available = len(available_records)
+    return sanitize(
+        {
+            "ok": True,
+            "bridge": BRIDGE_ID,
+            "action": "asset_list",
+            "mode": "session_read_only",
+            "limit": limit,
+            "asset_count": len(assets),
+            "total_available": total_available,
+            "truncated": total_available > len(assets),
+            "assets": assets,
+            "provenance": {
+                "storage": "memory_only",
+                "persisted": False,
+                "ttl_seconds": PROVENANCE_TTL_SECONDS,
+                "max_records": MAX_PROVENANCE_RECORDS,
+            },
+            "warnings": [],
+            "next_steps": (
+                ["Select an asset_id and call comfyui.asset_metadata before regeneration."]
+                if assets
+                else [
+                    "Generate and resolve an asset in the current MCP server session before listing again."
+                ]
+            ),
         }
     )
 

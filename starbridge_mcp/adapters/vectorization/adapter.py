@@ -155,9 +155,22 @@ class VectorizationAdapter(CreativeAdapter):
                     simplify_ratio=optional_float("simplifyRatio"),
                     min_region_area=optional_int("minRegionArea"),
                     alpha_threshold=optional_int("alphaThreshold"),
+                    max_svg_size_mb=optional_float("maxSvgSizeMb"),
                 )
             )
         except VectorizationError as exc:
+            if mode == "exact" and exc.code == "vector_too_complex":
+                return AdapterResult(
+                    status="failed",
+                    error=JobError(
+                        code=exc.code,
+                        message="精确重建生成的 SVG 超过安全复杂度或文件大小上限，源素材未被修改。",
+                        next_steps=(
+                            "返回图片矢量化，将“精确基线最长边”选择为 1024；仍超限时选择 512，然后重新建立任务。",
+                            "不会自动回退到 Image Trace（Illustrator 图像描摹）。",
+                        ),
+                    ),
+                )
             return AdapterResult(
                 status="failed",
                 error=JobError(
