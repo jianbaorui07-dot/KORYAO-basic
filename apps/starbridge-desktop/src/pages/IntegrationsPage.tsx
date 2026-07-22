@@ -59,13 +59,19 @@ export function IntegrationsPage({
     setMessage("");
     try {
       let migratedExistingConnector = false;
+      let restartRequired = false;
       if (!connections?.codex.connector_configured) {
         const installResult = await client.installCodexConnector(true);
         migratedExistingConnector = Boolean(installResult.migrated_existing_connector);
+        restartRequired = Boolean(installResult.restart_required);
       }
       await client.openCodexPairing(pairingCode);
       setMessage(
-        migratedExistingConnector
+        restartRequired
+          ? migratedExistingConnector
+            ? "已备份旧 Codex 配置并安全迁移同名连接器。首次安装后请完全退出并重新打开 Codex，再新建任务发送关联指令。"
+            : "Codex 本地连接器已安装。请完全退出并重新打开 Codex，再新建任务发送关联指令。"
+          : migratedExistingConnector
           ? "已备份旧 Codex 配置并安全迁移同名连接器；新的 Codex 任务已打开，请完成关联。"
           : "已打开新的 Codex 任务。请发送预填的关联指令，CreNexus 会自动等待结果。",
       );
@@ -193,6 +199,7 @@ export function IntegrationsPage({
               <span>当前配对码</span>
               <code>{pairingCode}</code>
               <small>15 分钟内有效；重启桥接或重新生成后旧码失效。</small>
+              {!connections?.codex.connector_configured ? <small>首次安装连接器后需完全退出并重新打开 Codex，随后在新任务中完成配对。</small> : null}
             </div>
             <div className="actions">
               <button

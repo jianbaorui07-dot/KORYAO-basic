@@ -95,7 +95,7 @@ export function WorkflowsPage({ client, runtimeReady, initialProjectId, onOpenPr
 
   return (
     <div className="standard-page">
-      <header className="page-intro"><div><span className="page-kicker">vector-delivery-v1</span><h2>先建立精确基线，再绘制可编辑矢量</h2><p>固定顺序为：源素材验证 → 像素级精确重建 → 基线验收 → 绘制型矢量 → 质量比较 → 人工确认 → 交付。不会回退到 Illustrator Image Trace。</p></div><span className="state-label planned">{selectedWorkflow?.capabilityStatus === "experimental" ? "实验性" : "状态待确认"}</span></header>
+      <header className="page-intro"><div><span className="page-kicker">vector-delivery-v1</span><h2>先建立像素矢量基线，再绘制可编辑矢量</h2><p>固定顺序为：源素材验证 → 像素矢量（精确重建）→ 基线验收 → 绘制型矢量 → 质量比较 → 人工确认 → 交付。不会回退到 Illustrator Image Trace。</p></div><span className="state-label planned">{selectedWorkflow?.capabilityStatus === "experimental" ? "实验性" : "状态待确认"}</span></header>
       {error ? <div className="error-state" role="alert"><strong>操作未完成</strong><p>{error}</p></div> : null}
       <div className="workflow-builder-grid">
         <section className="record-panel">
@@ -113,16 +113,16 @@ export function WorkflowsPage({ client, runtimeReady, initialProjectId, onOpenPr
           </div>
         </section>
         <section className="record-panel">
-          <div className="section-heading"><div><span>精确基线</span><h3>控制大图的安全尺寸</h3></div><span className="state-label neutral">推荐：1024</span></div>
+          <div className="section-heading"><div><span>像素矢量</span><h3>控制逐像素 SVG 的安全尺寸</h3></div><span className="state-label neutral">推荐：1024</span></div>
           <div className="form-grid">
-            <label>精确基线最长边<select aria-label="精确基线最长边" value={exactMaxDimension} onChange={(event) => setExactMaxDimension(Number(event.target.value))}><option value={1024}>1024 像素（推荐）</option><option value={512}>512 像素（复杂大图）</option><option value={1600}>1600 像素（更高细节）</option><option value={2048}>2048 像素（可能较慢）</option><option value={0}>原始尺寸（可能超出安全上限）</option></select></label>
+            <label>像素矢量最长边<select aria-label="像素矢量最长边" value={exactMaxDimension} onChange={(event) => setExactMaxDimension(Number(event.target.value))}><option value={1024}>1024 像素（推荐）</option><option value={512}>512 像素（复杂大图）</option><option value={1600}>1600 像素（更高细节）</option><option value={2048}>2048 像素（可能较慢）</option><option value={0}>原始尺寸（可能超出安全上限）</option></select></label>
             <label>SVG 安全上限<select aria-label="SVG 安全上限" value={exactMaxSvgSizeMb} onChange={(event) => setExactMaxSvgSizeMb(Number(event.target.value))}><option value={64}>64 MB（兼容优先）</option><option value={128}>128 MB（推荐）</option><option value={256}>256 MB（大型文件）</option></select></label>
           </div>
-          <p className="truth-note">源图片不会被缩小或覆盖。选择非原始尺寸时，精确 SVG 会对本地缩放工作副本做逐像素验证；后续绘制型矢量仍按所选绘制策略独立生成。</p>
+          <p className="truth-note">像素矢量会把本地工作副本的 RGBA 像素转换为真实、无嵌入位图的 SVG 几何。源图片不会被缩小或覆盖；后续绘制型矢量仍按所选策略独立生成。</p>
         </section>
         <section className="record-panel workflow-truth-panel">
           <div className="section-heading"><div><span>安全边界</span><h3>写入会分段确认</h3></div></div>
-          <ol className="workflow-step-list"><li>导入时只复制明确选择的文件。</li><li>精确重建写入前单独确认。</li><li>绘制型矢量写入前再次确认。</li><li>交付前由你审核实际生成的产物。</li></ol>
+          <ol className="workflow-step-list"><li>导入时只复制明确选择的文件。</li><li>像素矢量写入前单独确认。</li><li>绘制型矢量写入前再次确认。</li><li>交付前由你审核实际生成的产物。</li></ol>
           <p className="truth-note">任务计划与确认令牌绑定到同一个项目、工作流、步骤和计划哈希；令牌一次使用并会过期。</p>
           <div className="button-row"><button type="button" className="secondary" onClick={onOpenProjects}>管理项目</button><button type="button" className="primary" disabled={!runtimeReady || busy || !assetId} onClick={() => void createJob()}>建立任务计划</button></div>
         </section>

@@ -216,7 +216,7 @@ describe("desktop runtime status", () => {
     await waitFor(() => expect(client.installCodexConnector).toHaveBeenCalledWith(true));
     expect(client.openCodexPairing).toHaveBeenCalledWith("ABCD2345");
     expect(
-      await screen.findByText("已备份旧 Codex 配置并安全迁移同名连接器；新的 Codex 任务已打开，请完成关联。"),
+      await screen.findByText("已备份旧 Codex 配置并安全迁移同名连接器。首次安装后请完全退出并重新打开 Codex，再新建任务发送关联指令。"),
     ).toBeInTheDocument();
   });
 
@@ -458,6 +458,7 @@ describe("desktop runtime status", () => {
     render(<App client={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "图片矢量化" }));
     expect(await screen.findByText("example.png")).toBeInTheDocument();
+    expect(screen.getAllByText(/像素矢量/).length).toBeGreaterThan(0);
     const createButton = screen.getByRole("button", { name: "建立任务计划" });
     await waitFor(() => expect(createButton).toBeEnabled());
     fireEvent.click(createButton);

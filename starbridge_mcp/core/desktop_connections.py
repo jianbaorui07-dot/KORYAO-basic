@@ -821,7 +821,7 @@ class DesktopConnectionManager:
         elif not connector_configured:
             state = "connector_required"
             message = "已找到 Codex；需要安装 CreNexus 本地连接器。"
-            next_steps = ["确认安装连接器，然后在新的 Codex 任务中完成配对。"]
+            next_steps = ["确认安装连接器，完全退出并重新打开 Codex，然后在新任务中完成配对。"]
         else:
             state = "awaiting_pairing"
             message = "连接器已配置，正在等待 Codex 确认当前桌面会话。"

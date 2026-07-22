@@ -4,7 +4,7 @@ const MODE_LABEL: Record<string, string> = {
   artisan: "匠心矢量",
   smart: "智能矢量",
   lightweight: "轻量矢量",
-  exact: "精确重建",
+  exact: "像素矢量",
 };
 
 export function TaskCard({ event, compact = false }: { event: VectorHistoryEvent; compact?: boolean }) {

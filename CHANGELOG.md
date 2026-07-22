@@ -2,6 +2,14 @@
 
 ## Unreleased / Optimizations
 
+### 2026-07-22 — CreNexus 0.1.0-alpha.2 integrated Windows preview
+
+* Exposed the existing exact RGBA-to-SVG engine as the customer-facing Pixel Vector mode while retaining the stable internal `exact` identifier and previous task compatibility.
+* Integrated the visible Codex conversation workspace, bounded 64/128/256 MB SVG controls, and explicit native PSD/AI save-path delivery from the merged Windows validation line.
+* Verified a 768×1024 customer Pixel Vector job with zero differing pixels, then generated and natively reopened both Illustrator AI and Photoshop PSD outputs through the desktop save-path flow.
+* Clarified that a newly installed Codex MCP connector requires fully restarting Codex before pairing in a new task.
+* Preserved local application data and source files; alpha.2 remains an unsigned internal preview pending clean-machine installer and signing validation.
+
 ### 2026-07-22 — DiagramForge and Photoshop typed production plans
 
 * Added the independent DiagramForge structured-drawing board, Codex Skill, typed MCP tools, native Draw.io compiler, editable SVG preview, stable-ID patch transactions, quality validation, resumable batch plans, and desktop navigation.
