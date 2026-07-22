@@ -28,7 +28,7 @@ jobs:
         run: python -m ruff check .
 
       - name: Ruff format check
-        run: python -m ruff format --check .
+        run: python -m ruff format --check --diff .
 
   test-ubuntu:
     runs-on: ubuntu-latest
