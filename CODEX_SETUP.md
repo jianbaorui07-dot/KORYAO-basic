@@ -18,7 +18,7 @@ bash ./bootstrap.sh --profile auto
 
 `bootstrap.sh` 只创建仓库内的 `.venv`、安装公开 Python/MCP 依赖、生成本机 `.codex/config.toml` 并运行 safe MCP 自检。它不会安装 Homebrew、Xcode Command Line Tools、Rosetta 或桌面软件，也不会启动 Tauri；缺少可选前置条件时会明确提示，由用户手动决定是否安装。`standard` / `all` 仍使用与 Windows 相同的 Python extras，并可安装 Node bridge 依赖；桌面软件能力须另行验证。
 
-为避免覆盖用户 MCP 设置，若现有 `.codex/config.toml` 非法，或 managed block 外已经定义 Starbridge MCP server / 冲突的 `mcp_servers` 结构，脚本会停止且不改写原文件；包含换行等控制字符的仓库路径也会被拒绝。
+为避免覆盖用户 MCP 设置，若现有 `.codex/config.toml` 非法，或 managed block 外已经定义 Starbridge MCP server / 冲突的 `mcp_servers` 结构，脚本会停止且不改写原文件；包含换行等控制字符的仓库路径也会被拒绝。`.codex` 与 `.venv` 必须是仓库内的真实目录而非 symlink，已有 `.venv` 的 `sys.prefix` 也必须指向当前仓库的 `.venv`。
 
 也可以在本机直接从链接安装：
 

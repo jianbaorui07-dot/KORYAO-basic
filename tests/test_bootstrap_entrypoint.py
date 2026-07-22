@@ -80,6 +80,9 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             "#!/usr/bin/env bash\n"
             "set -eu\n"
             "if [[ \"${1:-}\" == \"--version\" ]]; then echo 'Python 3.12.1'; exit 0; fi\n"
+            "if [[ \"${1:-}\" == \"-c\" && \"${2:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
+            "  cd -P \"$(dirname \"$0\")/..\"; pwd -P; echo 'Python 3.12.1'; exit 0\n"
+            "fi\n"
             "if [[ \"${1:-}\" == \"-\" || \"${1:-}\" == \"-c\" ]]; then\n"
             f"  exec {shlex.quote(sys.executable)} \"$@\"\n"
             "fi\n"
@@ -87,6 +90,7 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             "  mkdir -p \"$3/bin\"\n"
             "  cp \"$0\" \"$3/bin/python\"\n"
             "  chmod +x \"$3/bin/python\"\n"
+            "  printf 'home = fixture\\n' > \"$3/pyvenv.cfg\"\n"
             "fi\n",
             encoding="utf-8",
         )
@@ -118,6 +122,36 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
 
     def assert_no_config_temporaries(self, config_path: Path) -> None:
         self.assertEqual([], list(config_path.parent.glob(".config.toml.*")))
+
+    def windows_managed_config(self, base: str = "[existing]\r\nkeep = true") -> bytes:
+        root = r"C:\CreNexus"
+        python = root + r"\.venv\Scripts\python.exe"
+        coordinator = (
+            root
+            + r"\plugins\starbridge-version-coordinator\scripts\version_coordinator_mcp.py"
+        )
+        block = "\r\n".join(
+            (
+                "# BEGIN STARBRIDGE QUICKSTART (managed by scripts/quickstart.ps1)",
+                "[mcp_servers.starbridge]",
+                f"command = {json.dumps(python)}",
+                'args = ["-m", "starbridge_mcp.mcp_server"]',
+                f"cwd = {json.dumps(root)}",
+                "",
+                "[mcp_servers.starbridge.env]",
+                'STARBRIDGE_PHOTOSHOP_SAFE_ONLY = "1"',
+                'STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN = "1"',
+                'STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE = "0"',
+                "",
+                "[mcp_servers.starbridge-version-coordinator]",
+                f"command = {json.dumps(python)}",
+                f"args = [{json.dumps(coordinator)}]",
+                f"cwd = {json.dumps(root)}",
+                "# END STARBRIDGE QUICKSTART",
+                "",
+            )
+        )
+        return (base + "\r\n" + block).encode("utf-8")
 
     def test_help_describes_safe_platform_boundaries(self) -> None:
         completed = self.run_bootstrap(REPO_ROOT, "--help")
@@ -186,11 +220,11 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
 
             self.assertEqual(0, completed.returncode, completed.stderr)
             payload = json.loads(completed.stdout)
-            self.assertEqual(str(linked_repo), payload["repo"])
+            self.assertEqual(str(REPO_ROOT.resolve()), payload["repo"])
             venv_step = next(
                 step for step in payload["steps"] if step["name"] == "create virtual environment"
             )
-            self.assertIn(str(linked_repo), venv_step["detail"])
+            self.assertIn(str(REPO_ROOT.resolve()), venv_step["detail"])
 
     def test_config_write_preserves_valid_base_bytes_and_is_idempotent(self) -> None:
         cases = {
@@ -231,8 +265,11 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
                 self.assertIn('\\\\ path', config_text)
                 parsed = self.load_toml(codex_config)
                 servers = parsed["mcp_servers"]
-                self.assertEqual(f"{repo_root}/.venv/bin/python", servers["starbridge"]["command"])
-                self.assertEqual(str(repo_root), servers["starbridge"]["cwd"])
+                physical_repo = repo_root.resolve()
+                self.assertEqual(
+                    f"{physical_repo}/.venv/bin/python", servers["starbridge"]["command"]
+                )
+                self.assertEqual(str(physical_repo), servers["starbridge"]["cwd"])
                 if name == "other_mcp":
                     self.assertEqual("keep", servers["user-managed"]["command"])
                 self.assert_no_config_temporaries(codex_config)
@@ -262,6 +299,51 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             self.assertTrue(codex_config.read_bytes().startswith(original))
             self.load_toml(codex_config)
             self.assert_no_config_temporaries(codex_config)
+
+    def test_cross_platform_managed_markers_and_crlf_are_byte_stable(self) -> None:
+        for name in ("windows_crlf", "posix_crlf", "legacy_crlf"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                repo_root, environment = self.make_config_fixture(Path(temporary_directory), name)
+                codex_config = repo_root / ".codex/config.toml"
+                codex_config.parent.mkdir()
+                base = b"[existing]\r\nkeep = true"
+
+                if name == "windows_crlf":
+                    codex_config.write_bytes(self.windows_managed_config())
+                else:
+                    codex_config.write_bytes(b"[existing]\nkeep = true")
+                    initial = self.run_fixture_bootstrap(repo_root, environment)
+                    self.assertEqual(0, initial.returncode, initial.stderr)
+                    converted = codex_config.read_bytes().replace(b"\r\n", b"\n")
+                    converted = converted.replace(b"\n", b"\r\n")
+                    if name == "legacy_crlf":
+                        converted = converted.replace(
+                            b"# BEGIN STARBRIDGE QUICKSTART "
+                            b"(managed by bootstrap.sh; prefix-lf=1)",
+                            b"# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh)",
+                        )
+                    codex_config.write_bytes(converted)
+
+                snapshots = []
+                for _ in range(3):
+                    completed = self.run_fixture_bootstrap(repo_root, environment)
+                    self.assertEqual(0, completed.returncode, completed.stderr)
+                    snapshots.append(codex_config.read_bytes())
+
+                self.assertEqual(snapshots[0], snapshots[1])
+                self.assertEqual(snapshots[1], snapshots[2])
+                self.assertTrue(snapshots[0].startswith(base))
+                self.assertNotIn(b"managed by scripts/quickstart.ps1", snapshots[0])
+                self.assertEqual(
+                    1,
+                    snapshots[0].count(
+                        b"# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh; prefix-lf="
+                    ),
+                )
+                self.load_toml(codex_config)
+                self.assert_no_config_temporaries(codex_config)
 
     def test_managed_block_with_unmanaged_toml_data_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
@@ -370,6 +452,143 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
             self.assertEqual(original, codex_config.read_bytes())
             self.assert_no_config_temporaries(codex_config)
 
+    def test_codex_directory_must_be_a_real_repository_local_directory(self) -> None:
+        cases = ["external_symlink", "dangling_symlink", "regular_file"]
+        if hasattr(os, "mkfifo"):
+            cases.append("fifo")
+
+        for name in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                temporary_root = Path(temporary_directory)
+                repo_root, environment = self.make_config_fixture(temporary_root, name)
+                codex_dir = repo_root / ".codex"
+                outside = temporary_root / "outside-codex"
+                if name == "external_symlink":
+                    outside.mkdir()
+                    codex_dir.symlink_to(outside, target_is_directory=True)
+                elif name == "dangling_symlink":
+                    codex_dir.symlink_to(outside, target_is_directory=True)
+                elif name == "regular_file":
+                    codex_dir.write_bytes(b"user data\n")
+                else:
+                    os.mkfifo(codex_dir)
+
+                completed = self.run_fixture_bootstrap(repo_root, environment)
+
+                self.assertNotEqual(0, completed.returncode)
+                self.assertIn(".codex must be a real directory", completed.stderr)
+                self.assertFalse((repo_root / ".venv").exists())
+                if name == "external_symlink":
+                    self.assertEqual([], list(outside.iterdir()))
+                elif name == "dangling_symlink":
+                    self.assertFalse(outside.exists())
+                elif name == "regular_file":
+                    self.assertEqual(b"user data\n", codex_dir.read_bytes())
+                else:
+                    self.assertTrue(stat.S_ISFIFO(codex_dir.lstat().st_mode))
+
+    def test_external_venv_symlink_never_executes_its_python(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            repo_root, environment = self.make_config_fixture(temporary_root, "external-venv")
+            outside_venv = temporary_root / "outside-venv"
+            (outside_venv / "bin").mkdir(parents=True)
+            (outside_venv / "pyvenv.cfg").write_text("home = outside\n", encoding="utf-8")
+            trace = temporary_root / "outside-python.trace"
+            outside_python = outside_venv / "bin/python"
+            outside_python.write_text(
+                "#!/usr/bin/env bash\n"
+                f"printf 'executed\\n' >> {shlex.quote(str(trace))}\n"
+                "exit 99\n",
+                encoding="utf-8",
+            )
+            outside_python.chmod(0o755)
+            (repo_root / ".venv").symlink_to(outside_venv, target_is_directory=True)
+
+            completed = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertNotEqual(0, completed.returncode)
+            self.assertIn(".venv must be a real directory", completed.stderr)
+            self.assertFalse(trace.exists())
+            self.assertFalse((repo_root / ".codex").exists())
+
+    def test_venv_sys_prefix_must_match_the_repository_local_venv(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            repo_root, environment = self.make_config_fixture(temporary_root, "wrong-prefix")
+            system_trace = temporary_root / "path-python.trace"
+            path_python = temporary_root / "bin/python3"
+            path_python.write_text(
+                "#!/usr/bin/env bash\n"
+                f"printf 'executed\\n' >> {shlex.quote(str(system_trace))}\n"
+                "echo 'Python 3.12.1'\n",
+                encoding="utf-8",
+            )
+            path_python.chmod(0o755)
+            venv = repo_root / ".venv"
+            (venv / "bin").mkdir(parents=True)
+            (venv / "pyvenv.cfg").write_text("home = fixture\n", encoding="utf-8")
+            outside_prefix = temporary_root / "outside-prefix"
+            outside_prefix.mkdir()
+            trace = temporary_root / "venv-python.trace"
+            venv_python = venv / "bin/python"
+            venv_python.write_text(
+                "#!/usr/bin/env bash\n"
+                f"printf '%s\\n' \"$*\" >> {shlex.quote(str(trace))}\n"
+                "if [[ \"${1:-}\" == \"-c\" && \"${2:-}\" == *STARBRIDGE_VENV_PREFIX_CHECK* ]]; then\n"
+                f"  printf '%s\\n' {shlex.quote(str(outside_prefix.resolve()))}\n"
+                "  exit 0\n"
+                "fi\n"
+                "exit 91\n",
+                encoding="utf-8",
+            )
+            venv_python.chmod(0o755)
+
+            completed = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertNotEqual(0, completed.returncode)
+            self.assertIn("sys.prefix outside", completed.stderr)
+            trace_lines = trace.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(1, len(trace_lines))
+            self.assertIn("STARBRIDGE_VENV_PREFIX_CHECK", trace_lines[0])
+            self.assertFalse(system_trace.exists())
+            self.assertFalse((repo_root / ".codex").exists())
+
+    def test_new_and_existing_repository_local_venv_both_work(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            repo_root, environment = self.make_config_fixture(temporary_root, "local-venv")
+            fake_python = temporary_root / "bin/python3"
+            fake_python.unlink()
+            fake_python.symlink_to(sys.executable)
+            local_pip = repo_root / "pip"
+            local_pip.mkdir()
+            (local_pip / "__init__.py").write_text("", encoding="utf-8")
+            (local_pip / "__main__.py").write_text("", encoding="utf-8")
+            (repo_root / "starbridge_mcp/server.py").write_text("", encoding="utf-8")
+
+            first = self.run_fixture_bootstrap(repo_root, environment)
+            second = self.run_fixture_bootstrap(repo_root, environment)
+
+            self.assertEqual(0, first.returncode, first.stderr)
+            self.assertEqual(0, second.returncode, second.stderr)
+            first_step = json.loads(first.stdout)["steps"][0]
+            second_step = json.loads(second.stdout)["steps"][0]
+            self.assertEqual("completed", first_step["status"])
+            self.assertEqual("skipped_existing", second_step["status"])
+            self.assertFalse((repo_root / ".venv").is_symlink())
+            self.assertTrue((repo_root / ".venv/pyvenv.cfg").is_file())
+            prefix = subprocess.run(
+                [str(repo_root / ".venv/bin/python"), "-c", "import os,sys; print(os.path.realpath(sys.prefix))"],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            ).stdout.strip()
+            self.assertEqual(str((repo_root / ".venv").resolve()), prefix)
+
     def test_nonregular_config_paths_fail_before_temporary_file_creation(self) -> None:
         cases: dict[str, tuple[str, bytes | None]] = {
             "directory": ("directory", None),
@@ -408,32 +627,24 @@ class PosixBootstrapEntrypointTests(unittest.TestCase):
                 self.assert_no_config_temporaries(codex_config)
 
     def test_control_character_repository_paths_fail_before_config_writes(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="cre nexus bootstrap ") as temporary_directory:
-            temporary_root = Path(temporary_directory)
-            repo_root, environment = self.make_config_fixture(temporary_root, "safe fixture")
-            codex_config = repo_root / ".codex/config.toml"
-            codex_config.parent.mkdir()
-            original = b"[existing]\nkeep = true\n"
-            codex_config.write_bytes(original)
+        for character in ("\n", "\r", "\x1f"):
+            with self.subTest(character=repr(character)), tempfile.TemporaryDirectory(
+                prefix="cre nexus bootstrap "
+            ) as temporary_directory:
+                repo_root, environment = self.make_config_fixture(
+                    Path(temporary_directory), f"unsafe{character}checkout"
+                )
+                codex_config = repo_root / ".codex/config.toml"
+                codex_config.parent.mkdir()
+                original = b"[existing]\nkeep = true\n"
+                codex_config.write_bytes(original)
 
-            for character in ("\n", "\r", "\x1f"):
-                with self.subTest(character=repr(character)):
-                    unsafe_link = temporary_root / f"unsafe{character}checkout"
-                    unsafe_link.symlink_to(repo_root, target_is_directory=True)
-                    completed = subprocess.run(
-                        ["bash", str(unsafe_link / "bootstrap.sh"), "--profile", "core", "--skip-node", "--json"],
-                        cwd=unsafe_link,
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                        encoding="utf-8",
-                        env=environment,
-                    )
+                completed = self.run_fixture_bootstrap(repo_root, environment)
 
-                    self.assertNotEqual(0, completed.returncode)
-                    self.assertIn("ASCII control characters", completed.stderr)
-                    self.assertEqual(original, codex_config.read_bytes())
-                    self.assert_no_config_temporaries(codex_config)
+                self.assertNotEqual(0, completed.returncode)
+                self.assertIn("ASCII control characters", completed.stderr)
+                self.assertEqual(original, codex_config.read_bytes())
+                self.assert_no_config_temporaries(codex_config)
 
 
 if __name__ == "__main__":

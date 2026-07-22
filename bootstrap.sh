@@ -222,6 +222,97 @@ validate_repository_path() {
     done
 }
 
+physical_directory() {
+    (cd -P -- "$1" 2>/dev/null && pwd -P)
+}
+
+validate_repo_directory() {
+    local label="$1"
+    local path="$2"
+    local required="$3"
+    local physical
+
+    if [[ -L "$path" ]]; then
+        die "$label must be a real directory inside the repository; symlinks are not allowed."
+    fi
+    if [[ ! -e "$path" ]]; then
+        if (( required )); then
+            die "$label was not created inside the repository."
+        fi
+        return
+    fi
+    if [[ ! -d "$path" ]]; then
+        die "$label must be a real directory inside the repository."
+    fi
+    physical="$(physical_directory "$path")" \
+        || die "$label could not be resolved to a physical repository path."
+    if [[ "$physical" != "$path" ]]; then
+        die "$label must resolve exactly to $path; external or aliased directories are not allowed."
+    fi
+    case "$physical" in
+        "$repo_root"/*) ;;
+        *) die "$label must remain inside the physical repository root." ;;
+    esac
+}
+
+validate_config_target() {
+    if [[ -e "$config_path" || -L "$config_path" ]]; then
+        if [[ -L "$config_path" || ! -f "$config_path" ]]; then
+            die ".codex/config.toml must be a regular non-symlink file; no configuration changes were made."
+        fi
+    fi
+}
+
+validate_existing_local_paths() {
+    validate_repo_directory ".codex" "$config_dir" 0
+    validate_config_target
+    validate_repo_directory ".venv" "$venv_path" 0
+}
+
+ensure_config_directory() {
+    if [[ ! -e "$config_dir" && ! -L "$config_dir" ]]; then
+        if ! mkdir -- "$config_dir"; then
+            die "Could not create the repository-local .codex directory."
+        fi
+    fi
+    validate_repo_directory ".codex" "$config_dir" 1
+    validate_config_target
+}
+
+validate_venv_identity() {
+    local expected_prefix identity reported_prefix reported_version major minor
+    validate_repo_directory ".venv" "$venv_path" 1
+    if [[ -L "$venv_path/pyvenv.cfg" || ! -f "$venv_path/pyvenv.cfg" ]]; then
+        die ".venv must contain a regular repository-local pyvenv.cfg before its Python is used."
+    fi
+    if [[ ! -f "$venv_python" || ! -x "$venv_python" ]]; then
+        die "The virtual environment exists but does not contain an executable $venv_python. Remove it manually only if it is safe to do so, then rerun."
+    fi
+    expected_prefix="$(physical_directory "$venv_path")" \
+        || die "The repository-local .venv path could not be resolved."
+    if ! identity="$("$venv_python" -c 'import os, platform, sys; assert sys.prefix != sys.base_prefix; print(os.path.realpath(sys.prefix)); print("Python " + platform.python_version())  # STARBRIDGE_VENV_PREFIX_CHECK' 2>/dev/null)"; then
+        die ".venv Python did not identify itself as an isolated virtual environment; no dependency commands were run."
+    fi
+    reported_prefix="${identity%%$'\n'*}"
+    if [[ "$reported_prefix" != "$expected_prefix" ]]; then
+        die ".venv Python reported sys.prefix outside the repository-local .venv; no dependency commands were run."
+    fi
+    if [[ "$identity" != *$'\n'* ]]; then
+        die ".venv Python did not report its version; no dependency commands were run."
+    fi
+    reported_version="${identity#*$'\n'}"
+    if [[ "$reported_version" =~ ^Python[[:space:]]+([0-9]+)\.([0-9]+) ]]; then
+        major="${BASH_REMATCH[1]}"
+        minor="${BASH_REMATCH[2]}"
+    else
+        die ".venv Python reported an invalid version; no dependency commands were run."
+    fi
+    if (( major < 3 || (major == 3 && minor < 10) )); then
+        die ".venv Python must be Python 3.10 or newer; no dependency commands were run."
+    fi
+    python_version="$reported_version"
+}
+
 check_platform_prerequisites() {
     local platform architecture
     platform="$(uname -s)"
@@ -270,6 +361,8 @@ prepare_config_base() {
         "$repo_root/plugins/starbridge-version-coordinator/scripts/version_coordinator_mcp.py" <<'PY'
 import copy
 import io
+import ntpath
+import posixpath
 import sys
 from pathlib import Path
 
@@ -288,9 +381,19 @@ except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
     raise SystemExit(1)
 
 begin_markers = {
-    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh)": 1,
-    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh; prefix-lf=0)": 0,
-    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh; prefix-lf=1)": 1,
+    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh)": ("newline", "posix"),
+    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh; prefix-lf=0)": (
+        "none",
+        "posix",
+    ),
+    "# BEGIN STARBRIDGE QUICKSTART (managed by bootstrap.sh; prefix-lf=1)": (
+        "newline",
+        "posix",
+    ),
+    "# BEGIN STARBRIDGE QUICKSTART (managed by scripts/quickstart.ps1)": (
+        "newline",
+        "windows",
+    ),
 }
 end_marker = "# END STARBRIDGE QUICKSTART"
 
@@ -349,7 +452,7 @@ def advance_toml_lexical_state(line: str, state: str | None) -> str | None:
     return state
 
 
-starts: list[tuple[int, int, int]] = []
+starts: list[tuple[int, int, str, str]] = []
 ends: list[tuple[int, int]] = []
 offset = 0
 state: str | None = None
@@ -357,7 +460,8 @@ for line in text.splitlines(keepends=True):
     body = line.rstrip("\r\n")
     if state is None:
         if body in begin_markers:
-            starts.append((offset, offset + len(line), begin_markers[body]))
+            separator, schema = begin_markers[body]
+            starts.append((offset, offset + len(line), separator, schema))
         elif body == end_marker:
             ends.append((offset, offset + len(line)))
     state = advance_toml_lexical_state(line, state)
@@ -372,17 +476,20 @@ if not starts and not ends:
 if len(starts) != 1 or len(ends) != 1:
     raise SystemExit(1)
 
-start_offset, _, prefix_lf = starts[0]
+start_offset, _, separator, schema = starts[0]
 end_offset, end_after = ends[0]
 if end_offset <= start_offset:
     raise SystemExit(1)
-if not prefix_lf and start_offset != 0:
+if separator == "none" and start_offset != 0:
     raise SystemExit(1)
 remove_start = start_offset
-if prefix_lf:
-    if remove_start == 0 or text[remove_start - 1] != "\n":
+if separator == "newline":
+    if text[:remove_start].endswith("\r\n"):
+        remove_start -= 2
+    elif text[:remove_start].endswith("\n"):
+        remove_start -= 1
+    else:
         raise SystemExit(1)
-    remove_start -= 1
 
 base_text = text[:remove_start] + text[end_after:]
 base_data = base_text.encode("utf-8")
@@ -391,24 +498,53 @@ try:
 except tomllib.TOMLDecodeError:
     raise SystemExit(1)
 
-expected_starbridge = {
-    "command": python_path,
-    "args": ["-m", "starbridge_mcp.mcp_server"],
-    "cwd": repo_root,
-    "env": {
-        "STARBRIDGE_PHOTOSHOP_SAFE_ONLY": "1",
-        "STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN": "1",
-        "STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE": "0",
-    },
-}
-expected_coordinator = {
-    "command": python_path,
-    "args": [coordinator_path],
-    "cwd": repo_root,
-}
 servers = document.get("mcp_servers")
 if not isinstance(servers, dict):
     raise SystemExit(1)
+safe_environment = {
+    "STARBRIDGE_PHOTOSHOP_SAFE_ONLY": "1",
+    "STARBRIDGE_PHOTOSHOP_DEFAULT_DRY_RUN": "1",
+    "STARBRIDGE_PHOTOSHOP_ALLOW_DESTRUCTIVE": "0",
+}
+if schema == "windows":
+    managed = servers.get("starbridge")
+    if not isinstance(managed, dict) or not isinstance(managed.get("cwd"), str):
+        raise SystemExit(1)
+    managed_root = managed["cwd"]
+    if not managed_root:
+        raise SystemExit(1)
+    path_module = ntpath if ("\\" in managed_root or ntpath.splitdrive(managed_root)[0]) else posixpath
+    managed_python = path_module.join(managed_root, ".venv", "Scripts", "python.exe")
+    managed_coordinator = path_module.join(
+        managed_root,
+        "plugins",
+        "starbridge-version-coordinator",
+        "scripts",
+        "version_coordinator_mcp.py",
+    )
+    expected_starbridge = {
+        "command": managed_python,
+        "args": ["-m", "starbridge_mcp.mcp_server"],
+        "cwd": managed_root,
+        "env": safe_environment,
+    }
+    expected_coordinator = {
+        "command": managed_python,
+        "args": [managed_coordinator],
+        "cwd": managed_root,
+    }
+else:
+    expected_starbridge = {
+        "command": python_path,
+        "args": ["-m", "starbridge_mcp.mcp_server"],
+        "cwd": repo_root,
+        "env": safe_environment,
+    }
+    expected_coordinator = {
+        "command": python_path,
+        "args": [coordinator_path],
+        "cwd": repo_root,
+    }
 if servers.get("starbridge") != expected_starbridge:
     raise SystemExit(1)
 if servers.get("starbridge-version-coordinator") != expected_coordinator:
@@ -460,15 +596,20 @@ write_codex_config() {
         return
     fi
 
-    if [[ -e "$config_path" || -L "$config_path" ]]; then
-        if [[ -L "$config_path" || ! -f "$config_path" ]]; then
-            die ".codex/config.toml must be a regular non-symlink file; no configuration changes were made."
-        fi
-    fi
+    ensure_config_directory
 
-    mkdir -p -- "$config_dir"
-    local temporary_config
-    temporary_config="$(mktemp "$config_dir/.config.toml.XXXXXX")"
+    local temporary_config temporary_parent
+    if ! temporary_config="$(mktemp "$config_dir/.config.toml.XXXXXX")"; then
+        die "Could not create a repository-local temporary Codex configuration."
+    fi
+    temporary_parent="$(physical_directory "$(dirname -- "$temporary_config")")" || {
+        rm -f -- "$temporary_config"
+        die "Could not verify the temporary Codex configuration parent directory."
+    }
+    if [[ "$temporary_parent" != "$config_dir" || -L "$temporary_config" || ! -f "$temporary_config" ]]; then
+        rm -f -- "$temporary_config"
+        die "The temporary Codex configuration escaped the verified repository-local .codex directory."
+    fi
     if [[ -f "$config_path" ]]; then
         if ! prepare_config_base "$config_path" > "$temporary_config"; then
             rm -f -- "$temporary_config"
@@ -617,14 +758,19 @@ case "$profile" in
     *) die "Invalid profile '$profile'. Choose auto, core, standard, or all." ;;
 esac
 
-script_dir="$(cd -L -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -L)"
+script_dir="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$script_dir"
 [[ -f "$repo_root/pyproject.toml" && -f "$repo_root/package.json" && -d "$repo_root/starbridge_mcp" ]] \
     || die "bootstrap.sh must run from a CreNexus repository checkout."
 
+venv_path="$repo_root/.venv"
+venv_python="$venv_path/bin/python"
+config_dir="$repo_root/.codex"
+config_path="$config_dir/config.toml"
+
 validate_repository_path
+validate_existing_local_paths
 check_platform_prerequisites
-find_python
 
 effective_profile="$profile"
 if [[ "$profile" == "auto" ]]; then
@@ -644,18 +790,19 @@ if [[ "$effective_profile" == "all" ]]; then
 fi
 extras_csv="$(IFS=,; printf '%s' "${extras[*]}")"
 
-venv_path="$repo_root/.venv"
-venv_python="$venv_path/bin/python"
-config_dir="$repo_root/.codex"
-config_path="$config_dir/config.toml"
-
 if [[ -d "$venv_path" ]]; then
-    if (( ! dry_run )) && [[ ! -x "$venv_python" ]]; then
-        die "The virtual environment exists but does not contain $venv_python. Remove it manually only if it is safe to do so, then rerun."
-    fi
     add_step "create virtual environment" "skipped_existing" "$venv_path"
+    if (( dry_run )); then
+        python_version="not probed (existing .venv; dry-run)"
+    else
+        validate_venv_identity
+    fi
 else
+    find_python
     run_step "create virtual environment" "$python_command" -m venv "$venv_path"
+    if (( ! dry_run )); then
+        validate_venv_identity
+    fi
 fi
 
 run_step "upgrade pip" "$venv_python" -m pip install --upgrade pip
