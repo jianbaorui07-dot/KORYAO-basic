@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BatchPage } from "../pages/BatchPage";
 import { ComfyUiGenerationPage } from "../pages/ComfyUiGenerationPage";
+import { CodexConversationPage } from "../pages/CodexConversationPage";
 import { DeliveryPage } from "../pages/DeliveryPage";
 import { DiagramForgePage } from "../pages/DiagramForgePage";
 import { DiagnosticsPage } from "../pages/DiagnosticsPage";
@@ -266,6 +267,8 @@ export function App({ client: providedClient }: AppProps) {
     switch (page) {
       case "home":
         return <HomePage status={status} connections={connections} recentTasks={tasks} license={license} version={version} onNavigate={setPage} />;
+      case "codex-conversation":
+        return <CodexConversationPage client={client} connections={connections} runtimeReady={status.state === "connected"} onOpenConnections={() => setPage("integrations")} />;
       case "projects":
         return <ProjectsPage client={client} runtimeReady={status.state === "connected"} onOpenWorkflow={openWorkflow} />;
       case "workflows":
@@ -305,7 +308,7 @@ export function App({ client: providedClient }: AppProps) {
       case "tasks":
         return <TasksPage tasks={tasks} onStart={() => openWorkflow()} onOpenJob={openJob} />;
       case "job-detail":
-        return <JobDetailPage client={client} jobId={selectedJobId} onOpenDelivery={openDelivery} onBack={() => setPage("tasks")} onJobChanged={() => void refreshTasks()} />;
+        return <JobDetailPage client={client} jobId={selectedJobId} onOpenDelivery={openDelivery} onRetryVector={(projectId) => openWorkflow(projectId)} onBack={() => setPage("tasks")} onJobChanged={() => void refreshTasks()} />;
       case "delivery":
         return <DeliveryPage client={client} initialProjectId={selectedProjectId} />;
       case "license":

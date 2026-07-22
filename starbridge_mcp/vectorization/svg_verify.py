@@ -36,6 +36,7 @@ _ARTISAN_ROLES = ("foundation", "subject", "detail", "accent")
 _NUMBER = r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?"
 _PATH_LEXEME = re.compile(rf"\s*([MLCZ]|{_NUMBER})", re.IGNORECASE)
 _MAX_SVG_BYTES = 64 * 1024 * 1024
+_ABSOLUTE_MAX_SVG_BYTES = 256 * 1024 * 1024
 
 
 class SvgArtifactError(ValueError):
@@ -205,15 +206,20 @@ def verify_svg_artifact(
     *,
     expected_width: int | None = None,
     expected_height: int | None = None,
+    max_bytes: int = _MAX_SVG_BYTES,
 ) -> dict[str, Any]:
     """Fail closed unless *path* is a non-empty, editable, raster-free SVG artifact."""
 
+    if not 1 <= max_bytes <= _ABSOLUTE_MAX_SVG_BYTES:
+        raise SvgArtifactError(
+            "invalid_verifier_limit", "SVG verifier limit must be between 1 byte and 256 MiB."
+        )
     if not path.is_file():
         raise SvgArtifactError("artifact_missing", "SVG artifact was not created.")
     payload = path.read_bytes()
     if not payload:
         raise SvgArtifactError("artifact_empty", "SVG artifact is empty.")
-    if len(payload) > _MAX_SVG_BYTES:
+    if len(payload) > max_bytes:
         raise SvgArtifactError("artifact_too_large", "SVG artifact exceeds the verifier limit.")
     try:
         text = payload.decode("utf-8")

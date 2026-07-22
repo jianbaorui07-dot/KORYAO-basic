@@ -77,6 +77,49 @@ class VectorizationModeTests(unittest.TestCase):
         with Image.open(output / "preview.png") as preview, Image.open(source) as original:
             self.assertEqual(preview.convert("RGBA").tobytes(), original.convert("RGBA").tobytes())
 
+    def test_exact_mode_can_validate_an_explicit_resized_working_baseline(self) -> None:
+        source = self.root / "large-source.png"
+        image = Image.new("RGBA", (640, 320), (220, 30, 40, 255))
+        ImageDraw.Draw(image).rectangle((320, 0, 639, 319), fill=(20, 80, 210, 255))
+        image.save(source)
+        original_bytes = source.read_bytes()
+
+        result = run_vectorization(
+            RunConfig(
+                input_path=str(source),
+                mode="exact",
+                reference_id="exact-resized",
+                max_dimension=256,
+                max_svg_size_mb=128,
+            )
+        )
+
+        output = self.output_root / "exact-resized" / "exact"
+        self.assertEqual((256, 128), (result["vector"]["width"], result["vector"]["height"]))
+        self.assertEqual((640, 320), (result["source"]["width"], result["source"]["height"]))
+        self.assertTrue(result["exact_validation"]["pixel_match"])
+        self.assertTrue(result["exact_validation"]["source_resized"])
+        self.assertEqual(256, result["exact_validation"]["reference_width"])
+        self.assertEqual(128, result["exact_validation"]["reference_height"])
+        self.assertEqual(original_bytes, source.read_bytes())
+        self.assertIn("源文件保持不变", " ".join(result["warnings"]))
+        self.assertTrue((output / "vector.svg").is_file())
+
+    def test_svg_verifier_applies_the_caller_limit_with_a_256_mib_hard_cap(self) -> None:
+        path = self.root / "limited.svg"
+        path.write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" '
+            'viewBox="0 0 1 1"><rect width="1" height="1" fill="#000000"/></svg>',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(SvgArtifactError) as too_large:
+            verify_svg_artifact(path, max_bytes=16)
+        self.assertEqual("artifact_too_large", too_large.exception.code)
+        with self.assertRaises(SvgArtifactError) as invalid_limit:
+            verify_svg_artifact(path, max_bytes=256 * 1024 * 1024 + 1)
+        self.assertEqual("invalid_verifier_limit", invalid_limit.exception.code)
+
     def test_default_cli_mode_is_smart_and_balanced_is_an_alias(self) -> None:
         parsed = cli.parse_args(["--input", "placeholder.png"])
         self.assertEqual(parsed.mode, "smart")

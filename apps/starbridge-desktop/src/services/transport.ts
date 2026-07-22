@@ -35,6 +35,7 @@ export interface CreNexusTransport {
   getRuntimeStatus(): Promise<RuntimeStatus>;
   restartBackend(): Promise<RuntimeStatus>;
   openLogsDirectory(): Promise<string>;
+  openProjectArtifacts(projectId: string): Promise<string>;
   installCodexConnector(
     confirmInstall: boolean,
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>>;
@@ -42,6 +43,7 @@ export interface CreNexusTransport {
     confirmReset: boolean,
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectionResetResult>>>;
   openCodexPairing(pairingCode: string): Promise<void>;
+  openCodexTask(prompt: string, confirmOpen: boolean): Promise<void>;
   openGitHubProject(): Promise<void>;
   pairCreativeApplication(
     applicationId: string,

@@ -16,11 +16,12 @@ interface JobDetailPageProps {
   client: CreNexusClient;
   jobId?: string;
   onOpenDelivery: (projectId: string) => void;
+  onRetryVector: (projectId: string) => void;
   onBack: () => void;
   onJobChanged: () => void;
 }
 
-export function JobDetailPage({ client, jobId, onOpenDelivery, onBack, onJobChanged }: JobDetailPageProps) {
+export function JobDetailPage({ client, jobId, onOpenDelivery, onRetryVector, onBack, onJobChanged }: JobDetailPageProps) {
   const [job, setJob] = useState<CreativeJob | null>(null);
   const [events, setEvents] = useState<JobHistoryEvent[]>([]);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
@@ -100,6 +101,7 @@ export function JobDetailPage({ client, jobId, onOpenDelivery, onBack, onJobChan
           <div className="button-row">
             {job.status === "queued" || job.status === "running" || job.status === "needs_user" ? <button type="button" className="primary" disabled={busy || Boolean(approval && !confirmed)} onClick={() => void run()}>{approval ? "确认并继续" : job.status === "needs_user" ? "只读刷新同一任务" : "运行到下一确认点"}</button> : null}
             {job.status === "completed" ? <button type="button" className="primary" onClick={() => onOpenDelivery(job.projectId)}>查看真实交付物</button> : null}
+            {job.status === "failed" && job.workflowId === "vector-delivery-v1" ? <button type="button" className="primary" onClick={() => onRetryVector(job.projectId)}>调整参数并重新建立任务</button> : null}
           </div>
           {job.status === "queued" || job.status === "running" || job.status === "needs_user" ? <div className="cancel-row"><label className="confirmation"><input type="checkbox" checked={cancelConfirmed} onChange={(event) => setCancelConfirmed(event.target.checked)} />我确认取消这项任务；已经生成的诊断或安全产物可能会保留。</label><button type="button" className="quiet-button danger-button" disabled={busy || !cancelConfirmed} onClick={() => void cancel()}>取消任务</button></div> : null}
         </section>

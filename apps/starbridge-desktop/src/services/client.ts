@@ -45,10 +45,12 @@ export interface CreNexusClient {
   getBootstrap(): Promise<ApiEnvelope<unknown>>;
   restartBackend(): Promise<RuntimeStatus>;
   openLogsDirectory(): Promise<string>;
+  openProjectArtifacts(projectId: string): Promise<string>;
   getConnections(): Promise<ConnectionOverview>;
   installCodexConnector(confirmInstall: boolean): Promise<CodexConnectorInstallResult>;
   resetCodexConnection(confirmReset: boolean): Promise<CodexConnectionResetResult>;
   openCodexPairing(pairingCode: string): Promise<void>;
+  openCodexTask(prompt: string, confirmOpen: boolean): Promise<void>;
   openGitHubProject(): Promise<void>;
   pairCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection>;
   reconnectCreativeApplication(applicationId: string): Promise<CreativeApplicationConnection>;
@@ -184,6 +186,10 @@ export class CreNexusApiClient implements CreNexusClient {
     return this.transport.openLogsDirectory();
   }
 
+  openProjectArtifacts(projectId: string): Promise<string> {
+    return this.execute(() => this.transport.openProjectArtifacts(projectId));
+  }
+
   getConnections(): Promise<ConnectionOverview> {
     return this.execute(async () => {
       const response = await this.transport.request<ApiEnvelope<ConnectionOverview>>({
@@ -210,6 +216,10 @@ export class CreNexusApiClient implements CreNexusClient {
 
   openCodexPairing(pairingCode: string): Promise<void> {
     return this.execute(() => this.transport.openCodexPairing(pairingCode));
+  }
+
+  openCodexTask(prompt: string, confirmOpen: boolean): Promise<void> {
+    return this.execute(() => this.transport.openCodexTask(prompt, confirmOpen));
   }
 
   openGitHubProject(): Promise<void> {

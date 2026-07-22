@@ -893,7 +893,7 @@ class CreNexusBackend:
             project = self.project_store.get(str(project_id))
             if workflow_id == VECTOR_DELIVERY_WORKFLOW_ID:
                 asset_id = body.get("sourceAssetId") or body.get("source_asset_id")
-                drawing_mode = body.get("drawingMode") or body.get("drawing_mode") or "artisan"
+                drawing_mode = body.get("drawingMode") or body.get("drawing_mode") or "smart"
                 parameters = body.get("parameters") or {}
                 if not isinstance(asset_id, str):
                     return self._error(

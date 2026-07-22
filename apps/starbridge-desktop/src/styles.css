@@ -740,6 +740,27 @@ button.quiet-button, .text-button { color: var(--primary); }
 .task-card { border-left: 4px solid var(--primary); }
 .dialog-backdrop { background: rgba(16, 16, 16, .72); }
 
+.codex-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, .38fr); gap: 14px; }
+.codex-chat-panel, .codex-mode-panel { padding: 16px; }
+.codex-chat-stream { display: flex; min-height: 260px; max-height: 420px; flex-direction: column; gap: 10px; overflow: auto; padding: 14px; border: 1px solid var(--border); background: #f1efe8; }
+.codex-message { max-width: 82%; padding: 10px 12px; border: 1px solid var(--border); background: var(--surface); }
+.codex-message strong { display: block; color: var(--primary); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 9px; }
+.codex-message p { margin: 6px 0 0; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }
+.codex-message-user { align-self: flex-end; background: #101010; color: var(--bg); }
+.codex-message-user strong { color: var(--primary); }
+.codex-message-bridge { align-self: flex-start; }
+.codex-composer { display: grid; gap: 10px; margin-top: 12px; }
+.codex-composer label { display: grid; gap: 6px; font-size: 10px; font-weight: 800; }
+.codex-composer select, .codex-composer textarea { width: 100%; border: 1px solid var(--border); border-radius: 0; background: var(--surface); color: var(--text); font: inherit; }
+.codex-composer select { min-height: 38px; padding: 0 10px; }
+.codex-composer textarea { resize: vertical; padding: 10px; line-height: 1.55; }
+.codex-composer .button-row { align-items: center; justify-content: space-between; }
+.codex-composer .button-row span { color: var(--text-muted); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 8px; }
+.codex-mode-panel > button { display: grid; width: 100%; gap: 5px; margin-bottom: 8px; padding: 11px; border: 1px solid var(--border); border-radius: 0; background: transparent; cursor: pointer; text-align: left; }
+.codex-mode-panel > button:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 7%, var(--surface)); }
+.codex-mode-panel > button strong { font-size: 11px; }
+.codex-mode-panel > button span { color: var(--text-muted); font-size: 9px; line-height: 1.55; }
+
 @media (max-width: 1240px) {
   .app-shell { grid-template-columns: 192px minmax(0, 1fr); }
   .brand-lockup img { display: none; }
@@ -766,6 +787,7 @@ button.quiet-button, .text-button { color: var(--primary); }
   .quick-action-panel { display: grid; grid-template-columns: repeat(2, 1fr); }
   .quick-action-panel > header { grid-column: 1 / -1; }
   .quick-action-panel > button { border-right: 1px solid #c6c2b8; }
+  .codex-workspace-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 840px) {

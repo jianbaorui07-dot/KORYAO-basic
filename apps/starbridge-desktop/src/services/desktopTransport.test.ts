@@ -22,6 +22,7 @@ describe("desktop license transport", () => {
     await transport.installCodexConnector(true);
     await transport.resetCodexConnection(true);
     await transport.openCodexPairing("ABCD2345");
+    await transport.openCodexTask("继续客户验收", true);
     await transport.openGitHubProject();
     await transport.pairCreativeApplication("photoshop", true);
     await transport.reconnectCreativeApplication("photoshop", true);
@@ -36,16 +37,20 @@ describe("desktop license transport", () => {
     expect(invoke).toHaveBeenNthCalledWith(3, "open_codex_pairing", {
       pairingCode: "ABCD2345",
     });
-    expect(invoke).toHaveBeenNthCalledWith(4, "open_github_project", undefined);
-    expect(invoke).toHaveBeenNthCalledWith(5, "pair_creative_application", {
+    expect(invoke).toHaveBeenNthCalledWith(4, "open_codex_task", {
+      prompt: "继续客户验收",
+      confirmOpen: true,
+    });
+    expect(invoke).toHaveBeenNthCalledWith(5, "open_github_project", undefined);
+    expect(invoke).toHaveBeenNthCalledWith(6, "pair_creative_application", {
       applicationId: "photoshop",
       confirmPairing: true,
     });
-    expect(invoke).toHaveBeenNthCalledWith(6, "reconnect_creative_application", {
+    expect(invoke).toHaveBeenNthCalledWith(7, "reconnect_creative_application", {
       applicationId: "photoshop",
       confirmReconnect: true,
     });
-    expect(invoke).toHaveBeenNthCalledWith(7, "disconnect_creative_application", {
+    expect(invoke).toHaveBeenNthCalledWith(8, "disconnect_creative_application", {
       applicationId: "photoshop",
       confirmDisconnect: true,
     });

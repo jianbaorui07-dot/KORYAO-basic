@@ -978,19 +978,33 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         adaptive_report: dict[str, Any] | None = None
 
         if preset.mode == "exact":
-            rectangles = _merge_exact_rectangles(source_image, preset)
-            exact_validation = _validate_exact_rectangles(source_image, rectangles)
+            work_image = (
+                _resize_for_design(source_image, preset.max_dimension)
+                if preset.max_dimension > 0
+                else source_image
+            )
+            rectangles = _merge_exact_rectangles(work_image, preset)
+            exact_validation = {
+                **_validate_exact_rectangles(work_image, rectangles),
+                "reference_width": work_image.width,
+                "reference_height": work_image.height,
+                "source_resized": work_image.size != source_image.size,
+            }
             if not exact_validation["pixel_match"]:
                 raise VectorizationError(
                     "pixel_validation_failed",
-                    "Exact reconstruction did not match the source RGBA pixels.",
+                    "Exact reconstruction did not match the selected RGBA baseline pixels.",
                 )
-            vector_metrics = _write_exact_svg(svg_path, source_image, rectangles)
-            source_image.save(preview_path, format="PNG")
-            work_image = source_image
-            warnings_list.append(
-                "精确重建描述的是源像素网格，不会创造新的图像细节，也不等同于轻量商业插画。"
-            )
+            vector_metrics = _write_exact_svg(svg_path, work_image, rectangles)
+            work_image.save(preview_path, format="PNG")
+            if work_image.size != source_image.size:
+                warnings_list.append(
+                    "精确重建针对用户选择的本地缩放工作副本执行像素一致性验证；源文件保持不变。"
+                )
+            else:
+                warnings_list.append(
+                    "精确重建描述的是源像素网格，不会创造新的图像细节，也不等同于轻量商业插画。"
+                )
         else:
             _require_design_runtime()
             work_image = _resize_for_design(source_image, preset.max_dimension)
@@ -1115,7 +1129,10 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
             )
         try:
             evidence = verify_svg_artifact(
-                svg_path, expected_width=work_image.width, expected_height=work_image.height
+                svg_path,
+                expected_width=work_image.width,
+                expected_height=work_image.height,
+                max_bytes=svg_size_limit,
             )
         except SvgArtifactError as exc:
             raise VectorizationError(exc.code, str(exc)) from exc

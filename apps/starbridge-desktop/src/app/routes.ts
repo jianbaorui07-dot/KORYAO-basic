@@ -1,5 +1,6 @@
 export type PageId =
   | "home"
+  | "codex-conversation"
   | "projects"
   | "workflows"
   | "diagramforge"
@@ -23,6 +24,7 @@ export interface NavigationItem {
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   { id: "home", label: "首页", caption: "HOME" },
+  { id: "codex-conversation", label: "Codex 对话", caption: "CODEX CONVERSATION" },
   { id: "projects", label: "项目", caption: "PROJECTS" },
   { id: "workflows", label: "创意工作流", caption: "WORKFLOWS" },
   { id: "diagramforge", label: "图枢", caption: "DIAGRAMFORGE" },
@@ -38,6 +40,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
 export const PAGE_TITLES: Record<PageId, string> = {
   home: "首页",
+  "codex-conversation": "Codex 对话",
   projects: "项目",
   workflows: "创意工作流",
   diagramforge: "图枢 DiagramForge",
@@ -56,6 +59,7 @@ export const PAGE_TITLES: Record<PageId, string> = {
 
 export const PAGE_CAPTIONS: Record<PageId, string> = {
   home: "HOME",
+  "codex-conversation": "CODEX CONVERSATION",
   projects: "PROJECTS",
   workflows: "WORKFLOWS",
   diagramforge: "DIAGRAMFORGE",

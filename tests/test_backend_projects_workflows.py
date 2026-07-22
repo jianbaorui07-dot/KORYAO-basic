@@ -167,11 +167,21 @@ class BackendProjectsWorkflowTests(unittest.TestCase):
                         "workflowId": "vector-delivery-v1",
                         "sourceAssetId": asset["assetId"],
                         "drawingMode": "lightweight",
+                        "parameters": {"exact": {"maxDimension": 1024, "maxSvgSizeMb": 128}},
                     }
                 ).encode("utf-8"),
             )
             self.assertEqual(201, created_job.status)
             job_id = created_job.body["data"]["jobId"]
+            plan_file = next((root / "app-data" / "jobs").rglob("plan.json"))
+            plan_payload = json.loads(plan_file.read_text(encoding="utf-8"))
+            exact_step = next(
+                step for step in plan_payload["steps"] if step["stepId"] == "exact-reconstruction"
+            )
+            self.assertEqual(
+                {"maxDimension": 1024, "maxSvgSizeMb": 128},
+                exact_step["input"]["parameters"],
+            )
 
             result = backend.route("POST", f"/api/jobs/{job_id}/run", b"{}")
             for _ in range(8):

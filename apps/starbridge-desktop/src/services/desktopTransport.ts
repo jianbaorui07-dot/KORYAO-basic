@@ -94,6 +94,10 @@ export class DesktopTransport implements CreNexusTransport {
     return this.call<string>("open_logs_directory");
   }
 
+  openProjectArtifacts(projectId: string): Promise<string> {
+    return this.call<string>("open_project_artifacts", { projectId });
+  }
+
   installCodexConnector(
     confirmInstall: boolean,
   ): Promise<TransportResponse<ApiEnvelope<CodexConnectorInstallResult>>> {
@@ -108,6 +112,10 @@ export class DesktopTransport implements CreNexusTransport {
 
   openCodexPairing(pairingCode: string): Promise<void> {
     return this.call("open_codex_pairing", { pairingCode });
+  }
+
+  openCodexTask(prompt: string, confirmOpen: boolean): Promise<void> {
+    return this.call("open_codex_task", { prompt, confirmOpen });
   }
 
   openGitHubProject(): Promise<void> {

@@ -43,8 +43,8 @@ PRESETS: dict[str, VectorPreset] = {
         alpha_levels=4,
         alpha_threshold=8,
         max_source_pixels=40_000_000,
-        max_subpaths=30_000,
-        max_points=240_000,
+        max_subpaths=60_000,
+        max_points=600_000,
         max_svg_size_mb=48.0,
         curve_smoothing=0.0,
         corner_angle=0.0,
@@ -154,12 +154,14 @@ def _validate_preset(preset: VectorPreset) -> None:
             raise ValueError("Simplify ratio must be between 0 and 0.1.")
         if preset.min_region_area < 0:
             raise ValueError("Minimum region area cannot be negative.")
+    elif preset.max_dimension != 0 and not 256 <= preset.max_dimension <= 4096:
+        raise ValueError("Exact baseline maximum dimension must be 0 or between 256 and 4096.")
     if not 0 <= preset.alpha_threshold <= 255:
         raise ValueError("Alpha threshold must be between 0 and 255.")
     if preset.max_subpaths < 1 or preset.max_points < 3:
         raise ValueError("Path safety limits must be positive.")
-    if not 0 < preset.max_svg_size_mb <= 64:
-        raise ValueError("SVG size limit must be greater than 0 and no more than 64 MiB.")
+    if not 0 < preset.max_svg_size_mb <= 256:
+        raise ValueError("SVG size limit must be greater than 0 and no more than 256 MiB.")
     if preset.mode == "artisan":
         if not 0 <= preset.curve_smoothing <= 1.5:
             raise ValueError("Curve smoothing must be between 0 and 1.5.")
