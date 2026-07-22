@@ -1,4 +1,6 @@
 {
+  "name": "crenexus-workspace",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -108,6 +110,9 @@
     "lint": "ruff check .",
     "format": "ruff format .",
     "format-check": "ruff format --check ."
+  },
+  "dependencies": {
+    "svgo": "4.0.2"
   },
   "devDependencies": {
     "sharp": "^0.35.3",

@@ -1,14 +1,20 @@
 from pathlib import Path
 
+from PyInstaller.utils.hooks import copy_metadata
+
 
 SCRIPT_DIR = Path(SPECPATH).resolve()
 REPO_ROOT = SCRIPT_DIR.parents[2]
+VECTOR60_DISTRIBUTIONS = ("vtracer", "skia-pathops", "svgpathtools")
+VECTOR60_METADATA = []
+for distribution in VECTOR60_DISTRIBUTIONS:
+    VECTOR60_METADATA += copy_metadata(distribution)
 
 analysis = Analysis(
     [str(SCRIPT_DIR / "sidecar_entry.py")],
     pathex=[str(REPO_ROOT)],
     binaries=[],
-    datas=[],
+    datas=VECTOR60_METADATA,
     hiddenimports=[
         "starbridge_mcp.backend",
         "starbridge_mcp.mcp_server",
@@ -20,6 +26,9 @@ analysis = Analysis(
         "starbridge_mcp.vectorization.artisan",
         "starbridge_mcp.vectorization.artisan_strokes",
         "starbridge_mcp.vectorization.curve_geometry",
+        "vtracer",
+        "pathops",
+        "svgpathtools",
     ],
     hookspath=[],
     hooksconfig={},

@@ -68,7 +68,7 @@ if ($Bootstrap) {
     $pythonForInstall = if (Test-Path -LiteralPath $venvPython) { $venvPython } else { "python" }
     $bootstrapResults += Invoke-Step "upgrade pip" $pythonForInstall @("-m", "pip", "install", "--upgrade", "pip")
     $bootstrapResults += Invoke-Step "install dev dependencies" $pythonForInstall @("-m", "pip", "install", "-r", "requirements-dev.txt")
-    $bootstrapResults += Invoke-Step "install package editable" $pythonForInstall @("-m", "pip", "install", "-e", ".")
+    $bootstrapResults += Invoke-Step "install package editable" $pythonForInstall @("-m", "pip", "install", "-e", ".[vector60]")
 }
 
 $checks = [ordered]@{

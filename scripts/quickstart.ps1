@@ -94,6 +94,7 @@ function Get-FeatureExtras {
     $extras = [System.Collections.Generic.List[string]]::new()
     [void]$extras.Add("dev")
     [void]$extras.Add("vectorization")
+    [void]$extras.Add("vector60")
 
     if ($RequestedProfile -in @("standard", "all")) {
         [void]$extras.Add("cad")
@@ -162,6 +163,11 @@ $node = Get-Command "node" -ErrorAction SilentlyContinue
 $npm = Get-Command "npm.cmd" -ErrorAction SilentlyContinue
 if (-not $SkipNode) {
     if ($node -and $npm) {
+        if (Test-Path -LiteralPath (Join-Path $repoRoot "package-lock.json")) {
+            Invoke-Checked $steps "install root Node dependencies" $npm.Source @(
+                "ci", "--prefix", $repoRoot, "--no-audit", "--no-fund"
+            )
+        }
         if (Test-Path -LiteralPath (Join-Path $desktopRoot "package-lock.json")) {
             Invoke-Checked $steps "install desktop dependencies" $npm.Source @(
                 "ci", "--prefix", $desktopRoot, "--no-audit", "--no-fund"

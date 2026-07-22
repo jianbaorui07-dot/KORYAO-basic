@@ -29,6 +29,16 @@ if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
     }
 }
 
+$vector60Runtime = (& $executable --vector60-runtime-check | Out-String).Trim() | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $vector60Runtime.ok) {
+    throw "The packaged sidecar failed its Vector60 Python runtime check."
+}
+if ($vector60Runtime.versions.vtracer -ne "0.6.15" -or
+    $vector60Runtime.versions.'skia-pathops' -ne "0.9.2" -or
+    $vector60Runtime.versions.svgpathtools -ne "1.7.2") {
+    throw "The packaged sidecar contains unexpected Vector60 Python runtime versions."
+}
+
 $temporaryRoot = [IO.Path]::GetFullPath(
     (Join-Path ([IO.Path]::GetTempPath()) ("CreNexus Sidecar Test " + [Guid]::NewGuid().ToString("N")))
 )
@@ -430,6 +440,7 @@ $child.Dispose()
         wrong_credential_rejected = $true
         authenticated_bootstrap = $true
         community_vectorization = $true
+        vector60_python_runtime = $true
         vector_path_redacted = $true
         graceful_shutdown = $true
         process_exited = $process.HasExited

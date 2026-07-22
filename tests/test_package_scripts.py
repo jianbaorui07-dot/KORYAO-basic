@@ -201,6 +201,7 @@ class PackageScriptsTest(unittest.TestCase):
             "illustrator-trace",
             "illustrator-vector",
             "vectorization",
+            "vector60",
             "vector-refinement",
             "vector-app",
         ):

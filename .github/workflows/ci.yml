@@ -154,6 +154,65 @@ jobs:
       - name: Build desktop frontend
         run: npm run build --prefix apps/starbridge-desktop
 
+  test-vector60-runtime:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.12"
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install pinned Vector60 runtimes
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[vector60]"
+          npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify Vector60 Python versions
+        run: >-
+          python -c "import importlib.metadata as m; import pathops, svgpathtools, vtracer;
+          expected={'vtracer':'0.6.15','skia-pathops':'0.9.2','svgpathtools':'1.7.2'};
+          actual={name:m.version(name) for name in expected}; assert actual == expected, (expected, actual);
+          print(actual)"
+
+      - name: Verify locked SVGO CLI
+        shell: pwsh
+        run: |
+          $svgo = if ($IsWindows) { ".\node_modules\.bin\svgo.cmd" } else { "./node_modules/.bin/svgo" }
+          $version = (& $svgo --version | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -ne "4.0.2") {
+            throw "Expected SVGO 4.0.2 from the lockfile, got '$version'."
+          }
+
   test-desktop-rust:
     runs-on: windows-latest
     steps:

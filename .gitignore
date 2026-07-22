@@ -109,7 +109,6 @@ overtime-analysis-deck/
 /bing_test.html
 /main.py
 /vite.config.js
-/package-lock.json
 /_local_demo/
 /examples/example_plan.json
 /examples/example_prompt.txt

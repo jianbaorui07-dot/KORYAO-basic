@@ -90,6 +90,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller is unavailable in .venv-build. Run again without -SkipDependencyInstall."
 }
 
+& $buildPython -c "import importlib.metadata as m; import pathops, svgpathtools, vtracer; expected={'vtracer':'0.6.15','skia-pathops':'0.9.2','svgpathtools':'1.7.2'}; actual={name:m.version(name) for name in expected}; assert actual == expected, (expected, actual); print(actual)"
+if ($LASTEXITCODE -ne 0) {
+    throw "The pinned Vector60 Python runtime is unavailable in .venv-build. Run again without -SkipDependencyInstall."
+}
+
 New-Item -ItemType Directory -Path $distRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $workRoot -Force | Out-Null
 
@@ -105,6 +110,16 @@ if ($LASTEXITCODE -ne 0) {
 
 if (-not (Test-Path -LiteralPath $sourceExecutable -PathType Leaf)) {
     throw "Expected sidecar executable was not found after PyInstaller completed."
+}
+
+$vector60Runtime = (& $sourceExecutable --vector60-runtime-check | Out-String).Trim() | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $vector60Runtime.ok) {
+    throw "The packaged sidecar failed its Vector60 Python runtime check."
+}
+if ($vector60Runtime.versions.vtracer -ne "0.6.15" -or
+    $vector60Runtime.versions.'skia-pathops' -ne "0.9.2" -or
+    $vector60Runtime.versions.svgpathtools -ne "1.7.2") {
+    throw "The packaged sidecar contains unexpected Vector60 Python runtime versions."
 }
 
 New-Item -ItemType Directory -Path $binariesRoot -Force | Out-Null
@@ -130,6 +145,14 @@ $result = [ordered]@{
     support_directory = "src-tauri/binaries/_internal"
     pyinstaller_environment = ".venv-build"
     community_vectorization_included = $true
+    vector60_python_runtime_included = $true
+    vector60_python_runtime_versions = [ordered]@{
+        vtracer = "0.6.15"
+        skia_pathops = "0.9.2"
+        svgpathtools = "1.7.2"
+    }
+    vector60_svgo_runtime_included = $false
+    vector60_svgo_runtime_blocker = "SVGO requires a distributable Node runtime; the current PyInstaller/Tauri layout does not bundle one."
     vectorflow_gui_included = $false
 }
 $result | ConvertTo-Json
