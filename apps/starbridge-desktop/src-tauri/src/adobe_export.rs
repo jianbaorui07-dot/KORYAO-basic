@@ -1,6 +1,6 @@
 use serde::Serialize;
-use std::fs;
-use std::io::Read;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::thread;
@@ -264,6 +264,36 @@ fn validate_native_file(path: &Path, format: &str) -> Result<u64, String> {
     Ok(size)
 }
 
+fn publish_without_overwrite(staged: &Path, target: &Path) -> Result<u64, String> {
+    let mut source =
+        fs::File::open(staged).map_err(|_| "无法读取已验证的 Adobe 暂存文件。".to_string())?;
+    let mut destination = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(target)
+        .map_err(|error| {
+            if error.kind() == io::ErrorKind::AlreadyExists {
+                "目标文件已经存在。CreNexus 不会覆盖它，请选择新文件名。".to_string()
+            } else {
+                "无法在所选路径创建交付文件，请检查文件夹写入权限。".to_string()
+            }
+        })?;
+    let published = match io::copy(&mut source, &mut destination) {
+        Ok(size) => size,
+        Err(_) => {
+            drop(destination);
+            let _ = fs::remove_file(target);
+            return Err("复制 Adobe 交付文件时发生错误，未完成目标已清理。".into());
+        }
+    };
+    if destination.flush().is_err() || destination.sync_all().is_err() {
+        drop(destination);
+        let _ = fs::remove_file(target);
+        return Err("无法完整写入 Adobe 交付文件，未完成目标已清理。".into());
+    }
+    Ok(published)
+}
+
 #[tauri::command]
 pub async fn export_adobe_file(
     app: AppHandle,
@@ -306,18 +336,27 @@ pub async fn export_adobe_file(
         return Ok(None);
     };
     let target = normalized_target(target, &format)?;
+    let staging_directory = data_root.join("staging").join("adobe-exports");
+    fs::create_dir_all(&staging_directory)
+        .map_err(|_| "无法准备 Adobe 导出暂存目录。".to_string())?;
+    let staged = staging_directory.join(format!("{}.{}", uuid::Uuid::new_v4().simple(), format));
     let source_for_export = source.clone();
-    let target_for_export = target.clone();
+    let staged_for_export = staged.clone();
     let format_for_export = format.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        if target_for_export.exists() {
-            return Err("目标文件已经存在。CreNexus 不会覆盖它，请选择新文件名。".into());
-        }
-        execute_adobe_export(&source_for_export, &target_for_export, &format_for_export)
+        execute_adobe_export(&source_for_export, &staged_for_export, &format_for_export)
     })
     .await
     .map_err(|_| "Adobe 导出任务意外停止。".to_string())??;
-    let size_bytes = validate_native_file(&target, &format)?;
+    validate_native_file(&staged, &format)?;
+    let size_bytes = match publish_without_overwrite(&staged, &target) {
+        Ok(size) => size,
+        Err(error) => {
+            let _ = fs::remove_file(&staged);
+            return Err(error);
+        }
+    };
+    let _ = fs::remove_file(&staged);
     Ok(Some(AdobeExportReceipt {
         format,
         file_name: target
@@ -381,6 +420,30 @@ mod tests {
         assert!(validate_native_file(&disguised_ai, "ai").is_err());
         assert!(!disguised_ai.exists());
         fs::remove_file(valid_psd).expect("remove psd");
+        fs::remove_dir(base).expect("remove temp directory");
+    }
+
+    #[test]
+    fn verified_staging_publish_never_overwrites_a_customer_file() {
+        let base = std::env::temp_dir().join(format!("crenexus-publish-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&base).expect("temp publish directory");
+        let staged = base.join("staged.ai");
+        fs::write(&staged, [b"%PDF-1.7\n".as_slice(), &[0_u8; 80]].concat()).expect("stage");
+        let target = base.join("customer.ai");
+        fs::write(&target, b"customer-owned").expect("customer target");
+        assert!(publish_without_overwrite(&staged, &target).is_err());
+        assert_eq!(
+            fs::read(&target).expect("customer target"),
+            b"customer-owned"
+        );
+        fs::remove_file(&target).expect("remove customer target");
+        assert!(publish_without_overwrite(&staged, &target).is_ok());
+        assert_eq!(
+            fs::read(&target).expect("published target"),
+            fs::read(&staged).expect("stage")
+        );
+        fs::remove_file(staged).expect("remove stage");
+        fs::remove_file(target).expect("remove target");
         fs::remove_dir(base).expect("remove temp directory");
     }
 }
