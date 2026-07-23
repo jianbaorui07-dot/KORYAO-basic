@@ -599,11 +599,7 @@ class KORYAOBackend:
                     reference_id=reference_id,
                     output_dir=str(output_dir),
                     output_root=str(output_root),
-                    colors=(
-                        None
-                        if mode in {"exact", "editable-99"}
-                        else optional_int("colors")
-                    ),
+                    colors=(None if mode in {"exact", "editable-99"} else optional_int("colors")),
                     max_dimension=optional_int("maxDimension"),
                     simplify_ratio=optional_float("simplifyRatio"),
                     min_region_area=optional_int("minRegionArea"),
@@ -614,18 +610,12 @@ class KORYAOBackend:
             vector = report["vector"]
             editable_99 = report.get("editable_99")
             quality_metrics = (
-                editable_99.get("final_metrics", {})
-                if isinstance(editable_99, dict)
-                else {}
+                editable_99.get("final_metrics", {}) if isinstance(editable_99, dict) else {}
             )
             illustrator_safety = report["illustrator_safety"]
             result: JsonObject = {
                 "modeLabel": report["mode"]["label_zh"],
-                "status": (
-                    editable_99["status"]
-                    if isinstance(editable_99, dict)
-                    else "completed"
-                ),
+                "status": (editable_99["status"] if isinstance(editable_99, dict) else "completed"),
                 "sourceHash": str(selection["source_sha256"])[:12],
                 "sourcePreviewDataUrl": selection["preview_data_url"],
                 "resultPreviewDataUrl": result_preview,

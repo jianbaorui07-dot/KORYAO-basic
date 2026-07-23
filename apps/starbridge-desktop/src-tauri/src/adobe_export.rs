@@ -533,8 +533,7 @@ mod tests {
 
     #[test]
     fn native_signature_validation_rejects_disguised_files() {
-        let base =
-            std::env::temp_dir().join(format!("koryao-signature-{}", uuid::Uuid::new_v4()));
+        let base = std::env::temp_dir().join(format!("koryao-signature-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&base).expect("temp signature directory");
         let valid_psd = base.join("valid.psd");
         fs::write(&valid_psd, [b"8BPS".as_slice(), &[0_u8; 80]].concat()).expect("psd");

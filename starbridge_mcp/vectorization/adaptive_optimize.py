@@ -42,15 +42,9 @@ QUALITY_PRESETS: dict[str, QualityThresholds] = {
     "high-fidelity": QualityThresholds(
         "high-fidelity", 0.85, 15.0, 0.06, 0.92, 1.0, (1.8, 1.45, 1.2)
     ),
-    "balanced": QualityThresholds(
-        "balanced", 0.80, 20.0, 0.08, 0.88, 1.0, (2.2, 1.7, 1.3)
-    ),
-    "minimal": QualityThresholds(
-        "minimal", 0.75, 25.0, 0.10, 0.84, 1.0, (3.0, 2.2, 1.5)
-    ),
-    "editable-99": QualityThresholds(
-        "editable-99", 0.990, 1.0, 0.010, 0.980, 0.005, ()
-    ),
+    "balanced": QualityThresholds("balanced", 0.80, 20.0, 0.08, 0.88, 1.0, (2.2, 1.7, 1.3)),
+    "minimal": QualityThresholds("minimal", 0.75, 25.0, 0.10, 0.84, 1.0, (3.0, 2.2, 1.5)),
+    "editable-99": QualityThresholds("editable-99", 0.990, 1.0, 0.010, 0.980, 0.005, ()),
 }
 
 EDITABLE_99_COLOR_CANDIDATES = (256, 192, 160, 128, 96, 80, 64, 48, 32)
@@ -298,9 +292,7 @@ def quality_gates(
         "difference_percent": (
             metrics["difference_percent"] <= thresholds.maximum_difference_percent
         ),
-        "normalized_mae": (
-            metrics["normalized_mae"] <= thresholds.maximum_normalized_mae
-        ),
+        "normalized_mae": (metrics["normalized_mae"] <= thresholds.maximum_normalized_mae),
         "edge_dice": metrics["edge_dice"] >= thresholds.minimum_edge_dice,
         "alpha_mae": metrics["alpha_mae"] <= thresholds.maximum_alpha_mae,
         "embedded_rasters": evidence["embedded_raster_count"] == 0,
@@ -750,8 +742,7 @@ def optimize_editable_99(
     def evaluate(artifact: EditableCandidateArtifact) -> dict[str, Any]:
         exact_validation = (
             artifact.state.get("exact_validation")
-            if artifact.requested_colors == "exact-rgba"
-            and isinstance(artifact.state, dict)
+            if artifact.requested_colors == "exact-rgba" and isinstance(artifact.state, dict)
             else None
         )
         if isinstance(exact_validation, dict) and exact_validation.get("pixel_match") is True:
@@ -971,9 +962,7 @@ def optimize_editable_99(
             "quality_gates": record["gates"],
             "vector": record["vector"],
             "elapsed_seconds": record["elapsed_seconds"],
-            "rejection_reason": [
-                gate for gate, passed in record["gates"].items() if not passed
-            ],
+            "rejection_reason": [gate for gate, passed in record["gates"].items() if not passed],
             "hotspots": record["hotspots"][:5],
             "cache_hit": record["cache_hit"],
         }

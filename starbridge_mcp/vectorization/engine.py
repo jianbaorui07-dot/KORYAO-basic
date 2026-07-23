@@ -991,18 +991,9 @@ def _markdown_report(report: dict[str, Any]) -> str:
                     f"- Normalized MAE：{metrics['normalized_mae']:.4f} / "
                     f"≤ {thresholds['normalized_mae']:.4f}"
                 ),
-                (
-                    f"- Edge Dice：{metrics['edge_dice']:.4f} / "
-                    f"≥ {thresholds['edge_dice']:.4f}"
-                ),
-                (
-                    f"- Alpha MAE：{metrics['alpha_mae']:.4f} / "
-                    f"≤ {thresholds['alpha_mae']:.4f}"
-                ),
-                (
-                    "- Illustrator 自动打开："
-                    + ("允许" if safety["auto_open_allowed"] else "禁止")
-                ),
+                (f"- Edge Dice：{metrics['edge_dice']:.4f} / ≥ {thresholds['edge_dice']:.4f}"),
+                (f"- Alpha MAE：{metrics['alpha_mae']:.4f} / ≤ {thresholds['alpha_mae']:.4f}"),
+                ("- Illustrator 自动打开：" + ("允许" if safety["auto_open_allowed"] else "禁止")),
                 f"- Illustrator 风险级别：`{safety['risk_level']}`",
                 f"- Illustrator 处理：`{safety['action']}`",
                 f"- 停止原因：`{editable_99['stop_reason']}`",
@@ -1067,9 +1058,7 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 rectangles = _merge_exact_rectangles(work_image, preset)
                 _write_exact_svg(candidate_svg, work_image, rectangles)
                 work_image.save(candidate_preview, format="PNG")
-                exact_baseline_validation = _validate_exact_rectangles(
-                    work_image, rectangles
-                )
+                exact_baseline_validation = _validate_exact_rectangles(work_image, rectangles)
                 return EditableCandidateArtifact(
                     candidate_id,
                     "exact-rgba",
@@ -1720,13 +1709,11 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         else:
             report["validation"].update(
                 {
-                    "final_render_quality_gate_passed": editable_99_report[
-                        "quality_passed"
-                    ],
+                    "final_render_quality_gate_passed": editable_99_report["quality_passed"],
                     "formal_result": editable_99_report["status"],
-                    "illustrator_auto_open_allowed": editable_99_report[
-                        "illustrator_safety"
-                    ]["auto_open_allowed"],
+                    "illustrator_auto_open_allowed": editable_99_report["illustrator_safety"][
+                        "auto_open_allowed"
+                    ],
                 }
             )
         if vector60_run_report is None:

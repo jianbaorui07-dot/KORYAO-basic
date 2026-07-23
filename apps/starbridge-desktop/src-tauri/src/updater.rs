@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(endpoint.host_str(), Some("github.com"));
         assert_eq!(
             endpoint.path(),
-            "/jianbaorui07-dot/KORYAO/releases/latest/download/latest.json"
+            "/jianbaorui07-dot/KORYAO-basic/releases/latest/download/latest.json"
         );
         assert!(endpoint.query().is_none());
         assert!(endpoint.fragment().is_none());

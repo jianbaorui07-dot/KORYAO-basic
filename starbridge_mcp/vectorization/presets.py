@@ -95,8 +95,7 @@ PRESETS: dict[str, VectorPreset] = {
         mode="editable-99",
         label_zh="99% 可编辑矢量",
         purpose_zh=(
-            "在全部质量门槛通过后，从重新渲染验证的候选中选择子路径、"
-            "节点、颜色和文件更少的结果。"
+            "在全部质量门槛通过后，从重新渲染验证的候选中选择子路径、节点、颜色和文件更少的结果。"
         ),
         max_dimension=1024,
         colors=256,

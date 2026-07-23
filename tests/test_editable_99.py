@@ -296,9 +296,7 @@ class Editable99EngineIntegrationTests(unittest.TestCase):
             optimization["final_render_metrics"]["ssim"],
             0.990,
         )
-        self.assertTrue(
-            optimization["illustrator_safety"]["auto_open_allowed"]
-        )
+        self.assertTrue(optimization["illustrator_safety"]["auto_open_allowed"])
         self.assertIn(
             "editable_99_report",
             {artifact["role"] for artifact in compact["artifacts"]},
