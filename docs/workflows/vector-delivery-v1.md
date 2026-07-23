@@ -1,6 +1,6 @@
 # vector-delivery-v1
 
-状态：`experimental`。它是普通用户的推荐矢量交付工作流；现有四模式入口继续作为隐藏兼容能力保留。领域模型、持久化、确认门、实际 SVG/预览/报告登记、Evidence、桌面项目/任务/交付入口和小图集成测试已经存在；真实 Windows 发布验收与 Illustrator AI 副本尚未完成。
+状态：`experimental`。它是普通用户的推荐矢量交付工作流；现有五模式入口继续作为兼容能力保留。领域模型、持久化、确认门、实际 SVG/预览/报告登记、Evidence、桌面项目/任务/交付入口和小图集成测试已经存在；真实 Windows 发布验收与 Illustrator AI 副本尚未完成。
 
 ```text
 明确选择 PNG/JPEG

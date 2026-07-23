@@ -25,6 +25,12 @@ class VectorPreset:
     max_svg_size_mb: float
     curve_smoothing: float
     corner_angle: float
+    preferred_subpaths: int = 30_000
+    warning_subpaths: int = 60_000
+    preferred_points: int = 120_000
+    warning_points: int = 240_000
+    blocked_subpaths: int = 100_000
+    archive_subpaths: int = 300_000
 
     def public_parameters(self) -> dict[str, Any]:
         return asdict(self)
@@ -85,6 +91,27 @@ PRESETS: dict[str, VectorPreset] = {
         curve_smoothing=0.0,
         corner_angle=0.0,
     ),
+    "editable-99": VectorPreset(
+        mode="editable-99",
+        label_zh="99% 可编辑矢量",
+        purpose_zh=(
+            "在全部质量门槛通过后，从重新渲染验证的候选中选择子路径、"
+            "节点、颜色和文件更少的结果。"
+        ),
+        max_dimension=1024,
+        colors=256,
+        blur_diameter=1,
+        min_region_area=0,
+        simplify_ratio=0.0,
+        alpha_levels=255,
+        alpha_threshold=1,
+        max_source_pixels=40_000_000,
+        max_subpaths=2_000_000,
+        max_points=8_000_000,
+        max_svg_size_mb=128.0,
+        curve_smoothing=0.0,
+        corner_angle=0.0,
+    ),
     "artisan": VectorPreset(
         mode="artisan",
         label_zh="匠心矢量",
@@ -109,7 +136,7 @@ PRESETS: dict[str, VectorPreset] = {
 def normalize_mode(value: str) -> str:
     normalized = MODE_ALIASES.get(value.strip().lower(), value.strip().lower())
     if normalized not in PRESETS:
-        raise ValueError("Mode must be smart, lightweight, exact, or artisan.")
+        raise ValueError("Mode must be smart, lightweight, exact, editable-99, or artisan.")
     return normalized
 
 

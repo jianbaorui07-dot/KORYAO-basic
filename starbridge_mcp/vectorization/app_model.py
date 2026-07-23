@@ -48,6 +48,12 @@ MODE_CARDS = (
         tagline="RGBA 像素一致性验证",
         detail="适合技术证明、像素网格存档和高级验证。",
     ),
+    ModeCard(
+        key="editable-99",
+        title="99% 可编辑",
+        tagline="五项质量门槛 · 复杂度最小化",
+        detail="逐候选回渲染验证；全部门槛通过后，选择路径与节点更少的 SVG。",
+    ),
 )
 
 
@@ -89,7 +95,7 @@ def parameters_for_mode(mode: str) -> AppParameters:
     preset = PRESETS[normalized]
     return AppParameters(
         mode=normalized,
-        colors=None if normalized == "exact" else preset.colors,
+        colors=None if normalized in {"exact", "editable-99"} else preset.colors,
         max_dimension=None if normalized == "exact" else preset.max_dimension,
         simplify_ratio=None if normalized == "exact" else preset.simplify_ratio,
         min_region_area=None if normalized == "exact" else preset.min_region_area,
@@ -104,7 +110,7 @@ def build_run_config(input_path: str | Path, parameters: AppParameters) -> RunCo
         input_path=str(path),
         mode=mode,
         reference_id=reference_id_for(path),
-        colors=parameters.colors if mode != "exact" else None,
+        colors=parameters.colors if mode not in {"exact", "editable-99"} else None,
         max_dimension=parameters.max_dimension if mode != "exact" else None,
         simplify_ratio=parameters.simplify_ratio if mode != "exact" else None,
         min_region_area=parameters.min_region_area if mode != "exact" else None,

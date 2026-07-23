@@ -11,5 +11,6 @@ export const VECTOR_MODES: VectorModeOption[] = [
   { id: "smart", name: "智能矢量", description: "平衡细节、颜色和文件大小。", bestFor: "插画与常规设计图" },
   { id: "artisan", name: "匠心矢量", description: "使用平滑曲线减少不必要锚点。", bestFor: "标志与精细图形" },
   { id: "lightweight", name: "轻量矢量", description: "优先生成更轻、更易编辑的文件。", bestFor: "网页图形与快速交付" },
+  { id: "editable-99", name: "99% 可编辑", description: "逐候选回渲染，全部质量门槛通过后再选择复杂度更低的 SVG。", bestFor: "高保真且需继续编辑的交付" },
   { id: "exact", name: "像素矢量", description: "把每个像素转换为真实 SVG 几何，并逐像素核对。", bestFor: "忠实复刻与 Illustrator 交付" },
 ];

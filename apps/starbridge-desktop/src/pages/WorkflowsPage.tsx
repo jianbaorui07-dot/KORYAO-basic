@@ -5,7 +5,7 @@ import { EmptyState } from "../components/EmptyState/EmptyState";
 import type { KORYAOClient } from "../services/client";
 import type { Project, WorkflowSummary } from "../types/api";
 
-type DrawingMode = "artisan" | "smart" | "lightweight" | "exact";
+type DrawingMode = "artisan" | "smart" | "lightweight" | "exact" | "editable-99";
 
 interface WorkflowsPageProps {
   client: KORYAOClient;
@@ -20,6 +20,7 @@ const MODE_COPY: Record<DrawingMode, [string, string]> = {
   smart: ["智能矢量", "适合插画与纹样，在细节、稳定性和锚点数量之间平衡。"],
   lightweight: ["轻量矢量", "生成更精简的结构，适合快速交付和后续编辑。"],
   exact: ["像素重建", "把 RGBA 像素重建为真实 SVG 几何，并逐像素验证一致性。"],
+  "editable-99": ["99% 可编辑", "逐候选回渲染；五项门槛全部通过后，再选择路径与节点更少的 SVG。"],
 };
 
 export function WorkflowsPage({ client, runtimeReady, initialProjectId, onOpenProjects, onOpenJob }: WorkflowsPageProps) {

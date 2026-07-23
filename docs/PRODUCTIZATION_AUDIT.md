@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-仓库已经拥有 Python CLI、KORYAO MCP、Tool Registry、safe roots、路径脱敏、确认门、EvidenceManifest、JobStatus、四种矢量化引擎、Tauri 2 + React 桌面端、Python sidecar、NSIS/更新器代码和多种创意软件桥。架构升级必须保留这些能力，通过兼容层和 Workflow Engine 逐步迁移，不能推倒重写。
+仓库已经拥有 Python CLI、KORYAO MCP、Tool Registry、safe roots、路径脱敏、确认门、EvidenceManifest、JobStatus、五种矢量化引擎、Tauri 2 + React 桌面端、Python sidecar、NSIS/更新器代码和多种创意软件桥。架构升级必须保留这些能力，通过兼容层和 Workflow Engine 逐步迁移，不能推倒重写。
 
 审计中前四项缺口已在 `codex/workflow-foundation` 实施，当前剩余发布与第三方软件验收缺口为：
 

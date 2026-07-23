@@ -38,7 +38,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--mode",
         default="smart",
         help=(
-            "smart (default), lightweight, exact, artisan; balanced is accepted as a smart alias"
+            "smart (default), lightweight, exact, editable-99, artisan; "
+            "balanced is accepted as a smart alias"
         ),
     )
     parser.add_argument("--reference-id", default="vector-job")
@@ -53,7 +54,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-svg-size-mb", type=float, default=None)
     parser.add_argument(
         "--quality-preset",
-        choices=("high-fidelity", "balanced", "minimal"),
+        choices=("high-fidelity", "balanced", "minimal", "editable-99"),
         default="high-fidelity",
     )
     parser.add_argument("--target-difference", type=float, default=None)
@@ -159,6 +160,8 @@ def compact_result(result: dict[str, object]) -> dict[str, object]:
         "editable_svg",
         "final_svg_render_proof",
         "adaptive_optimization_report",
+        "editable_99_report",
+        "editable_99_error_heatmap",
     }
     artifact_refs = (
         [
@@ -187,6 +190,20 @@ def compact_result(result: dict[str, object]) -> dict[str, object]:
             "cache_hit_rate": optimization.get("cache", {}).get("hit_rate"),
             "stop_reason": optimization.get("stop_reason"),
             "error_hotspots": optimization.get("error_hotspots", [])[:5],
+            "external_ai_calls": 0,
+        }
+    editable_99 = result.get("editable_99")
+    if isinstance(editable_99, dict):
+        optimization_summary = {
+            "status": editable_99.get("status"),
+            "candidate_count": editable_99.get("candidate_count"),
+            "selected_candidate": editable_99.get("selected_candidate"),
+            "thresholds": editable_99.get("thresholds"),
+            "final_render_metrics": editable_99.get("final_metrics"),
+            "quality_gates": editable_99.get("quality_gates"),
+            "illustrator_safety": editable_99.get("illustrator_safety"),
+            "stop_reason": editable_99.get("stop_reason"),
+            "local_recovery": editable_99.get("local_recovery"),
             "external_ai_calls": 0,
         }
     return {

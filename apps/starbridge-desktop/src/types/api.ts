@@ -150,8 +150,15 @@ export interface LicenseRequestReceipt {
   folderOpened: boolean;
 }
 
-export type VectorMode = "artisan" | "smart" | "lightweight" | "exact";
+export type VectorMode = "artisan" | "smart" | "lightweight" | "exact" | "editable-99";
 export type VectorJobState = "queued" | "running" | "completed" | "failed";
+export type Editable99Status =
+  | "passed_editable_99"
+  | "passed_quality_high_complexity"
+  | "quality_not_met"
+  | "quality_and_editability_conflict"
+  | "resource_limit_exceeded"
+  | "execution_failed";
 
 export interface VectorSelection {
   selectionId: string;
@@ -170,14 +177,27 @@ export interface VectorMetrics {
   elapsedSeconds: number;
   pixelMatch?: boolean | null;
   anchorReductionRatio?: number | null;
+  ssim?: number | null;
+  differencePercent?: number | null;
+  normalizedMae?: number | null;
+  edgeDice?: number | null;
+  alphaMae?: number | null;
 }
 
 export interface VectorJobResult {
   modeLabel: string;
+  status: Editable99Status | "completed";
   sourceHash: string;
   sourcePreviewDataUrl: string;
   resultPreviewDataUrl: string;
   metrics: VectorMetrics;
+  illustratorSafety: {
+    riskLevel: "safe" | "warning" | "blocked" | "archive";
+    action: string;
+    autoOpenAllowed: boolean;
+    message: string;
+    thresholdSource: string;
+  };
   warnings: string[];
   outputAvailable: boolean;
 }
@@ -291,7 +311,7 @@ export interface CreativeJobCreateRequest {
   projectId: string;
   workflowId: string;
   sourceAssetId?: string;
-  drawingMode?: "artisan" | "smart" | "lightweight" | "exact";
+  drawingMode?: VectorMode;
   parameters?: Record<string, unknown>;
   prompt?: string;
   negativePrompt?: string;
@@ -337,7 +357,7 @@ export interface WorkflowSummary {
   recommended: boolean;
   ordinaryCustomerRoute: boolean;
   requiresConfirmation: boolean;
-  drawingModes: Array<"artisan" | "smart" | "lightweight" | "exact">;
+  drawingModes: VectorMode[];
   imageTraceFallback: boolean;
 }
 

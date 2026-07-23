@@ -77,7 +77,7 @@ SESSION_HEADER = "X-KORYAO-Session"
 READY_PREFIX = "STARBRIDGE_READY "
 MAX_REQUEST_BODY_BYTES = 1024 * 1024
 VECTOR_INPUT_MAX_BYTES = 128 * 1024 * 1024
-VECTOR_MODES = frozenset({"artisan", "smart", "lightweight", "exact"})
+VECTOR_MODES = frozenset({"artisan", "smart", "lightweight", "exact", "editable-99"})
 DEFAULT_DEV_ORIGINS = (
     "http://127.0.0.1:5173",
     "http://localhost:5173",
@@ -599,7 +599,11 @@ class KORYAOBackend:
                     reference_id=reference_id,
                     output_dir=str(output_dir),
                     output_root=str(output_root),
-                    colors=optional_int("colors"),
+                    colors=(
+                        None
+                        if mode in {"exact", "editable-99"}
+                        else optional_int("colors")
+                    ),
                     max_dimension=optional_int("maxDimension"),
                     simplify_ratio=optional_float("simplifyRatio"),
                     min_region_area=optional_int("minRegionArea"),
@@ -608,8 +612,20 @@ class KORYAOBackend:
             )
             result_preview, _, _ = self._image_preview_data_url(output_dir / "preview.png")
             vector = report["vector"]
+            editable_99 = report.get("editable_99")
+            quality_metrics = (
+                editable_99.get("final_metrics", {})
+                if isinstance(editable_99, dict)
+                else {}
+            )
+            illustrator_safety = report["illustrator_safety"]
             result: JsonObject = {
                 "modeLabel": report["mode"]["label_zh"],
+                "status": (
+                    editable_99["status"]
+                    if isinstance(editable_99, dict)
+                    else "completed"
+                ),
                 "sourceHash": str(selection["source_sha256"])[:12],
                 "sourcePreviewDataUrl": selection["preview_data_url"],
                 "resultPreviewDataUrl": result_preview,
@@ -625,6 +641,18 @@ class KORYAOBackend:
                         else None
                     ),
                     "anchorReductionRatio": vector.get("anchor_reduction_ratio"),
+                    "ssim": quality_metrics.get("ssim"),
+                    "differencePercent": quality_metrics.get("difference_percent"),
+                    "normalizedMae": quality_metrics.get("normalized_mae"),
+                    "edgeDice": quality_metrics.get("edge_dice"),
+                    "alphaMae": quality_metrics.get("alpha_mae"),
+                },
+                "illustratorSafety": {
+                    "riskLevel": illustrator_safety["risk_level"],
+                    "action": illustrator_safety["action"],
+                    "autoOpenAllowed": illustrator_safety["auto_open_allowed"],
+                    "message": illustrator_safety["message"],
+                    "thresholdSource": illustrator_safety["threshold_source"],
                 },
                 "warnings": report["warnings"],
                 "outputAvailable": True,
@@ -793,7 +821,13 @@ class KORYAOBackend:
                             "recommended": True,
                             "ordinaryCustomerRoute": True,
                             "requiresConfirmation": True,
-                            "drawingModes": ["artisan", "smart", "lightweight", "exact"],
+                            "drawingModes": [
+                                "artisan",
+                                "smart",
+                                "lightweight",
+                                "exact",
+                                "editable-99",
+                            ],
                             "imageTraceFallback": False,
                         },
                         {

@@ -9,7 +9,7 @@ import tempfile
 import time
 import warnings
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -348,6 +348,8 @@ def _resize_for_design(image: Image.Image, max_dimension: int) -> Image.Image:
 
 def _prepare_rgb(rgba: Any, preset: VectorPreset) -> Any:
     rgb = rgba[:, :, :3]
+    if preset.mode == "editable-99":
+        return rgb.copy()
     if preset.blur_diameter > 1:
         diameter = preset.blur_diameter if preset.blur_diameter % 2 else preset.blur_diameter + 1
         rgb = cv2.bilateralFilter(rgb, diameter, 55, 55)
@@ -967,6 +969,47 @@ def _markdown_report(report: dict[str, Any]) -> str:
                     f"- Patch ref: `{optimization['patch_ref']}`",
                 ]
             )
+    editable_99 = report.get("editable_99")
+    if editable_99:
+        metrics = editable_99["final_metrics"]
+        thresholds = editable_99["thresholds"]
+        safety = editable_99["illustrator_safety"]
+        lines.extend(
+            [
+                "",
+                "## Editable-99 质量约束与复杂度结果",
+                "",
+                f"- 结果状态：`{editable_99['status']}`",
+                f"- 候选数量：{editable_99['candidate_count']}",
+                f"- 选中候选：`{editable_99['selected_candidate']}`",
+                f"- SSIM：{metrics['ssim']:.4f} / ≥ {thresholds['ssim']:.4f}",
+                (
+                    f"- Difference：{metrics['difference_percent']:.4f}% / "
+                    f"≤ {thresholds['difference_percent']:.4f}%"
+                ),
+                (
+                    f"- Normalized MAE：{metrics['normalized_mae']:.4f} / "
+                    f"≤ {thresholds['normalized_mae']:.4f}"
+                ),
+                (
+                    f"- Edge Dice：{metrics['edge_dice']:.4f} / "
+                    f"≥ {thresholds['edge_dice']:.4f}"
+                ),
+                (
+                    f"- Alpha MAE：{metrics['alpha_mae']:.4f} / "
+                    f"≤ {thresholds['alpha_mae']:.4f}"
+                ),
+                (
+                    "- Illustrator 自动打开："
+                    + ("允许" if safety["auto_open_allowed"] else "禁止")
+                ),
+                f"- Illustrator 风险级别：`{safety['risk_level']}`",
+                f"- Illustrator 处理：`{safety['action']}`",
+                f"- 停止原因：`{editable_99['stop_reason']}`",
+                f"- 局部恢复次数：{len(editable_99['local_recovery']['actions'])}",
+                f"- 阈值来源：{safety['threshold_source']}",
+            ]
+        )
     if report["warnings"]:
         lines.extend(["", "## 说明", "", *[f"- {item}" for item in report["warnings"]]])
     return "\n".join(lines) + "\n"
@@ -1000,9 +1043,194 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
         artisan_edit_index: dict[str, Any] | None = None
         artisan_scene: Any | None = None
         adaptive_report: dict[str, Any] | None = None
+        editable_99_report: dict[str, Any] | None = None
         vector60_run_report: dict[str, Any] | None = None
 
-        if preset.mode == "exact":
+        if preset.mode == "editable-99":
+            _require_design_runtime()
+            work_image = _resize_for_design(source_image, preset.max_dimension)
+            rgba = np.asarray(work_image, dtype=np.uint8)
+            prepared_rgb = _prepare_rgb(rgba, preset)
+            candidate_dir = staging / ".editable-99-builds"
+            candidate_dir.mkdir(parents=True, exist_ok=True)
+
+            from .adaptive_optimize import (
+                AdaptiveOptimizationError,
+                AdaptiveOptions,
+                EditableCandidateArtifact,
+                optimize_editable_99,
+            )
+
+            def build_exact_candidate(candidate_id: str) -> EditableCandidateArtifact:
+                candidate_svg = candidate_dir / f"{candidate_id}.svg"
+                candidate_preview = candidate_dir / f"{candidate_id}.png"
+                rectangles = _merge_exact_rectangles(work_image, preset)
+                _write_exact_svg(candidate_svg, work_image, rectangles)
+                work_image.save(candidate_preview, format="PNG")
+                exact_baseline_validation = _validate_exact_rectangles(
+                    work_image, rectangles
+                )
+                return EditableCandidateArtifact(
+                    candidate_id,
+                    "exact-rgba",
+                    candidate_svg,
+                    candidate_preview,
+                    {
+                        "rectangles": rectangles,
+                        "exact_validation": exact_baseline_validation,
+                    },
+                )
+
+            def build_color_candidate(
+                requested_colors: int, candidate_id: str
+            ) -> EditableCandidateArtifact:
+                candidate_preset = replace(preset, colors=requested_colors)
+                labels, paints = _build_paint_labels(rgba, prepared_rgb, candidate_preset)
+                labels, cleaned_regions = _cleanup_small_regions(
+                    labels, candidate_preset.min_region_area
+                )
+                paths, metrics = _trace_design_paths(labels, paints, candidate_preset)
+                candidate_svg = candidate_dir / f"{candidate_id}.svg"
+                candidate_preview = candidate_dir / f"{candidate_id}.png"
+                _write_design_svg(
+                    candidate_svg,
+                    work_image.width,
+                    work_image.height,
+                    paths,
+                )
+                _design_preview(labels, paints).save(candidate_preview, format="PNG")
+                return EditableCandidateArtifact(
+                    candidate_id,
+                    requested_colors,
+                    candidate_svg,
+                    candidate_preview,
+                    {
+                        "labels": labels,
+                        "paints": paints,
+                        "preset": candidate_preset,
+                        "metrics": {
+                            **metrics,
+                            "cleaned_small_regions": cleaned_regions,
+                        },
+                    },
+                )
+
+            def build_recovery_candidate(
+                source_candidate: EditableCandidateArtifact,
+                baseline_candidate: EditableCandidateArtifact,
+                regions: list[list[int]],
+                candidate_id: str,
+            ) -> EditableCandidateArtifact:
+                source_state = source_candidate.state
+                baseline_state = baseline_candidate.state
+                if not isinstance(source_state, dict) or not isinstance(baseline_state, dict):
+                    raise VectorizationError(
+                        "local_recovery_failed",
+                        "Editable-99 local recovery state is unavailable.",
+                    )
+                labels = source_state["labels"].copy()
+                baseline_labels = baseline_state["labels"]
+                paints = dict(source_state["paints"])
+                baseline_paints = baseline_state["paints"]
+                mapped_labels: dict[int, int] = {}
+                next_label = max(paints, default=-1) + 1
+                for raw_region in regions:
+                    x, y, width, height = (int(value) for value in raw_region)
+                    x0 = max(0, x)
+                    y0 = max(0, y)
+                    x1 = min(work_image.width, x + width)
+                    y1 = min(work_image.height, y + height)
+                    if x0 >= x1 or y0 >= y1:
+                        continue
+                    baseline_patch = baseline_labels[y0:y1, x0:x1]
+                    target_patch = labels[y0:y1, x0:x1]
+                    target_patch[baseline_patch < 0] = -1
+                    for raw_label in np.unique(baseline_patch):
+                        label = int(raw_label)
+                        if label < 0:
+                            continue
+                        if label not in mapped_labels:
+                            mapped_labels[label] = next_label
+                            paints[next_label] = baseline_paints[label]
+                            next_label += 1
+                        target_patch[baseline_patch == label] = mapped_labels[label]
+                candidate_preset = source_state["preset"]
+                paths, metrics = _trace_design_paths(labels, paints, candidate_preset)
+                candidate_svg = candidate_dir / f"{candidate_id}.svg"
+                candidate_preview = candidate_dir / f"{candidate_id}.png"
+                _write_design_svg(
+                    candidate_svg,
+                    work_image.width,
+                    work_image.height,
+                    paths,
+                )
+                _design_preview(labels, paints).save(candidate_preview, format="PNG")
+                return EditableCandidateArtifact(
+                    candidate_id,
+                    f"{source_candidate.requested_colors}+local-256",
+                    candidate_svg,
+                    candidate_preview,
+                    {
+                        "labels": labels,
+                        "paints": paints,
+                        "preset": candidate_preset,
+                        "metrics": metrics,
+                    },
+                )
+
+            try:
+                optimized = optimize_editable_99(
+                    reference=work_image,
+                    source_sha256=str(source["source_sha256"]),
+                    preset=preset,
+                    options=AdaptiveOptions(
+                        quality_preset="editable-99",
+                        target_difference=config.target_difference,
+                        resource_budget=config.resource_budget,
+                        detail_protection=config.detail_protection,
+                    ),
+                    staging_dir=staging,
+                    cache_dir=OUTPUT_ROOT / ".editable-99-cache",
+                    build_exact_candidate=build_exact_candidate,
+                    build_color_candidate=build_color_candidate,
+                    build_recovery_candidate=build_recovery_candidate,
+                )
+            except AdaptiveOptimizationError as exc:
+                raise VectorizationError(
+                    (
+                        "resource_limit_exceeded"
+                        if exc.code == "resource_limit"
+                        else "execution_failed"
+                    ),
+                    str(exc),
+                ) from exc
+            except VectorizationError as exc:
+                if exc.code == "vector_too_complex":
+                    raise VectorizationError(
+                        "resource_limit_exceeded",
+                        "Editable-99 exact baseline exceeded the configured complexity limit.",
+                    ) from exc
+                raise
+            except Exception as exc:
+                raise VectorizationError(
+                    "execution_failed",
+                    "Editable-99 failed before verified artifacts were published.",
+                ) from exc
+            shutil.copyfile(optimized.svg_path, svg_path)
+            shutil.copyfile(optimized.render_path, preview_path)
+            shutil.copyfile(optimized.render_path, staging / "svg_render.png")
+            editable_99_report = optimized.report
+            (staging / "editable_99.json").write_text(
+                json.dumps(editable_99_report, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            vector_metrics = {}
+            warnings_list.append(optimized.report["illustrator_safety"]["message"])
+            if optimized.report["status"] == "quality_not_met":
+                warnings_list.append(
+                    "候选与局部恢复预算内未达到全部 99% 质量门槛；已保留质量最高结果与指标。"
+                )
+        elif preset.mode == "exact":
             work_image = (
                 _resize_for_design(source_image, preset.max_dimension)
                 if preset.max_dimension > 0
@@ -1214,6 +1442,18 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
             )
         except SvgArtifactError as exc:
             raise VectorizationError(exc.code, str(exc)) from exc
+        from .adaptive_optimize import assess_illustrator_complexity
+
+        illustrator_safety = assess_illustrator_complexity(
+            int(evidence["subpath_count"]),
+            int(evidence["anchor_point_count"]),
+            preset,
+        )
+        if (
+            not illustrator_safety["auto_open_allowed"]
+            and illustrator_safety["message"] not in warnings_list
+        ):
+            warnings_list.append(illustrator_safety["message"])
         if artisan_structure is not None and (
             evidence["layer_count"] != vector_metrics["layer_count"]
             or evidence["structured_path_count"] != vector_metrics["shape_count"]
@@ -1243,10 +1483,42 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 "auto_enhance": config.auto_enhance,
                 "scene_preset": config.scene_preset,
             }
+        elif preset.mode == "editable-99":
+            public_parameters = {
+                **public_parameters,
+                "quality_preset": "editable-99",
+                "target_difference": (
+                    1.0 if config.target_difference is None else config.target_difference
+                ),
+                "resource_budget": config.resource_budget,
+                "detail_protection": config.detail_protection,
+                "color_schedule": [
+                    256,
+                    192,
+                    160,
+                    128,
+                    96,
+                    80,
+                    64,
+                    48,
+                    32,
+                ],
+            }
         parameters_path.write_text(
             json.dumps(public_parameters, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
+        source_after_sha256 = file_sha256(Path(config.input_path))
+        source_integrity = {
+            "before_sha256": source["source_sha256"],
+            "after_sha256": source_after_sha256,
+            "unchanged": source_after_sha256 == source["source_sha256"],
+        }
+        if not source_integrity["unchanged"]:
+            raise VectorizationError(
+                "source_modified",
+                "The input image changed during vectorization; no result was published.",
+            )
         elapsed = round(time.perf_counter() - started, 4)
         report: dict[str, Any] = {
             "ok": True,
@@ -1258,6 +1530,7 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 "default": preset.mode == "smart",
             },
             "source": source,
+            "source_integrity": source_integrity,
             "vector": {
                 "width": work_image.width,
                 "height": work_image.height,
@@ -1384,7 +1657,7 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 "image_trace_used": False,
                 "embedded_raster_count": evidence["embedded_raster_count"],
                 "external_reference_count": evidence["external_reference_count"],
-                "safety_limits_exceeded": False,
+                "safety_limits_exceeded": not illustrator_safety["auto_open_allowed"],
             },
             "exact_validation": exact_validation,
             "artisan_structure": (
@@ -1405,6 +1678,8 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 else None
             ),
             "adaptive_optimization": adaptive_report,
+            "editable_99": editable_99_report,
+            "illustrator_safety": illustrator_safety,
             "vector60": vector60_run_report,
             "parameters": public_parameters,
             "output_dir": repo_relative(output_dir),
@@ -1438,6 +1713,20 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                         if adaptive_report["selected_candidate"] != "baseline"
                         else "artisan_baseline"
                     ),
+                }
+            )
+        if editable_99_report is None:
+            report.pop("editable_99")
+        else:
+            report["validation"].update(
+                {
+                    "final_render_quality_gate_passed": editable_99_report[
+                        "quality_passed"
+                    ],
+                    "formal_result": editable_99_report["status"],
+                    "illustrator_auto_open_allowed": editable_99_report[
+                        "illustrator_safety"
+                    ]["auto_open_allowed"],
                 }
             )
         if vector60_run_report is None:
@@ -1500,6 +1789,34 @@ def run_vectorization(config: RunConfig) -> dict[str, Any]:
                 }
             )
             publish_filenames.append("adaptive_optimization.json")
+        editable_stage = staging / "editable_99.json"
+        if editable_stage.is_file():
+            final_editable = output_dir / "editable_99.json"
+            report["artifacts"].append(
+                {
+                    **_artifact(
+                        editable_stage,
+                        "editable_99_report",
+                        "application/json",
+                    ),
+                    "path": repo_relative(final_editable),
+                }
+            )
+            publish_filenames.append("editable_99.json")
+        heatmap_stage = staging / "error_heatmap.png"
+        if heatmap_stage.is_file():
+            final_heatmap = output_dir / "error_heatmap.png"
+            report["artifacts"].append(
+                {
+                    **_artifact(
+                        heatmap_stage,
+                        "editable_99_error_heatmap",
+                        "image/png",
+                    ),
+                    "path": repo_relative(final_heatmap),
+                }
+            )
+            publish_filenames.append("error_heatmap.png")
         if vector60_run_report is not None:
             for filename, role, media_type in (
                 ("vector60_report.json", "vector60_run_report", "application/json"),

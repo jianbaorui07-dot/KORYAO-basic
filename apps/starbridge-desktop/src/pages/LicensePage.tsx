@@ -94,12 +94,12 @@ export function LicensePage({ client, license, version, onLicenseChanged }: Lice
       {license.state !== "active" ? <>
         {license.state === "invalid" ? <ErrorState title="授权文件未生效" message={`${license.message || "当前授权文件没有通过本机验证。"} Community 免费功能仍可继续使用。`} nextSteps={["重新导入从人工购买渠道取得的原始授权文件。", "如更换过设备，请保留购买确认单并联系人工支持。"]} /> : null}
         <section className="community-summary">
-          <div><span className="summary-icon" aria-hidden="true">✓</span><div><h3>免费功能可直接使用</h3><p>当前版本 {version?.desktop ?? "—"} · 四种公开矢量模式 · 本机处理 · 无需激活</p></div></div>
+          <div><span className="summary-icon" aria-hidden="true">✓</span><div><h3>免费功能可直接使用</h3><p>当前版本 {version?.desktop ?? "—"} · 五种公开矢量模式 · 本机处理 · 无需激活</p></div></div>
           <ul><li>不使用授权服务器</li><li>不收集遥测</li><li>图片与设计文件留在本机</li></ul>
         </section>
         <section className="pro-overview">
           <div className="section-heading"><div><span>了解 Pro 专业版</span><h3>建议 ¥399 早鸟永久版</h3></div><span className="proposed-price">建议方案 · 尚未开售</span></div>
-          <p>Pro 的价值来自未来新的生产级矢量工作流：批量、自动化、项目管理、商业交付、私有增强、稳定安装包和专业支持。公开的四种矢量模式不会被重新包装为 Pro 独占能力。</p>
+          <p>Pro 的价值来自未来新的生产级矢量工作流：批量、自动化、项目管理、商业交付、私有增强、稳定安装包和专业支持。公开的五种矢量模式不会被重新包装为 Pro 独占能力。</p>
           <div className="activation-steps">
             <article><span>1</span><h4>导出设备申请</h4><p>生成脱敏申请文件，不含原始 MachineGuid、图片、授权文件或私钥。请按购买说明发送给 KORYAO 人工处理。</p><button type="button" className="secondary" disabled={busy} onClick={() => void exportRequest()}>导出设备申请</button></article>
             <article><span>2</span><h4>完成人工购买</h4><p>价格与条款仍是建议状态。正式开售前会明确 1–2 台设备、换机、退款、更新和支持期限。</p><span className="inactive-action">当前尚未开放购买</span></article>

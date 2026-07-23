@@ -23,7 +23,7 @@
 
 - Community 为免费版，无需激活；当前源码版本适用仓库根目录的自有许可证。
 - Pro 和 Enterprise 均为 `planned`，没有开售。
-- 四种离线矢量化引擎属于 Community。
+- 五种离线矢量化引擎（含独立 `editable-99` 质量门）属于 Community。
 - 基础 Project、CreativeJob、Workflow Engine、单任务历史、基础交付和脱敏 Evidence 已有 Community 实现与集成测试，状态为 `experimental`。
 - `vector-delivery-v1`、`comfyui-generation-v1` 和 `photoshop-production-v1` 已接入统一任务系统；前者在离线小图夹具上完成闭环，后两者分别通过模拟回环服务和模拟 UXP 代理闭环。三者都尚未获得发布级或真实第三方软件写入验收。
 - 图枢 DiagramForge 的无头编译器已能生成并重开原生 `.drawio`、导出内嵌 XML 的 SVG、验证结构并按稳定 ID 做局部事务修改；已有集成测试，但 Live MCP、Draw.io Desktop PDF 与发布级桌面交互仍是独立的可选状态，因此整体为 `experimental`。

@@ -30,17 +30,30 @@ class AdaptiveOptimizationError(RuntimeError):
 @dataclass(frozen=True)
 class QualityThresholds:
     key: str
+    minimum_ssim: float
     maximum_difference_percent: float
     maximum_normalized_mae: float
     minimum_edge_dice: float
+    maximum_alpha_mae: float
     simplify_factors: tuple[float, ...]
 
 
 QUALITY_PRESETS: dict[str, QualityThresholds] = {
-    "high-fidelity": QualityThresholds("high-fidelity", 15.0, 0.06, 0.92, (1.8, 1.45, 1.2)),
-    "balanced": QualityThresholds("balanced", 20.0, 0.08, 0.88, (2.2, 1.7, 1.3)),
-    "minimal": QualityThresholds("minimal", 25.0, 0.10, 0.84, (3.0, 2.2, 1.5)),
+    "high-fidelity": QualityThresholds(
+        "high-fidelity", 0.85, 15.0, 0.06, 0.92, 1.0, (1.8, 1.45, 1.2)
+    ),
+    "balanced": QualityThresholds(
+        "balanced", 0.80, 20.0, 0.08, 0.88, 1.0, (2.2, 1.7, 1.3)
+    ),
+    "minimal": QualityThresholds(
+        "minimal", 0.75, 25.0, 0.10, 0.84, 1.0, (3.0, 2.2, 1.5)
+    ),
+    "editable-99": QualityThresholds(
+        "editable-99", 0.990, 1.0, 0.010, 0.980, 0.005, ()
+    ),
 }
+
+EDITABLE_99_COLOR_CANDIDATES = (256, 192, 160, 128, 96, 80, 64, 48, 32)
 
 
 @dataclass(frozen=True)
@@ -62,18 +75,40 @@ class AdaptiveOptimizationResult:
     report: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class EditableCandidateArtifact:
+    candidate_id: str
+    requested_colors: int | str
+    svg_path: Path
+    preview_path: Path
+    state: Any = None
+
+
+@dataclass(frozen=True)
+class Editable99OptimizationResult:
+    svg_path: Path
+    render_path: Path
+    heatmap_path: Path
+    report: dict[str, Any]
+
+
 def validated_options(options: AdaptiveOptions) -> tuple[AdaptiveOptions, QualityThresholds]:
     if options.quality_preset not in QUALITY_PRESETS:
         raise AdaptiveOptimizationError(
             "invalid_quality_preset",
-            "Quality preset must be high-fidelity, balanced, or minimal.",
+            "Quality preset must be high-fidelity, balanced, minimal, or editable-99.",
         )
     thresholds = QUALITY_PRESETS[options.quality_preset]
     if options.target_difference is not None:
-        if not 5.0 <= options.target_difference <= 30.0:
+        minimum_difference = 0.0 if options.quality_preset == "editable-99" else 5.0
+        if not minimum_difference <= options.target_difference <= 30.0:
             raise AdaptiveOptimizationError(
                 "invalid_target_difference",
-                "Target difference must be between 5 and 30 percent.",
+                (
+                    "Target difference must be between 0 and 30 percent for editable-99."
+                    if options.quality_preset == "editable-99"
+                    else "Target difference must be between 5 and 30 percent."
+                ),
             )
         thresholds = replace(
             thresholds,
@@ -253,6 +288,26 @@ def _quality_metrics(
     }
 
 
+def quality_gates(
+    metrics: dict[str, float],
+    evidence: dict[str, Any],
+    thresholds: QualityThresholds,
+) -> dict[str, bool]:
+    return {
+        "ssim": metrics["ssim"] >= thresholds.minimum_ssim,
+        "difference_percent": (
+            metrics["difference_percent"] <= thresholds.maximum_difference_percent
+        ),
+        "normalized_mae": (
+            metrics["normalized_mae"] <= thresholds.maximum_normalized_mae
+        ),
+        "edge_dice": metrics["edge_dice"] >= thresholds.minimum_edge_dice,
+        "alpha_mae": metrics["alpha_mae"] <= thresholds.maximum_alpha_mae,
+        "embedded_rasters": evidence["embedded_raster_count"] == 0,
+        "external_references": evidence["external_reference_count"] == 0,
+    }
+
+
 def _reference_analysis(
     *,
     reference_rgb: np.ndarray[Any, Any],
@@ -360,6 +415,7 @@ def evaluate_svg_candidate(
     resource_limit: int,
     expected_svg_width: int,
     expected_svg_height: int,
+    supersample: int = 2,
 ) -> dict[str, Any]:
     estimated = estimated_render_memory_bytes(reference.width, reference.height)
     if estimated > resource_limit:
@@ -384,6 +440,7 @@ def evaluate_svg_candidate(
             "height": reference.height,
             "thresholds": thresholds.__dict__,
             "detail_protection": detail_protection,
+            "supersample": supersample,
         }
     )
     entry = cache_dir / cache_key[:2] / cache_key
@@ -406,7 +463,7 @@ def evaluate_svg_candidate(
             render_path,
             expected_width=expected_svg_width,
             expected_height=expected_svg_height,
-            supersample=2,
+            supersample=supersample,
             output_width=reference.width,
             output_height=reference.height,
         )
@@ -445,15 +502,7 @@ def evaluate_svg_candidate(
         output_width=expected_svg_width,
         output_height=expected_svg_height,
     )
-    gates = {
-        "structural_difference": (
-            final_metrics["difference_percent"] <= thresholds.maximum_difference_percent
-        ),
-        "normalized_mae": (final_metrics["normalized_mae"] <= thresholds.maximum_normalized_mae),
-        "edge_dice": final_metrics["edge_dice"] >= thresholds.minimum_edge_dice,
-        "embedded_rasters": evidence["embedded_raster_count"] == 0,
-        "external_references": evidence["external_reference_count"] == 0,
-    }
+    gates = quality_gates(final_metrics, evidence, thresholds)
     report = {
         "candidate_id": candidate_id,
         "status": "pass" if all(gates.values()) else "preview-only",
@@ -465,6 +514,7 @@ def evaluate_svg_candidate(
         "vector": {
             "anchors": evidence["anchor_point_count"],
             "subpaths": evidence["subpath_count"],
+            "colors": evidence["color_count"],
             "bytes": evidence["bytes"],
             "paths": evidence["path_count"],
             "curves": evidence["curve_segment_count"],
@@ -591,6 +641,377 @@ def select_passing_candidate(
             candidate["elapsed_seconds"],
             candidate["candidate_id"],
         ),
+    )
+
+
+def select_editable_99_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    passing = [candidate for candidate in candidates if candidate.get("status") == "pass"]
+    if not passing:
+        return None
+    return min(
+        passing,
+        key=lambda candidate: (
+            candidate["vector"]["subpaths"],
+            candidate["vector"]["anchors"],
+            candidate["vector"]["colors"],
+            candidate["vector"]["bytes"],
+            candidate["elapsed_seconds"],
+            candidate["candidate_id"],
+        ),
+    )
+
+
+def assess_illustrator_complexity(
+    subpaths: int,
+    points: int,
+    preset: VectorPreset,
+) -> dict[str, Any]:
+    if subpaths > preset.archive_subpaths:
+        risk_level = "archive"
+        action = "archive_only"
+        message = "子路径超过 300,000；仅保存 SVG、预览和指标，禁止自动打开 Illustrator。"
+    elif subpaths > preset.warning_subpaths or points > preset.warning_points:
+        risk_level = "blocked"
+        action = "save_only"
+        message = "子路径或节点超过高风险阈值；默认禁止自动打开 Illustrator。"
+    elif subpaths > preset.preferred_subpaths or points > preset.preferred_points:
+        risk_level = "warning"
+        action = "confirm_after_backup"
+        message = "复杂度超过建议安全范围；保存副本并明确确认后才可打开 Illustrator。"
+    else:
+        risk_level = "safe"
+        action = "allow_auto_open"
+        message = "复杂度在建议安全范围内，可尝试打开 Illustrator。"
+    return {
+        "risk_level": risk_level,
+        "action": action,
+        "auto_open_allowed": risk_level == "safe",
+        "subpaths": subpaths,
+        "points": points,
+        "thresholds": {
+            "preferred_subpaths": preset.preferred_subpaths,
+            "warning_subpaths": preset.warning_subpaths,
+            "preferred_points": preset.preferred_points,
+            "warning_points": preset.warning_points,
+            "blocked_subpaths": preset.blocked_subpaths,
+            "archive_subpaths": preset.archive_subpaths,
+        },
+        "message": message,
+        "threshold_source": "CreNexus engineering guardrail; not an Adobe official limit.",
+    }
+
+
+def derive_editable_99_status(quality_passed: bool, risk_level: str) -> str:
+    if not quality_passed:
+        return "quality_not_met"
+    if risk_level == "safe":
+        return "passed_editable_99"
+    if risk_level == "warning":
+        return "passed_quality_high_complexity"
+    return "quality_and_editability_conflict"
+
+
+def optimize_editable_99(
+    *,
+    reference: Image.Image,
+    source_sha256: str,
+    preset: VectorPreset,
+    options: AdaptiveOptions,
+    staging_dir: Path,
+    cache_dir: Path,
+    build_exact_candidate: Callable[[str], EditableCandidateArtifact],
+    build_color_candidate: Callable[[int, str], EditableCandidateArtifact],
+    build_recovery_candidate: Callable[
+        [EditableCandidateArtifact, EditableCandidateArtifact, list[list[int]], str],
+        EditableCandidateArtifact,
+    ]
+    | None = None,
+) -> Editable99OptimizationResult:
+    options, thresholds = validated_options(options)
+    if thresholds.key != "editable-99":
+        raise AdaptiveOptimizationError(
+            "invalid_quality_preset",
+            "Editable-99 optimization requires the editable-99 quality preset.",
+        )
+    limit = resource_limit_bytes(options.resource_budget)
+    estimated = estimated_render_memory_bytes(reference.width, reference.height)
+    if estimated > limit:
+        raise AdaptiveOptimizationError(
+            "resource_limit",
+            "Editable-99 final-resolution validation exceeds the selected resource budget.",
+        )
+
+    candidate_dir = staging_dir / ".editable-99-candidates"
+    candidate_dir.mkdir(parents=True, exist_ok=True)
+    records: list[dict[str, Any]] = []
+    artifacts: dict[str, EditableCandidateArtifact] = {}
+    generation_failures: list[dict[str, Any]] = []
+
+    def evaluate(artifact: EditableCandidateArtifact) -> dict[str, Any]:
+        exact_validation = (
+            artifact.state.get("exact_validation")
+            if artifact.requested_colors == "exact-rgba"
+            and isinstance(artifact.state, dict)
+            else None
+        )
+        if isinstance(exact_validation, dict) and exact_validation.get("pixel_match") is True:
+            started = time.perf_counter()
+            try:
+                evidence = verify_svg_artifact(
+                    artifact.svg_path,
+                    expected_width=reference.width,
+                    expected_height=reference.height,
+                )
+            except SvgArtifactError as exc:
+                raise AdaptiveOptimizationError(exc.code, str(exc)) from exc
+            exact_metrics = {
+                "ssim": 1.0,
+                "difference_percent": 0.0,
+                "normalized_mae": 0.0,
+                "alpha_mae": 0.0,
+                "edge_dice": 1.0,
+            }
+            gates = quality_gates(exact_metrics, evidence, thresholds)
+            record = {
+                "candidate_id": artifact.candidate_id,
+                "status": "pass" if all(gates.values()) else "preview-only",
+                "planning_resolution": [reference.width, reference.height],
+                "final_resolution": [reference.width, reference.height],
+                "planning_metrics": exact_metrics,
+                "final_render_metrics": exact_metrics,
+                "gates": gates,
+                "vector": {
+                    "anchors": evidence["anchor_point_count"],
+                    "subpaths": evidence["subpath_count"],
+                    "colors": evidence["color_count"],
+                    "bytes": evidence["bytes"],
+                    "paths": evidence["path_count"],
+                    "curves": evidence["curve_segment_count"],
+                },
+                "hotspots": [],
+                "svg_sha256": evidence["sha256"],
+                "elapsed_seconds": round(time.perf_counter() - started, 4),
+                "cache_hit": False,
+                "reference_analysis_cache_hit": False,
+                "validation_method": "exact_rgba_rectangle_reconstruction",
+            }
+        else:
+            record = evaluate_svg_candidate(
+                candidate_id=artifact.candidate_id,
+                reference=reference,
+                source_sha256=source_sha256,
+                svg_path=artifact.svg_path,
+                render_path=artifact.preview_path,
+                cache_dir=cache_dir,
+                thresholds=thresholds,
+                detail_protection=options.detail_protection,
+                resource_limit=limit,
+                expected_svg_width=reference.width,
+                expected_svg_height=reference.height,
+                supersample=1,
+            )
+        record["requested_colors"] = artifact.requested_colors
+        records.append(record)
+        artifacts[artifact.candidate_id] = artifact
+        return record
+
+    evaluate(build_exact_candidate("exact-baseline"))
+    color_records: list[tuple[dict[str, Any], EditableCandidateArtifact]] = []
+    consecutive_failures = 0
+    any_color_passed = False
+    stop_reason = "color_schedule_completed"
+    for requested_colors in EDITABLE_99_COLOR_CANDIDATES:
+        candidate_id = f"colors-{requested_colors}"
+        try:
+            artifact = build_color_candidate(requested_colors, candidate_id)
+            record = evaluate(artifact)
+        except Exception as exc:
+            generation_failures.append(
+                {
+                    "candidate_id": candidate_id,
+                    "requested_colors": requested_colors,
+                    "error_code": getattr(exc, "code", "candidate_generation_failed"),
+                    "message": (
+                        str(exc)
+                        if getattr(exc, "code", None)
+                        else "Candidate generation failed before quality evaluation."
+                    ),
+                }
+            )
+            consecutive_failures += 1
+            continue
+        color_records.append((record, artifact))
+        if record["status"] == "pass":
+            any_color_passed = True
+            consecutive_failures = 0
+        else:
+            consecutive_failures += 1
+        if any_color_passed and consecutive_failures >= 2:
+            stop_reason = "early_stop_two_lower_color_failures"
+            break
+
+    recovery_actions: list[dict[str, Any]] = []
+    baseline_pair = next(
+        (pair for pair in color_records if pair[1].requested_colors == 256),
+        None,
+    )
+    failed_lower = [
+        pair
+        for pair in color_records
+        if pair[0]["status"] != "pass" and pair[1].requested_colors != 256
+    ]
+    if (
+        build_recovery_candidate is not None
+        and baseline_pair is not None
+        and baseline_pair[0]["status"] == "pass"
+        and failed_lower
+    ):
+        source_record, source_artifact = min(
+            failed_lower,
+            key=lambda pair: (
+                pair[0]["final_render_metrics"]["difference_percent"],
+                pair[0]["final_render_metrics"]["normalized_mae"],
+                -pair[0]["final_render_metrics"]["edge_dice"],
+                pair[0]["vector"]["subpaths"],
+            ),
+        )
+        restored_regions: list[list[int]] = []
+        previous_record = source_record
+        for index, hotspot in enumerate(source_record["hotspots"][:5], start=1):
+            restored_regions.append(list(hotspot["bbox"]))
+            candidate_id = f"local-recovery-{index}"
+            try:
+                artifact = build_recovery_candidate(
+                    source_artifact,
+                    baseline_pair[1],
+                    restored_regions,
+                    candidate_id,
+                )
+                record = evaluate(artifact)
+            except Exception as exc:
+                generation_failures.append(
+                    {
+                        "candidate_id": candidate_id,
+                        "requested_colors": source_artifact.requested_colors,
+                        "error_code": getattr(exc, "code", "local_recovery_failed"),
+                        "message": (
+                            str(exc)
+                            if getattr(exc, "code", None)
+                            else "Local recovery failed before quality evaluation."
+                        ),
+                    }
+                )
+                continue
+            recovery_actions.append(
+                {
+                    "candidate_id": candidate_id,
+                    "regions": [list(region) for region in restored_regions],
+                    "trigger": "quality_gate_failed_in_error_hotspot",
+                    "before_metrics": previous_record["final_render_metrics"],
+                    "after_metrics": record["final_render_metrics"],
+                    "before_vector": previous_record["vector"],
+                    "after_vector": record["vector"],
+                    "passed": record["status"] == "pass",
+                }
+            )
+            previous_record = record
+            if record["status"] == "pass":
+                stop_reason = "local_recovery_passed"
+                break
+
+    selected = select_editable_99_candidate(records)
+    quality_passed = selected is not None
+    if selected is None:
+        selected = min(
+            records,
+            key=lambda record: (
+                -record["final_render_metrics"]["ssim"],
+                record["final_render_metrics"]["difference_percent"],
+                record["final_render_metrics"]["normalized_mae"],
+                -record["final_render_metrics"]["edge_dice"],
+                record["final_render_metrics"]["alpha_mae"],
+                record["vector"]["subpaths"],
+            ),
+        )
+        stop_reason = "quality_not_met_best_evidence_retained"
+
+    selected_artifact = artifacts[str(selected["candidate_id"])]
+    with Image.open(selected_artifact.preview_path) as rendered_image:
+        rendered = rendered_image.convert("RGBA")
+    reference_rgb, _ = _composite_white(reference)
+    rendered_rgb, _ = _composite_white(rendered)
+    _, heatmap = _hotspots(
+        reference_rgb,
+        rendered_rgb,
+        output_width=reference.width,
+        output_height=reference.height,
+    )
+    heatmap_path = staging_dir / "error_heatmap.png"
+    Image.fromarray(heatmap, mode="L").save(heatmap_path, format="PNG")
+
+    safety = assess_illustrator_complexity(
+        int(selected["vector"]["subpaths"]),
+        int(selected["vector"]["anchors"]),
+        preset,
+    )
+    final_status = derive_editable_99_status(quality_passed, str(safety["risk_level"]))
+    thresholds_report = {
+        "ssim": thresholds.minimum_ssim,
+        "difference_percent": thresholds.maximum_difference_percent,
+        "normalized_mae": thresholds.maximum_normalized_mae,
+        "edge_dice": thresholds.minimum_edge_dice,
+        "alpha_mae": thresholds.maximum_alpha_mae,
+    }
+    compact_candidates = [
+        {
+            "id": record["candidate_id"],
+            "requested_colors": record["requested_colors"],
+            "status": record["status"],
+            "metrics": record["final_render_metrics"],
+            "quality_gates": record["gates"],
+            "vector": record["vector"],
+            "elapsed_seconds": record["elapsed_seconds"],
+            "rejection_reason": [
+                gate for gate, passed in record["gates"].items() if not passed
+            ],
+            "hotspots": record["hotspots"][:5],
+            "cache_hit": record["cache_hit"],
+        }
+        for record in records
+    ]
+    report = {
+        "schema_version": 1,
+        "status": final_status,
+        "quality_passed": quality_passed,
+        "quality_preset": "editable-99",
+        "thresholds": thresholds_report,
+        "color_schedule": list(EDITABLE_99_COLOR_CANDIDATES),
+        "selected_candidate": selected["candidate_id"],
+        "candidate_count": len(records),
+        "candidates": compact_candidates,
+        "generation_failures": generation_failures,
+        "final_metrics": selected["final_render_metrics"],
+        "quality_gates": selected["gates"],
+        "illustrator_safety": safety,
+        "local_recovery": {
+            "attempted": bool(recovery_actions),
+            "selected": str(selected["candidate_id"]).startswith("local-recovery-"),
+            "actions": recovery_actions,
+        },
+        "stop_reason": stop_reason,
+        "resource": {
+            "level": options.resource_budget,
+            "limit_bytes": limit,
+            "estimated_peak_bytes": estimated,
+        },
+        "renderer": RENDERER_VERSION,
+        "external_ai_calls": 0,
+    }
+    return Editable99OptimizationResult(
+        selected_artifact.svg_path,
+        selected_artifact.preview_path,
+        heatmap_path,
+        report,
     )
 
 
